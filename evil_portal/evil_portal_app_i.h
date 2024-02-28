@@ -16,12 +16,12 @@
 #include <gui/view_stack.h>
 #include <dialogs/dialogs.h>
 
-#include <xtreme/xtreme.h>
+#include <momentum/momentum.h>
 
 #define NUM_MENU_ITEMS (6)
 
 #define EVIL_PORTAL_TEXT_BOX_STORE_SIZE (4096)
-#define UART_CH (xtreme_settings.uart_esp_channel)
+#define UART_CH (momentum_settings.uart_esp_channel)
 
 #define SET_HTML_CMD "sethtml"
 #define SET_AP_CMD "setap"

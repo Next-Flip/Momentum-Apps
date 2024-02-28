@@ -16,6 +16,6 @@
 
 #define NA 0
 
-#include <xtreme/xtreme.h>
+#include <momentum/momentum.h>
 
-#define UART_CH (xtreme_settings.uart_esp_channel)
+#define UART_CH (momentum_settings.uart_esp_channel)

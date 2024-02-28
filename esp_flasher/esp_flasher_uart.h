@@ -2,9 +2,9 @@
 
 #include "furi_hal.h"
 
-#include <xtreme/xtreme.h>
+#include <momentum/momentum.h>
 
-#define UART_CH (xtreme_settings.uart_esp_channel)
+#define UART_CH (momentum_settings.uart_esp_channel)
 #define BAUDRATE (115200)
 #define FAST_BAUDRATE (921600)
 

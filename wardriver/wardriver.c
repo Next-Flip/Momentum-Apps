@@ -48,7 +48,7 @@ void save_file(Context* ctx) {
         "WigleWifi-1.4",
         "appRelease=v2.0",
         "model=S33",
-        "release=XtremeFW",
+        "release=MomentumFW",
         "Flipper Zero",
         "",
         "Wardriver",
@@ -175,7 +175,7 @@ static void render_callback(Canvas* canvas, void* context) {
             canvas_draw_str(canvas, 0, 10, "GPS channel invalid!");
             canvas_draw_str(canvas, 0, 20, "Change UART");
             canvas_draw_str(canvas, 0, 30, "channel");
-            canvas_draw_str(canvas, 0, 40, "in the Xtreme");
+            canvas_draw_str(canvas, 0, 40, "in the Momentum");
             canvas_draw_str(canvas, 0, 50, "app");
         } else {
             furi_string_printf(

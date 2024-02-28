@@ -16,7 +16,7 @@ void nfc_maker_scene_https_on_enter(void* context) {
 
     text_input_set_header_text(text_input, "Enter Https Link:");
 
-    strlcpy(app->big_buf, "flipper-xtre.me", BIG_INPUT_LEN);
+    strlcpy(app->big_buf, "momentum-fw.dev", BIG_INPUT_LEN);
 
     text_input_set_result_callback(
         text_input,

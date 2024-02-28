@@ -538,8 +538,6 @@ static const struct {
     {0x87B25F, "Animated Rickroll"},
     {0xF38C02, "Boykisser"},
     {0x1448C9, "BLM"},
-    {0xD5AB33, "Xtreme"},
-    {0x0C0B67, "Xtreme Cta"},
     {0x13B39D, "Talking Sasquach"},
     {0xAA1FE1, "ClownMaster"},
     {0x7C6CDB, "Obama"},

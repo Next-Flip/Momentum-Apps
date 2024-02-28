@@ -3,9 +3,9 @@
 #include <furi_hal.h>
 #include <notification/notification_messages.h>
 
-#include <xtreme/xtreme.h>
+#include <momentum/momentum.h>
 
-#define UART_CH (xtreme_settings.uart_nmea_channel)
+#define UART_CH (momentum_settings.uart_nmea_channel)
 
 #define RX_BUF_SIZE 1024
 

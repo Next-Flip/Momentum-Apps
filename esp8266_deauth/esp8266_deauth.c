@@ -12,11 +12,11 @@
 //#include <notification/notification_messages.h>
 //#include <stdlib.h>
 
-#include <xtreme/xtreme.h>
+#include <momentum/momentum.h>
 
 #include "FlipperZeroWiFiDeauthModuleDefines.h"
 
-#define UART_CH (xtreme_settings.uart_esp_channel)
+#define UART_CH (momentum_settings.uart_esp_channel)
 
 #define DEAUTH_APP_DEBUG 0
 

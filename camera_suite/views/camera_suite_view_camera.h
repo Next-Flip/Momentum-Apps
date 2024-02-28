@@ -17,9 +17,9 @@
 
 #include "../helpers/camera_suite_custom_event.h"
 
-#include <xtreme/xtreme.h>
+#include <momentum/momentum.h>
 
-#define UART_CH (xtreme_settings.uart_esp_channel)
+#define UART_CH (momentum_settings.uart_esp_channel)
 
 #define BITMAP_HEADER_LENGTH 62
 #define FRAME_BIT_DEPTH 1
