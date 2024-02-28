@@ -172,7 +172,7 @@ void game_engine_run(GameEngine* engine) {
             // show fps if needed
             if(engine->settings.show_fps) {
                 canvas_set_color(canvas, ColorXOR);
-                canvas_printf(canvas, 0, 7, "%u", (uint32_t)roundf(engine->fps));
+                canvas_printf(canvas, 0, 7, "%lu", (uint32_t)roundf(engine->fps));
             }
 
             // and output screen buffer

@@ -27,6 +27,25 @@ size_t canvas_printf_width(Canvas* canvas, const char* format, ...) {
     return size;
 }
 
+void canvas_printf_aligned(
+    Canvas* canvas,
+    uint8_t x,
+    uint8_t y,
+    Align h,
+    Align v,
+    const char* format,
+    ...) {
+    FuriString* string = furi_string_alloc();
+    va_list args;
+    va_start(args, format);
+    furi_string_vprintf(string, format, args);
+    va_end(args);
+
+    canvas_draw_str_aligned(canvas, x, y, h, v, furi_string_get_cstr(string));
+
+    furi_string_free(string);
+}
+
 void canvas_draw_str_aligned_outline(
     Canvas* canvas,
     uint8_t x,
