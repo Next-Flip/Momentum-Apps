@@ -1,5 +1,6 @@
 #include "vector.h"
 #include <math.h>
+#include <float.h>
 
 #undef vector_add
 #undef vector_sub
@@ -44,6 +45,9 @@ float vector_length(Vector v) {
 
 Vector vector_normalize(Vector v) {
     float length = vector_length(v);
+    if(length < FLT_EPSILON) {
+        return (Vector){0, 0};
+    }
     return (Vector){v.x / length, v.y / length};
 }
 
