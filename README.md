@@ -1,5 +1,5 @@
 # Momentum-Apps
-Bundle of external apps tweaked for [Momentum Firmware](https://github.com/NextFlip/Momentum-Firmware).
+Bundle of external apps tweaked for [Momentum Firmware](https://github.com/Next-Flip/Momentum-Firmware).
 
 > [!IMPORTANT]
 > These apps are already included with all Momentum Firmware releases.
