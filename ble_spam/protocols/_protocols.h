@@ -3,7 +3,6 @@
 #include "continuity.h"
 #include "easysetup.h"
 #include "fastpair.h"
-#include "lovespouse.h"
 #include "swiftpair.h"
 
 typedef enum {
@@ -24,7 +23,6 @@ struct Payload {
         ContinuityCfg continuity;
         EasysetupCfg easysetup;
         FastpairCfg fastpair;
-        LovespouseCfg lovespouse;
         SwiftpairCfg swiftpair;
     } cfg;
 };
