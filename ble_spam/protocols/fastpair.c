@@ -3,6 +3,7 @@
 
 // Hacked together by @Willy-JL and @Spooks4576
 // Documentation at https://developers.google.com/nearby/fast-pair/specifications/introduction
+// https://bluetoothdb.com
 
 static const struct {
     uint32_t value;
@@ -531,6 +532,7 @@ static const struct {
     {0xCB2FE7, "soundcore Motion X500"},
 
     // Custom debug popups
+    {0x73A6F2, "Momentum Firmware"},
     {0xD99CA1, "Flipper Zero"},
     {0x77FF67, "Free Robux"},
     {0xAA187F, "Free VBucks"},
