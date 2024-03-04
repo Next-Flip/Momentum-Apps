@@ -21,7 +21,6 @@ temp="$(rev <<< "${repo%/}" | cut -d/ -f1,2 | rev | tr / -)-${branch}"
 fetch="_fetch-${temp}"
 split="_split-${temp}-$(tr / - <<< "${subdir}")"
 git fetch --no-tags "${repo}" "${branch}:${fetch}"
-mkdir -p "${path}/.subtree-cache"
 cache="${path}/.subtree-cache/${split}"
 hash="$(git rev-parse ${fetch})"
 skip=false
@@ -49,5 +48,6 @@ if ! $skip; then
     fi
 fi
 if $ok; then
+    mkdir -p "${path}/.subtree-cache"
     echo "${hash}" > "${cache}"
 fi
