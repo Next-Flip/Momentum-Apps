@@ -17,7 +17,7 @@ subdir="${4}"
 action="${5}"
 
 prev="$(git branch --show-current)"
-temp="$(rev <<< "${repo%/}" | cut -d/ -f1,2 | rev | tr / -)-${branch}"
+temp="$(rev <<< "${repo%/}" | cut -d/ -f1,2 | rev | tr / -)-$(tr / - <<< "${branch}")"
 fetch="_fetch-${temp}"
 split="_split-${temp}-$(tr / - <<< "${subdir}")"
 git fetch --no-tags "${repo}" "${branch}:${fetch}"
