@@ -30,6 +30,7 @@ if [ -f "${cache}" ]; then
         skip=true
     fi
 fi
+ok=true
 if ! $skip; then
     git checkout "${fetch}"
     exec {capture}>&1
@@ -39,7 +40,14 @@ if ! $skip; then
         git branch -D "${split}"
         git subtree split -P "${subdir}" -b "${split}"
     fi
+    if grep "^fatal: " <<< "$result" > /dev/null; then
+        ok=false
+    fi
     git checkout "${prev}"
-    git subtree "${action}" -P "${path}" "${split}" -m "${action^} ${path} from ${repo}"
+    if $ok; then
+        git subtree "${action}" -P "${path}" "${split}" -m "${action^} ${path} from ${repo}"
+    fi
 fi
-echo "${hash}" > "${cache}"
+if $ok; then
+    echo "${hash}" > "${cache}"
+fi
