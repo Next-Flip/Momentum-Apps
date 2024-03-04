@@ -2,7 +2,9 @@
 
 #include "furi_hal.h"
 
-#define UART_CH (FuriHalSerialIdUsart)
+#include <momentum/momentum.h>
+
+#define UART_CH (momentum_settings.uart_esp_channel)
 #define BAUDRATE (115200)
 #define FAST_BAUDRATE (921600)
 

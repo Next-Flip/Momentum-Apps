@@ -2,11 +2,12 @@
 
 enum QuickState {
     QuickStart,
-    QuickBootS2,
-    QuickBootS2_Marauder,
-    QuickBootS2_Blackmagic,
-    QuickBootWROOM,
-    QuickBootWROOM_Marauder,
+    QuickS2DevXeon,
+    QuickS2DevXeon_Marauder,
+    QuickS2DevXeon_Blackmagic,
+    QuickWROOMMultiFucc,
+    QuickWROOMMultiFucc_Marauder,
+    QuickWROOMMultiFucc_Wardriver,
     QuickWROOM,
     QuickWROOM_Marauder,
     QuickS2,
@@ -29,19 +30,23 @@ void esp_flasher_scene_quick_on_enter(void* context) {
 
     switch(state) {
     case QuickStart:
-    case QuickBootS2:
-    case QuickBootWROOM:
+    case QuickS2DevXeon:
+    case QuickWROOMMultiFucc:
     case QuickWROOM:
     case QuickS2:
         submenu_set_header(submenu, "Choose Board:");
         submenu_add_item(
             submenu,
             "Flipper WiFi Board / Xeon",
-            QuickBootS2,
+            QuickS2DevXeon,
             esp_flasher_scene_quick_submenu_callback,
             app);
         submenu_add_item(
-            submenu, "Multi-Fucc", QuickBootWROOM, esp_flasher_scene_quick_submenu_callback, app);
+            submenu,
+            "Multi-Fucc",
+            QuickWROOMMultiFucc,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
         submenu_add_item(
             submenu,
             "Other ESP32-WROOM",
@@ -51,33 +56,42 @@ void esp_flasher_scene_quick_on_enter(void* context) {
         submenu_add_item(
             submenu, "Other ESP32-S2", QuickS2, esp_flasher_scene_quick_submenu_callback, app);
         break;
-    case QuickBootS2_Marauder:
-    case QuickBootS2_Blackmagic:
+    case QuickS2DevXeon_Marauder:
+    case QuickS2DevXeon_Blackmagic:
     case QuickS2_Marauder:
     case QuickS2_Blackmagic:
         submenu_set_header(submenu, "Choose Firmware:");
         submenu_add_item(
             submenu,
             "Marauder (has Evil Portal)",
-            state > QuickS2 ? QuickS2_Marauder : QuickBootS2_Marauder,
+            state > QuickS2 ? QuickS2_Marauder : QuickS2DevXeon_Marauder,
             esp_flasher_scene_quick_submenu_callback,
             app);
         submenu_add_item(
             submenu,
             "Black Magic",
-            state > QuickS2 ? QuickS2_Blackmagic : QuickBootS2_Blackmagic,
+            state > QuickS2 ? QuickS2_Blackmagic : QuickS2DevXeon_Blackmagic,
             esp_flasher_scene_quick_submenu_callback,
             app);
         break;
-    case QuickBootWROOM_Marauder:
+    case QuickWROOMMultiFucc_Marauder:
+    case QuickWROOMMultiFucc_Wardriver:
     case QuickWROOM_Marauder:
         submenu_set_header(submenu, "Choose Firmware:");
         submenu_add_item(
             submenu,
             "Marauder (has Evil Portal)",
-            state > QuickWROOM ? QuickWROOM_Marauder : QuickBootWROOM_Marauder,
+            state > QuickWROOM ? QuickWROOM_Marauder : QuickWROOMMultiFucc_Marauder,
             esp_flasher_scene_quick_submenu_callback,
             app);
+        if(state < QuickWROOM) {
+            submenu_add_item(
+                submenu,
+                "Wardriver",
+                QuickWROOMMultiFucc_Wardriver,
+                esp_flasher_scene_quick_submenu_callback,
+                app);
+        }
         break;
     default:
         break;
@@ -103,8 +117,8 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
         const char* firm = NULL; // 0x10000
 
         switch(event.event) {
-        case QuickBootS2:
-        case QuickBootWROOM:
+        case QuickS2DevXeon:
+        case QuickWROOMMultiFucc:
         case QuickWROOM:
         case QuickS2:
             scene_manager_set_scene_state(
@@ -112,34 +126,38 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
             scene_manager_next_scene(app->scene_manager, EspFlasherSceneQuick);
             return consumed;
 
-        case QuickBootS2_Marauder:
+        case QuickS2DevXeon_Marauder:
             enter_bootloader = true;
             /* fallthrough */
         case QuickS2_Marauder:
-            boot = APP_ASSETS_PATH("marauder/S2/esp32_marauder.ino.bootloader.bin");
-            part = APP_ASSETS_PATH("marauder/esp32_marauder.ino.partitions.bin");
-            app0 = APP_ASSETS_PATH("marauder/boot_app0.bin");
-            firm = APP_ASSETS_PATH("marauder/S2/esp32_marauder.flipper.bin");
+            boot = APP_DATA_PATH("assets/marauder/S2/esp32_marauder.ino.bootloader.bin");
+            part = APP_DATA_PATH("assets/marauder/esp32_marauder.ino.partitions.bin");
+            app0 = APP_DATA_PATH("assets/marauder/boot_app0.bin");
+            firm = APP_DATA_PATH("assets/marauder/S2/esp32_marauder.flipper.bin");
             break;
 
-        case QuickBootS2_Blackmagic:
+        case QuickS2DevXeon_Blackmagic:
             enter_bootloader = true;
             /* fallthrough */
         case QuickS2_Blackmagic:
-            boot = APP_ASSETS_PATH("blackmagic/bootloader.bin");
-            part = APP_ASSETS_PATH("blackmagic/partition-table.bin");
-            firm = APP_ASSETS_PATH("blackmagic/blackmagic.bin");
+            boot = APP_DATA_PATH("assets/blackmagic/bootloader.bin");
+            part = APP_DATA_PATH("assets/blackmagic/partition-table.bin");
+            firm = APP_DATA_PATH("assets/blackmagic/blackmagic.bin");
             break;
 
-        case QuickBootWROOM_Marauder:
+        case QuickWROOMMultiFucc_Marauder:
             enter_bootloader = true;
             /* fallthrough */
         case QuickWROOM_Marauder:
-            boot = APP_ASSETS_PATH("marauder/WROOM/esp32_marauder.ino.bootloader.bin");
-            part = APP_ASSETS_PATH("marauder/esp32_marauder.ino.partitions.bin");
-            app0 = APP_ASSETS_PATH("marauder/boot_app0.bin");
-            firm =
-                APP_ASSETS_PATH("marauder/WROOM/esp32_marauder.dev_board_pro.bin");
+            boot = APP_DATA_PATH("assets/marauder/WROOM/esp32_marauder.ino.bootloader.bin");
+            part = APP_DATA_PATH("assets/marauder/esp32_marauder.ino.partitions.bin");
+            app0 = APP_DATA_PATH("assets/marauder/boot_app0.bin");
+            firm = APP_DATA_PATH("assets/marauder/WROOM/esp32_marauder.dev_board_pro.bin");
+            break;
+
+        case QuickWROOMMultiFucc_Wardriver:
+            enter_bootloader = true;
+            boot = APP_DATA_PATH("assets/wardriver/f0-wardrive-wroom_2.bin");
             break;
 
         default:
@@ -185,10 +203,10 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
             state = QuickS2;
         else if(state > QuickWROOM)
             state = QuickWROOM;
-        else if(state > QuickBootWROOM)
-            state = QuickBootWROOM;
-        else if(state > QuickBootS2)
-            state = QuickBootS2;
+        else if(state > QuickWROOMMultiFucc)
+            state = QuickWROOMMultiFucc;
+        else if(state > QuickS2DevXeon)
+            state = QuickS2DevXeon;
         scene_manager_set_scene_state(app->scene_manager, EspFlasherSceneQuick, state);
     }
 
