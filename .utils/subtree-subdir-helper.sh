@@ -30,7 +30,9 @@ if [ -f "${cache}" ]; then
     fi
 fi
 ok=true
-if ! $skip; then
+if $skip; then
+    echo "No updates, skipping expensive subtree split."
+else
     git checkout "${fetch}"
     exec {capture}>&1
     result="$(git subtree split -P "${subdir}" -b "${split}" 2>&1 | tee /proc/self/fd/$capture)"
