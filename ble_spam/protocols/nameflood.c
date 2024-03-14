@@ -22,7 +22,10 @@ static const char* make_name(const Payload* payload) {
         if(storage) {
             File* file = storage_file_alloc(storage);
             if(storage_file_open(
-                   file, "/ext/apps_assets/ble_spam/spamlist.txt", FSAM_READ, FSOM_OPEN_EXISTING)) {
+                   file,
+                   "/ext/apps_assets/ble_spam/floodlist.txt",
+                   FSAM_READ,
+                   FSOM_OPEN_EXISTING)) {
                 char line[256];
                 uint64_t bytes_read = storage_file_read(file, line, sizeof(line));
                 if(bytes_read > 0) {
