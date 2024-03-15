@@ -118,10 +118,12 @@ void wifi_marauder_scene_console_output_on_enter(void* context) {
 
     // Get ready to send command
     if((app->is_command && app->selected_tx_string) || app->script) {
-        const char* prefix =
-            strlen(app->selected_tx_string) > 0 ?
-                _wifi_marauder_get_prefix_from_cmd(app->selected_tx_string) : // Function name
-                app->script->name; // Script name
+        char* prefix_buf = NULL;
+        if(strlen(app->selected_tx_string) > 0) {
+            prefix_buf = _wifi_marauder_get_prefix_from_cmd(app->selected_tx_string);
+        }
+        const char* prefix = prefix_buf ? prefix_buf : // Function name
+                                          app->script->name; // Script name
 
         // Create files *before* sending command
         // (it takes time to iterate through the directory)
@@ -184,6 +186,10 @@ void wifi_marauder_scene_console_output_on_enter(void* context) {
         if(app->script != NULL) {
             app->script_worker = wifi_marauder_script_worker_alloc(app->uart);
             wifi_marauder_script_worker_start(app->script_worker, app->script);
+        }
+
+        if(prefix_buf) {
+            free(prefix_buf);
         }
     }
 }
