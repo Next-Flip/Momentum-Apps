@@ -1038,6 +1038,7 @@ int32_t wifi_scanner_app(void* p) {
     // Reset GPIO pins to default state
     furi_hal_gpio_init(&gpio_ext_pc0, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
 
+    furi_hal_serial_async_rx_stop(app->serial_handle);
     furi_hal_serial_deinit(app->serial_handle);
     furi_hal_serial_control_release(app->serial_handle);
 
