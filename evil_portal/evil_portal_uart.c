@@ -163,6 +163,7 @@ Evil_PortalUart* evil_portal_uart_init(Evil_PortalApp* app) {
 void evil_portal_uart_free(Evil_PortalUart* uart) {
     furi_assert(uart);
 
+    furi_hal_serial_async_rx_stop(uart->serial_handle);
     furi_hal_serial_deinit(uart->serial_handle);
     furi_hal_serial_control_release(uart->serial_handle);
 
