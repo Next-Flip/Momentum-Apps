@@ -86,7 +86,7 @@ UART_TerminalUart* uart_terminal_uart_init(UART_TerminalApp* app) {
 void uart_terminal_uart_free(UART_TerminalUart* uart) {
     furi_assert(uart);
 
-    furi_hal_serial_async_rx_stop(app->serial_handle);
+    furi_hal_serial_async_rx_stop(uart->serial_handle);
     furi_hal_serial_deinit(uart->serial_handle);
     furi_hal_serial_control_release(uart->serial_handle);
 
