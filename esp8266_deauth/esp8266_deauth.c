@@ -508,10 +508,6 @@ int32_t esp8266_deauth_app(void* p) {
     furi_hal_serial_deinit(app->serial_handle);
     furi_hal_serial_control_release(app->serial_handle);
 
-    furi_hal_serial_async_rx_stop(app->serial_handle);
-    furi_hal_serial_deinit(app->serial_handle);
-    furi_hal_serial_control_release(app->serial_handle);
-
     furi_thread_flags_set(furi_thread_get_id(app->m_worker_thread), WorkerEventStop);
     furi_thread_join(app->m_worker_thread);
     furi_thread_free(app->m_worker_thread);
