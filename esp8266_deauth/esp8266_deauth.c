@@ -504,6 +504,9 @@ int32_t esp8266_deauth_app(void* p) {
     }
 
     DEAUTH_APP_LOG_I("Start exit app");
+    furi_hal_serial_async_rx_stop(app->serial_handle);
+    furi_hal_serial_deinit(app->serial_handle);
+    furi_hal_serial_control_release(app->serial_handle);
 
     furi_hal_serial_async_rx_stop(app->serial_handle);
     furi_hal_serial_deinit(app->serial_handle);
