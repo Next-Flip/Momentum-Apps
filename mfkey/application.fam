@@ -10,10 +10,11 @@ App(
     ],
     stack_size=1 * 1024,
     fap_icon="mfkey.png",
-    fap_category="Nfc",
-    fap_author="noproto",
+    fap_category="NFC",
+    fap_author="@noproto",
     fap_icon_assets="images",
     fap_weburl="https://github.com/noproto/FlipperMfkey",
+    fap_description="MIFARE Classic key recovery tool",
     fap_version="2.0",
 )
 
