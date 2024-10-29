@@ -1,3 +1,7 @@
+## 1.13
+ - Support for dumping Gen1 cards
+ - Minor error screen changes
+
 ## 1.12
  - Removed call to legacy SDK API
 

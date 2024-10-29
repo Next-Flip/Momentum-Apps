@@ -91,7 +91,10 @@ static void cleanup(GameState* instance) {
     gui_direct_draw_release(instance->gui);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_INPUT_EVENTS);
+    furi_record_close(RECORD_NOTIFICATION);
+
     list_clear(game_logic);
+    free(game_logic);
     buffer_release(instance->buffer);
     free(instance);
 }
@@ -152,8 +155,8 @@ static void direct_draw_run(GameState* instance) {
                 buffer_render(instance->buffer, instance->canvas);
                 curr_state->render(instance);
             } else {
-                curr_state->render(instance);
                 buffer_swap_back(instance->buffer);
+                curr_state->render(instance);
                 buffer_render(instance->buffer, instance->canvas);
             }
             canvas_commit(instance->canvas);

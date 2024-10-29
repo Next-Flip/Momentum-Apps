@@ -104,7 +104,7 @@ int32_t cligui_main(void* p) {
         cligui->text_input_store,
         TEXT_INPUT_STORE_SIZE,
         true);
-    text_input_add_illegal_symbols(cligui->text_input);
+    text_input_show_illegal_symbols(cligui->text_input, true);
     view_dispatcher_add_view(
         cligui->view_dispatcher, ViewTextInput, text_input_get_view(cligui->text_input));
 

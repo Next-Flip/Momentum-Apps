@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cli/cli.h>
+
 #include "../types/plugin_state.h"
 
 typedef struct TotpCliContext TotpCliContext;

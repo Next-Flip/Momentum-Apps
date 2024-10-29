@@ -1,3 +1,7 @@
+## v2.0.1
+
+- Fixed memory leak
+
 ## v2.0.0
 
 - App rewrite

@@ -26,7 +26,7 @@ void nfc_maker_scene_text_on_enter(void* context) {
         BIG_INPUT_LEN,
         true);
 
-    text_input_add_illegal_symbols(text_input);
+    text_input_show_illegal_symbols(text_input, true);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcMakerViewTextInput);
 }

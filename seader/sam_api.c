@@ -1099,19 +1099,7 @@ NfcCommand seader_worker_card_detect(
     OCTET_STRING_t atqa_string = {.buf = atqa, .size = 2};
     uint8_t protocol_bytes[] = {0x00, 0x00};
 
-    if(sak == 0 && atqa == NULL) { // picopass
-        protocol_bytes[1] = FrameProtocol_iclass;
-        OCTET_STRING_fromBuf(
-            &cardDetails->protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
-        memcpy(credential->diversifier, uid, uid_len);
-        credential->diversifier_len = uid_len;
-        credential->isDesfire = false;
-    } else if(atqa == 0) { // MFC
-        protocol_bytes[1] = FrameProtocol_nfc;
-        OCTET_STRING_fromBuf(
-            &cardDetails->protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
-        cardDetails->sak = &sak_string;
-    } else { // type 4
+    if(sak != 0 && atqa != NULL) { // type 4
         protocol_bytes[1] = FrameProtocol_nfc;
         OCTET_STRING_fromBuf(
             &cardDetails->protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
@@ -1122,6 +1110,20 @@ NfcCommand seader_worker_card_detect(
             memcpy(credential->diversifier, uid, uid_len);
             credential->diversifier_len = uid_len;
         }
+    } else if(sak != 0 && atqa == NULL) { // MFC
+        protocol_bytes[1] = FrameProtocol_nfc;
+        OCTET_STRING_fromBuf(
+            &cardDetails->protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
+        cardDetails->sak = &sak_string;
+    } else if(uid_len == 8) { // picopass
+        protocol_bytes[1] = FrameProtocol_iclass;
+        OCTET_STRING_fromBuf(
+            &cardDetails->protocol, (const char*)protocol_bytes, sizeof(protocol_bytes));
+        memcpy(credential->diversifier, uid, uid_len);
+        credential->diversifier_len = uid_len;
+        credential->isDesfire = false;
+    } else {
+        FURI_LOG_D(TAG, "Unknown card type");
     }
 
     seader_send_card_detected(seader, cardDetails);

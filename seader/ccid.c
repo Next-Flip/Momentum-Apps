@@ -265,7 +265,7 @@ size_t seader_ccid_process(Seader* seader, uint8_t* cmd, size_t cmd_len) {
             FURI_LOG_W(
                 TAG,
                 "Invalid LRC.  Recv: %02x vs Calc: %02x",
-                cmd[2 + 10 + message.dwLength + 1],
+                cmd[2 + 10 + message.dwLength],
                 seader_calc_lrc(cmd, 2 + 10 + message.dwLength));
             // TODO: Should I respond with an error?
             return message.consumed;

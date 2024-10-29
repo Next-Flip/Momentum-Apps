@@ -7,7 +7,7 @@
 
 #define APDU_HEADER_LEN 5
 #define ASN1_PREFIX     6
-#define ASN1_DEBUG      true
+// #define ASN1_DEBUG      true
 
 #define RFAL_PICOPASS_TXRX_FLAGS                                                    \
     (FURI_HAL_NFC_LL_TXRX_FLAGS_CRC_TX_MANUAL | FURI_HAL_NFC_LL_TXRX_FLAGS_AGC_ON | \
@@ -383,6 +383,10 @@ NfcCommand seader_worker_poller_callback_picopass(PicopassPollerEvent event, voi
         } else if(seader_worker->stage == SeaderPollerEventTypeConversation) {
             seader_worker_poller_conversation(seader, &spc);
         } else if(seader_worker->stage == SeaderPollerEventTypeComplete) {
+            ret = NfcCommandStop;
+        } else if(seader_worker->stage == SeaderPollerEventTypeFail) {
+            view_dispatcher_send_custom_event(
+                seader->view_dispatcher, SeaderCustomEventWorkerExit);
             ret = NfcCommandStop;
         }
     } else if(event.type == PicopassPollerEventTypeFail) {
