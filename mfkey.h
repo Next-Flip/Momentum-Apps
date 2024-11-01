@@ -41,6 +41,7 @@ typedef struct {
     int cracked;
     int unique_cracked;
     int num_completed;
+    int num_candidates;
     int total;
     int dict_count;
     int search;
@@ -49,14 +50,15 @@ typedef struct {
     int eta_round;
     bool mfkey32_present;
     bool nested_present;
-    bool is_thread_running;
     bool close_thread_please;
     FuriThread* mfkeythread;
+    KeysDict* cuid_dict;
 } ProgramState;
 
 typedef enum {
     mfkey32,
-    static_nested
+    static_nested,
+    static_encrypted
 } AttackType;
 
 typedef struct {
@@ -67,20 +69,26 @@ typedef struct {
     uint32_t nt1; // tag challenge second
     uint32_t uid_xor_nt0; // uid ^ nt0
     uint32_t uid_xor_nt1; // uid ^ nt1
-    // Mfkey32
-    uint32_t p64; // 64th successor of nt0
-    uint32_t p64b; // 64th successor of nt1
-    uint32_t nr0_enc; // first encrypted reader challenge
-    uint32_t ar0_enc; // first encrypted reader response
-    uint32_t nr1_enc; // second encrypted reader challenge
-    uint32_t ar1_enc; // second encrypted reader response
-    // Nested
-    uint32_t ks1_1_enc; // first encrypted keystream
-    uint32_t ks1_2_enc; // second encrypted keystream
-    char par_1_str[5]; // first parity bits (string representation)
-    char par_2_str[5]; // second parity bits (string representation)
-    uint8_t par_1; // first parity bits
-    uint8_t par_2; // second parity bits
+    union {
+        // Mfkey32
+        struct {
+            uint32_t p64; // 64th successor of nt0
+            uint32_t p64b; // 64th successor of nt1
+            uint32_t nr0_enc; // first encrypted reader challenge
+            uint32_t ar0_enc; // first encrypted reader response
+            uint32_t nr1_enc; // second encrypted reader challenge
+            uint32_t ar1_enc; // second encrypted reader response
+        };
+        // Nested
+        struct {
+            uint32_t ks1_1_enc; // first encrypted keystream
+            uint32_t ks1_2_enc; // second encrypted keystream
+            char par_1_str[5]; // first parity bits (string representation)
+            char par_2_str[5]; // second parity bits (string representation)
+            uint8_t par_1; // first parity bits
+            uint8_t par_2; // second parity bits
+        };
+    };
 } MfClassicNonce;
 
 typedef struct {

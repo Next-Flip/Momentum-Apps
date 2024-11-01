@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include "mfkey.h"
+#include <nfc/helpers/nfc_util.h>
 #include <nfc/protocols/mf_classic/mf_classic.h>
 
 #define LF_POLY_ODD  (0x29CE5C)
@@ -20,6 +21,12 @@ void crypto1_get_lfsr(struct Crypto1State* state, MfClassicKey* lfsr);
 static inline uint32_t crypt_word(struct Crypto1State* s);
 static inline void crypt_word_noret(struct Crypto1State* s, uint32_t in, int x);
 static inline uint32_t crypt_word_ret(struct Crypto1State* s, uint32_t in, int x);
+static uint32_t crypt_word_par(
+    struct Crypto1State* s,
+    uint32_t in,
+    int is_encrypted,
+    uint32_t nt_plain,
+    uint8_t* parity_keystream_bits);
 static inline void rollback_word_noret(struct Crypto1State* s, uint32_t in, int x);
 static inline uint8_t napi_lfsr_rollback_bit(struct Crypto1State* s, uint32_t in, int fb);
 static inline uint32_t napi_lfsr_rollback_word(struct Crypto1State* s, uint32_t in, int fb);
@@ -127,6 +134,48 @@ static inline uint32_t crypt_word_ret(struct Crypto1State* s, uint32_t in, int x
         s->even = s->even << 1 | (evenparity32(feedin));
         t = s->odd, s->odd = s->even, s->even = t;
         ret |= next_ret << (24 ^ i);
+    }
+    return ret;
+}
+
+static uint8_t get_nth_byte(uint32_t value, int n) {
+    if(n < 0 || n > 3) {
+        // Handle invalid input
+        return 0;
+    }
+    return (value >> (8 * (3 - n))) & 0xFF;
+}
+
+static uint8_t crypt_bit(struct Crypto1State* s, uint8_t in, int is_encrypted) {
+    uint32_t feedin, t;
+    uint8_t ret = filter(s->odd);
+    feedin = ret & !!is_encrypted;
+    feedin ^= !!in;
+    feedin ^= LF_POLY_ODD & s->odd;
+    feedin ^= LF_POLY_EVEN & s->even;
+    s->even = s->even << 1 | evenparity32(feedin);
+    t = s->odd, s->odd = s->even, s->even = t;
+    return ret;
+}
+
+static inline uint32_t crypt_word_par(
+    struct Crypto1State* s,
+    uint32_t in,
+    int is_encrypted,
+    uint32_t nt_plain,
+    uint8_t* parity_keystream_bits) {
+    uint32_t ret = 0;
+    *parity_keystream_bits = 0; // Reset parity keystream bits
+
+    for(int i = 0; i < 32; i++) {
+        uint8_t bit = crypt_bit(s, BEBIT(in, i), is_encrypted);
+        ret |= bit << (24 ^ i);
+        // Save keystream parity bit
+        if((i + 1) % 8 == 0) {
+            *parity_keystream_bits |=
+                (filter(s->odd) ^ nfc_util_even_parity8(get_nth_byte(nt_plain, i / 8)))
+                << (3 - (i / 8));
+        }
     }
     return ret;
 }
