@@ -41,7 +41,7 @@ typedef enum {
 
 typedef enum {
     BirdTypeDefault = 0,
-    BirdTypeYapper,  // Changed to just have Default and Yapper
+    BirdTypeYapper, // Changed to just have Default and Yapper
     BirdTypeMAX
 } BirdType;
 
@@ -59,13 +59,13 @@ typedef struct {
 
 // Add this array definition
 static const CharacterDimensions character_dimensions[] = {
-    {FLAPPY_BIRD_WIDTH, FLAPPY_BIRD_HEIGHT},  // Default bird
-    {YAPPER_WIDTH, YAPPER_HEIGHT},            // Yapper
+    {FLAPPY_BIRD_WIDTH, FLAPPY_BIRD_HEIGHT}, // Default bird
+    {YAPPER_WIDTH, YAPPER_HEIGHT}, // Yapper
 };
 
 // Update your bird_sets array
 const Icon* bird_sets[BirdTypeMAX][BirdStateMAX] = {
-    {&I_bird_01, &I_bird_02, &I_bird_03},      // Default bird
+    {&I_bird_01, &I_bird_02, &I_bird_03}, // Default bird
     {&I_yapper_01, &I_yapper_02, &I_yapper_03}, // Yapper assets
 };
 
@@ -73,9 +73,6 @@ typedef enum {
     EventTypeTick,
     EventTypeKey,
 } EventType;
-
-
-
 
 typedef struct {
     int x;
@@ -95,7 +92,7 @@ typedef struct {
 } PILAR;
 
 typedef enum {
-    GameStateStart,   // New state for start screen
+    GameStateStart, // New state for start screen
     GameStateLife,
     GameStateGameOver,
 } State;
@@ -110,8 +107,8 @@ typedef struct {
     State state;
     FuriMutex* mutex;
     uint8_t collision_frame;
-    BirdType selected_bird;  // New field
-    bool in_bird_select;     // New field for menu state
+    BirdType selected_bird; // New field
+    bool in_bird_select; // New field for menu state
 } GameState;
 
 typedef struct {
@@ -206,7 +203,6 @@ static bool check_collision(
     const PILAR* pilar,
     CharacterDimensions dims,
     int gap_height) {
-
     // Create a slightly smaller hitbox for better gameplay feel
     int collision_margin = 2;
     int effective_width = dims.width - collision_margin;
@@ -214,25 +210,24 @@ static bool check_collision(
 
     // For Yapper, adjust the hitbox to be more forgiving
     if(game_state->selected_bird == BirdTypeYapper) {
-        collision_margin = 4;  // More forgiving collision for Yapper
+        collision_margin = 4; // More forgiving collision for Yapper
         effective_width = dims.width - collision_margin;
         effective_height = dims.height - collision_margin;
     }
 
     // Check horizontal collision
-    bool horizontally_aligned = 
-        (game_state->bird.point.x + effective_height >= pilar->point.x) &&
-        (game_state->bird.point.x <= pilar->point.x + FLAPPY_GAB_WIDTH);
+    bool horizontally_aligned = (game_state->bird.point.x + effective_height >= pilar->point.x) &&
+                                (game_state->bird.point.x <= pilar->point.x + FLAPPY_GAB_WIDTH);
 
     if(!horizontally_aligned) return false;
 
     // Check vertical collision - upper pipe
-    if(game_state->bird.point.y < pilar->height + collision_margin/2) {
+    if(game_state->bird.point.y < pilar->height + collision_margin / 2) {
         return true;
     }
 
     // Check vertical collision - lower pipe
-    if(game_state->bird.point.y + effective_width - collision_margin/2 >= 
+    if(game_state->bird.point.y + effective_width - collision_margin / 2 >=
        pilar->height + gap_height) {
         return true;
     }
@@ -302,8 +297,6 @@ static void flappy_game_flap(GameState* const game_state) {
     game_state->bird.gravity = FLAPPY_GRAVITY_JUMP;
 }
 
-
-
 static void flappy_game_render_callback(Canvas* const canvas, void* ctx) {
     furi_assert(ctx);
     const GameState* game_state = ctx;
@@ -312,61 +305,58 @@ static void flappy_game_render_callback(Canvas* const canvas, void* ctx) {
     canvas_draw_frame(canvas, 0, 0, 128, 64);
 
     if(game_state->state == GameStateStart) {
-            if(!game_state->in_bird_select) {
-                // Main menu - original size
-                canvas_set_color(canvas, ColorWhite);
-                canvas_draw_box(canvas, 22, 8, 86, 48);
-                
-                canvas_set_color(canvas, ColorBlack);
-                canvas_draw_frame(canvas, 22, 8, 86, 48);
-                
-                canvas_set_font(canvas, FontPrimary);
-                // Change title based on selected character
-                if(game_state->selected_bird == BirdTypeYapper) {
-                    canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignBottom, "Yappy Bird");
-                } else {
-                    canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignBottom, "Flappy Bird");
-                }
-                
-                canvas_set_font(canvas, FontSecondary);
-                canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignBottom, "Press OK to start");
-                canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, "UP to select char");
-                
-                if(game_state->high_score > 0) {
-                    char hi_buffer[24];
-                    snprintf(hi_buffer, sizeof(hi_buffer), "Best: %d", game_state->high_score);
-                    canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, hi_buffer);
-                }
+        if(!game_state->in_bird_select) {
+            // Main menu - original size
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_box(canvas, 22, 8, 86, 48);
+
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_frame(canvas, 22, 8, 86, 48);
+
+            canvas_set_font(canvas, FontPrimary);
+            // Change title based on selected character
+            if(game_state->selected_bird == BirdTypeYapper) {
+                canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignBottom, "Yappy Bird");
             } else {
+                canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignBottom, "Flappy Bird");
+            }
+
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignBottom, "Press OK to start");
+            canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, "UP to select char");
+
+            if(game_state->high_score > 0) {
+                char hi_buffer[24];
+                snprintf(hi_buffer, sizeof(hi_buffer), "Best: %d", game_state->high_score);
+                canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, hi_buffer);
+            }
+        } else {
             // Character selection menu with larger box
             canvas_set_color(canvas, ColorWhite);
-            canvas_draw_box(canvas, 16, 4, 96, 56);  // Much bigger box
-            
+            canvas_draw_box(canvas, 16, 4, 96, 56); // Much bigger box
+
             canvas_set_color(canvas, ColorBlack);
             canvas_draw_frame(canvas, 16, 4, 96, 56);
-            
+
             // Title more space from top
             canvas_set_font(canvas, FontPrimary);
             canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "Select Character");
-            
+
             // Get current character dimensions
             CharacterDimensions dims = character_dimensions[game_state->selected_bird];
-            
+
             // Centered position for preview with more vertical space
             int preview_x = 64 - (dims.width / 2);
-            int preview_y = 32 - (dims.height / 2);  // Center vertically
-            
+            int preview_y = 32 - (dims.height / 2); // Center vertically
+
             // Draw character preview
             canvas_draw_icon(
-                canvas, 
-                preview_x,
-                preview_y,
-                bird_sets[game_state->selected_bird][BirdState1]);
-            
+                canvas, preview_x, preview_y, bird_sets[game_state->selected_bird][BirdState1]);
+
             // Draw selection arrows with more spacing
             canvas_draw_str_aligned(canvas, 26, 34, AlignCenter, AlignBottom, "<");
             canvas_draw_str_aligned(canvas, 102, 34, AlignCenter, AlignBottom, ">");
-            
+
             canvas_set_font(canvas, FontSecondary);
             // Instructions pushed lower with more spacing
             canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignBottom, "</> to choose");
@@ -377,7 +367,7 @@ static void flappy_game_render_callback(Canvas* const canvas, void* ctx) {
     if(game_state->state == GameStateLife) {
         // Get current gap height for rendering
         int gap_height = get_gap_height(game_state->selected_bird);
-        
+
         // Pilars
         for(int i = 0; i < FLAPPY_PILAR_MAX; i++) {
             const PILAR* pilar = &game_state->pilars[i];
@@ -437,9 +427,9 @@ static void flappy_game_render_callback(Canvas* const canvas, void* ctx) {
 
         // Draw the character with adjusted position
         canvas_draw_icon(
-            canvas, 
-            game_state->bird.point.x, 
-            adjusted_y, 
+            canvas,
+            game_state->bird.point.x,
+            adjusted_y,
             bird_sets[game_state->selected_bird][bird_state]);
 
         // Score display
@@ -455,10 +445,10 @@ static void flappy_game_render_callback(Canvas* const canvas, void* ctx) {
         }
     }
 
-if(game_state->state == GameStateGameOver) {
+    if(game_state->state == GameStateGameOver) {
         // Adjusted box height for exactly 3 lines of text
         canvas_set_color(canvas, ColorWhite);
-        canvas_draw_box(canvas, 24, 12, 82, 36);  // Reduced height from 42 to 36
+        canvas_draw_box(canvas, 24, 12, 82, 36); // Reduced height from 42 to 36
 
         canvas_set_color(canvas, ColorBlack);
         canvas_draw_frame(canvas, 24, 12, 82, 36);
@@ -573,7 +563,8 @@ int32_t flappy_game_app(void* p) {
 
                     case InputKeyRight:
                         if(game_state->state == GameStateStart && game_state->in_bird_select) {
-                            game_state->selected_bird = (game_state->selected_bird + 1) % BirdTypeMAX;
+                            game_state->selected_bird =
+                                (game_state->selected_bird + 1) % BirdTypeMAX;
                         }
                         break;
 
