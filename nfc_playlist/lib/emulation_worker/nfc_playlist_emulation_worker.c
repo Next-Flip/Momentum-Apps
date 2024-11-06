@@ -68,17 +68,26 @@ bool nfc_playlist_emulation_worker_is_emulating(
    return nfc_playlist_emulation_worker->state == NfcPlaylistEmulationWorkerState_Emulating;
 }
 
-void nfc_playlist_emulation_worker_set_nfc_data(
+bool nfc_playlist_emulation_worker_set_nfc_data(
    NfcPlaylistEmulationWorker* nfc_playlist_emulation_worker,
    char* file_path) {
    furi_assert(nfc_playlist_emulation_worker);
-   nfc_device_load(nfc_playlist_emulation_worker->nfc_device, file_path);
-   nfc_playlist_emulation_worker->nfc_protocol =
-      nfc_device_get_protocol(nfc_playlist_emulation_worker->nfc_device);
+   if(nfc_device_load(nfc_playlist_emulation_worker->nfc_device, file_path)) {
+      nfc_playlist_emulation_worker->nfc_protocol =
+         nfc_device_get_protocol(nfc_playlist_emulation_worker->nfc_device);
+      return true;
+   }
+   return false;
 }
 
 void nfc_playlist_emulation_worker_clear_nfc_data(
    NfcPlaylistEmulationWorker* nfc_playlist_emulation_worker) {
    furi_assert(nfc_playlist_emulation_worker);
    nfc_device_clear(nfc_playlist_emulation_worker->nfc_device);
+}
+
+bool nfc_playlist_emulation_worker_valid_protocol(
+   NfcPlaylistEmulationWorker* nfc_playlist_emulation_worker) {
+   furi_assert(nfc_playlist_emulation_worker);
+   return nfc_playlist_emulation_worker->nfc_protocol != NfcProtocolInvalid;
 }

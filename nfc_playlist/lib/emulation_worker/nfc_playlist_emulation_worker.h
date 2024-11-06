@@ -28,8 +28,10 @@ int32_t nfc_playlist_emulation_worker_task(void* context);
 
 bool nfc_playlist_emulation_worker_is_emulating(
    NfcPlaylistEmulationWorker* nfc_playlist_emulation_worker);
-void nfc_playlist_emulation_worker_set_nfc_data(
+bool nfc_playlist_emulation_worker_set_nfc_data(
    NfcPlaylistEmulationWorker* nfc_playlist_emulation_worker,
    char* file_path);
 void nfc_playlist_emulation_worker_clear_nfc_data(
+   NfcPlaylistEmulationWorker* nfc_playlist_emulation_worker);
+bool nfc_playlist_emulation_worker_valid_protocol(
    NfcPlaylistEmulationWorker* nfc_playlist_emulation_worker);

@@ -5,7 +5,8 @@
 #include <gui/gui.h>
 #include <input/input.h>
 #include <dolphin/dolphin.h>
-
+#include <storage/storage.h>
+#include <furi_hal.h>
 #define TAG "Flappy"
 
 #define DEBUG false
@@ -17,7 +18,12 @@
 #define FLAPPY_PILAR_DIST 35
 
 #define FLAPPY_GAB_HEIGHT 25
+// Increased gap height for Yapper
+#define YAPPER_GAB_HEIGHT 35
 #define FLAPPY_GAB_WIDTH  10
+
+#define YAPPER_HEIGHT 22
+#define YAPPER_WIDTH  16
 
 #define FLAPPY_GRAVITY_JUMP -1.1
 #define FLAPPY_GRAVITY_TICK 0.15
@@ -25,11 +31,7 @@
 #define FLIPPER_LCD_WIDTH  128
 #define FLIPPER_LCD_HEIGHT 64
 
-typedef enum {
-    EventTypeTick,
-    EventTypeKey,
-} EventType;
-
+static const char* FLAPPY_SAVE_PATH = APP_DATA_PATH("flappy_high.save");
 typedef enum {
     BirdState0 = 0,
     BirdState1,
@@ -37,11 +39,40 @@ typedef enum {
     BirdStateMAX
 } BirdState;
 
+typedef enum {
+    BirdTypeDefault = 0,
+    BirdTypeYapper, // Changed to just have Default and Yapper
+    BirdTypeMAX
+} BirdType;
+
 const Icon* bird_states[BirdStateMAX] = {
     &I_bird_01,
     &I_bird_02,
     &I_bird_03,
 };
+
+// Add this structure definition
+typedef struct {
+    int width;
+    int height;
+} CharacterDimensions;
+
+// Add this array definition
+static const CharacterDimensions character_dimensions[] = {
+    {FLAPPY_BIRD_WIDTH, FLAPPY_BIRD_HEIGHT}, // Default bird
+    {YAPPER_WIDTH, YAPPER_HEIGHT}, // Yapper
+};
+
+// Update your bird_sets array
+const Icon* bird_sets[BirdTypeMAX][BirdStateMAX] = {
+    {&I_bird_01, &I_bird_02, &I_bird_03}, // Default bird
+    {&I_yapper_01, &I_yapper_02, &I_yapper_03}, // Yapper assets
+};
+
+typedef enum {
+    EventTypeTick,
+    EventTypeKey,
+} EventType;
 
 typedef struct {
     int x;
@@ -61,6 +92,7 @@ typedef struct {
 } PILAR;
 
 typedef enum {
+    GameStateStart, // New state for start screen
     GameStateLife,
     GameStateGameOver,
 } State;
@@ -68,11 +100,15 @@ typedef enum {
 typedef struct {
     BIRD bird;
     int points;
+    int high_score;
     int pilars_count;
     PILAR pilars[FLAPPY_PILAR_MAX];
     bool debug;
     State state;
     FuriMutex* mutex;
+    uint8_t collision_frame;
+    BirdType selected_bird; // New field
+    bool in_bird_select; // New field for menu state
 } GameState;
 
 typedef struct {
@@ -87,12 +123,44 @@ typedef enum {
     DirectionLeft,
 } Direction;
 
+static void flappy_game_save_score(int score) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+
+    if(storage_file_open(file, FLAPPY_SAVE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        storage_file_write(file, &score, sizeof(int));
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+}
+
+static int flappy_game_load_score() {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+    int score = 0;
+
+    if(storage_file_open(file, FLAPPY_SAVE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        storage_file_read(file, &score, sizeof(int));
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+    return score;
+}
+
+static inline int get_gap_height(BirdType bird_type) {
+    return (bird_type == BirdTypeYapper) ? YAPPER_GAB_HEIGHT : FLAPPY_GAB_HEIGHT;
+}
+
+// Modify the random pilar function to use dynamic gap height
 static void flappy_game_random_pilar(GameState* const game_state) {
     PILAR pilar;
+    int gap_height = get_gap_height(game_state->selected_bird);
 
     pilar.passed = false;
     pilar.visible = 1;
-    pilar.height = random() % (FLIPPER_LCD_HEIGHT - FLAPPY_GAB_HEIGHT) + 1;
+    pilar.height = random() % (FLIPPER_LCD_HEIGHT - gap_height) + 1;
     pilar.point.y = 0;
     pilar.point.x = FLIPPER_LCD_WIDTH + FLAPPY_GAB_WIDTH + 1;
 
@@ -110,7 +178,17 @@ static void flappy_game_state_init(GameState* const game_state) {
     game_state->bird = bird;
     game_state->pilars_count = 0;
     game_state->points = 0;
-    game_state->state = GameStateLife;
+    game_state->state = GameStateStart;
+    game_state->collision_frame = 0;
+    game_state->in_bird_select = false;
+    // Keep the selected bird between games
+    if(game_state->selected_bird >= BirdTypeMAX) {
+        game_state->selected_bird = BirdTypeDefault;
+    }
+    // Only load high score if it's not already loaded
+    if(game_state->high_score == 0) {
+        game_state->high_score = flappy_game_load_score();
+    }
     memset(game_state->pilars, 0, sizeof(game_state->pilars));
 
     flappy_game_random_pilar(game_state);
@@ -120,27 +198,63 @@ static void flappy_game_state_free(GameState* const game_state) {
     free(game_state);
 }
 
+static bool check_collision(
+    const GameState* game_state,
+    const PILAR* pilar,
+    CharacterDimensions dims,
+    int gap_height) {
+    // Create a slightly smaller hitbox for better gameplay feel
+    int collision_margin = 2;
+    int effective_width = dims.width - collision_margin;
+    int effective_height = dims.height - collision_margin;
+
+    // For Yapper, adjust the hitbox to be more forgiving
+    if(game_state->selected_bird == BirdTypeYapper) {
+        collision_margin = 4; // More forgiving collision for Yapper
+        effective_width = dims.width - collision_margin;
+        effective_height = dims.height - collision_margin;
+    }
+
+    // Check horizontal collision
+    bool horizontally_aligned = (game_state->bird.point.x + effective_height >= pilar->point.x) &&
+                                (game_state->bird.point.x <= pilar->point.x + FLAPPY_GAB_WIDTH);
+
+    if(!horizontally_aligned) return false;
+
+    // Check vertical collision - upper pipe
+    if(game_state->bird.point.y < pilar->height + collision_margin / 2) {
+        return true;
+    }
+
+    // Check vertical collision - lower pipe
+    if(game_state->bird.point.y + effective_width - collision_margin / 2 >=
+       pilar->height + gap_height) {
+        return true;
+    }
+
+    return false;
+}
+
 static void flappy_game_tick(GameState* const game_state) {
+    if(game_state->collision_frame > 0) {
+        game_state->collision_frame--;
+    }
+
     if(game_state->state == GameStateLife) {
         if(!game_state->debug) {
             game_state->bird.gravity += FLAPPY_GRAVITY_TICK;
             game_state->bird.point.y += game_state->bird.gravity;
         }
 
-        // Checking the location of the last respawned pilar.
+        // Get current gap height and dimensions
+        int gap_height = get_gap_height(game_state->selected_bird);
+        CharacterDimensions dims = character_dimensions[game_state->selected_bird];
+
+        // Checking the location of the last respawned pilar
         PILAR* pilar = &game_state->pilars[game_state->pilars_count % FLAPPY_PILAR_MAX];
         if(pilar->point.x == (FLIPPER_LCD_WIDTH - FLAPPY_PILAR_DIST))
             flappy_game_random_pilar(game_state);
 
-        // Updating the position/status of the pilars (visiblity, posotion, game points)
-        //        |  |      |  |  |
-        //        |  |      |  |  |
-        //        |__|      |  |__|
-        //   _____X         |      X_____
-        //  |     |         |      |     |   // [Pos + Width of pilar] >= [Bird Pos]
-        //  |_____|         |      |_____|
-        // X <---->         |     X <->
-        // Bird Pos + Lenght of the  bird] >= [Pilar]
         for(int i = 0; i < FLAPPY_PILAR_MAX; i++) {
             PILAR* pilar = &game_state->pilars[i];
             if(pilar != NULL && pilar->visible && game_state->state == GameStateLife) {
@@ -152,35 +266,33 @@ static void flappy_game_tick(GameState* const game_state) {
                 }
                 if(pilar->point.x < -FLAPPY_GAB_WIDTH) pilar->visible = 0;
 
-                if(game_state->bird.point.y <= 0 - FLAPPY_BIRD_WIDTH) {
-                    game_state->bird.point.y = 64;
+                // Updated bounds checking
+                if(game_state->bird.point.y <= 0) {
+                    game_state->bird.point.y = 0;
+                    game_state->bird.gravity = 0;
                 }
 
-                if(game_state->bird.point.y > 64 - FLAPPY_BIRD_WIDTH) {
-                    game_state->bird.point.y = FLIPPER_LCD_HEIGHT - FLAPPY_BIRD_WIDTH;
+                if(game_state->bird.point.y > FLIPPER_LCD_HEIGHT - dims.width) {
+                    game_state->bird.point.y = FLIPPER_LCD_HEIGHT - dims.width;
+                    game_state->state = GameStateGameOver;
+                    game_state->collision_frame = 4;
+                    break;
                 }
 
-                // Bird inbetween pipes
-                if((game_state->bird.point.x + FLAPPY_BIRD_HEIGHT >= pilar->point.x) &&
-                   (game_state->bird.point.x <= pilar->point.x + FLAPPY_GAB_WIDTH)) {
-                    // Bird below Bottom Pipe
-                    if(game_state->bird.point.y + FLAPPY_BIRD_WIDTH - 2 >=
-                       pilar->height + FLAPPY_GAB_HEIGHT) {
-                        game_state->state = GameStateGameOver;
-                        break;
+                // Check for collision using new collision detection function
+                if(check_collision(game_state, pilar, dims, gap_height)) {
+                    game_state->state = GameStateGameOver;
+                    game_state->collision_frame = 4;
+                    if(game_state->points > game_state->high_score) {
+                        game_state->high_score = game_state->points;
+                        flappy_game_save_score(game_state->high_score);
                     }
-
-                    // Bird above Upper Pipe
-                    if(game_state->bird.point.y < pilar->height) {
-                        game_state->state = GameStateGameOver;
-                        break;
-                    }
+                    break;
                 }
             }
         }
     }
 }
-
 static void flappy_game_flap(GameState* const game_state) {
     game_state->bird.gravity = FLAPPY_GRAVITY_JUMP;
 }
@@ -192,7 +304,70 @@ static void flappy_game_render_callback(Canvas* const canvas, void* ctx) {
 
     canvas_draw_frame(canvas, 0, 0, 128, 64);
 
+    if(game_state->state == GameStateStart) {
+        if(!game_state->in_bird_select) {
+            // Main menu - original size
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_box(canvas, 22, 8, 86, 48);
+
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_frame(canvas, 22, 8, 86, 48);
+
+            canvas_set_font(canvas, FontPrimary);
+            // Change title based on selected character
+            if(game_state->selected_bird == BirdTypeYapper) {
+                canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignBottom, "Yappy Bird");
+            } else {
+                canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignBottom, "Flappy Bird");
+            }
+
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignBottom, "Press OK to start");
+            canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, "UP to select char");
+
+            if(game_state->high_score > 0) {
+                char hi_buffer[24];
+                snprintf(hi_buffer, sizeof(hi_buffer), "Best: %d", game_state->high_score);
+                canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, hi_buffer);
+            }
+        } else {
+            // Character selection menu with larger box
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_box(canvas, 16, 4, 96, 56); // Much bigger box
+
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_frame(canvas, 16, 4, 96, 56);
+
+            // Title more space from top
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignBottom, "Select Character");
+
+            // Get current character dimensions
+            CharacterDimensions dims = character_dimensions[game_state->selected_bird];
+
+            // Centered position for preview with more vertical space
+            int preview_x = 64 - (dims.width / 2);
+            int preview_y = 32 - (dims.height / 2); // Center vertically
+
+            // Draw character preview
+            canvas_draw_icon(
+                canvas, preview_x, preview_y, bird_sets[game_state->selected_bird][BirdState1]);
+
+            // Draw selection arrows with more spacing
+            canvas_draw_str_aligned(canvas, 26, 34, AlignCenter, AlignBottom, "<");
+            canvas_draw_str_aligned(canvas, 102, 34, AlignCenter, AlignBottom, ">");
+
+            canvas_set_font(canvas, FontSecondary);
+            // Instructions pushed lower with more spacing
+            canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignBottom, "</> to choose");
+            canvas_draw_str_aligned(canvas, 64, 56, AlignCenter, AlignBottom, "OK to confirm");
+        }
+    }
+
     if(game_state->state == GameStateLife) {
+        // Get current gap height for rendering
+        int gap_height = get_gap_height(game_state->selected_bird);
+
         // Pilars
         for(int i = 0; i < FLAPPY_PILAR_MAX; i++) {
             const PILAR* pilar = &game_state->pilars[i];
@@ -213,68 +388,98 @@ static void flappy_game_render_callback(Canvas* const canvas, void* ctx) {
                 canvas_draw_frame(
                     canvas,
                     pilar->point.x,
-                    pilar->point.y + pilar->height + FLAPPY_GAB_HEIGHT,
+                    pilar->point.y + pilar->height + gap_height,
                     FLAPPY_GAB_WIDTH,
-                    FLIPPER_LCD_HEIGHT - pilar->height - FLAPPY_GAB_HEIGHT);
+                    FLIPPER_LCD_HEIGHT - pilar->height - gap_height);
 
                 canvas_draw_frame(
                     canvas,
                     pilar->point.x + 1,
-                    pilar->point.y + pilar->height + FLAPPY_GAB_HEIGHT,
+                    pilar->point.y + pilar->height + gap_height,
                     FLAPPY_GAB_WIDTH - 1,
-                    FLIPPER_LCD_HEIGHT - pilar->height - FLAPPY_GAB_HEIGHT);
+                    FLIPPER_LCD_HEIGHT - pilar->height - gap_height);
 
                 canvas_draw_frame(
                     canvas,
                     pilar->point.x + 2,
-                    pilar->point.y + pilar->height + FLAPPY_GAB_HEIGHT,
+                    pilar->point.y + pilar->height + gap_height,
                     FLAPPY_GAB_WIDTH - 1,
-                    FLIPPER_LCD_HEIGHT - pilar->height - FLAPPY_GAB_HEIGHT);
+                    FLIPPER_LCD_HEIGHT - pilar->height - gap_height);
             }
         }
 
-        // Switch animation
-        BirdState bird_state = BirdState1;
+        // Switch animation - Using character directly from bird_sets
+        int bird_state = BirdState1;
         if(game_state->bird.gravity < -0.5)
             bird_state = BirdState0;
         else if(game_state->bird.gravity > 0.5)
             bird_state = BirdState2;
 
-        canvas_draw_icon(
-            canvas, game_state->bird.point.x, game_state->bird.point.y, bird_states[bird_state]);
+        // Get current character dimensions
+        CharacterDimensions dims = character_dimensions[game_state->selected_bird];
 
+        // Adjust Y position to keep character in bounds
+        int adjusted_y = game_state->bird.point.y;
+        if(adjusted_y < 0) adjusted_y = 0;
+        if(adjusted_y > FLIPPER_LCD_HEIGHT - dims.width) {
+            adjusted_y = FLIPPER_LCD_HEIGHT - dims.width;
+        }
+
+        // Draw the character with adjusted position
+        canvas_draw_icon(
+            canvas,
+            game_state->bird.point.x,
+            adjusted_y,
+            bird_sets[game_state->selected_bird][bird_state]);
+
+        // Score display
         canvas_set_font(canvas, FontSecondary);
         char buffer[12];
-        snprintf(buffer, sizeof(buffer), "Score: %u", game_state->points);
-        canvas_draw_str_aligned(canvas, 100, 12, AlignCenter, AlignBottom, buffer);
+        snprintf(buffer, sizeof(buffer), "%u", game_state->points);
+        canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom, buffer);
 
         if(game_state->debug) {
             char coordinates[20];
-            snprintf(coordinates, sizeof(coordinates), "Y: %u", game_state->bird.point.y);
+            snprintf(coordinates, sizeof(coordinates), "Y: %u", adjusted_y);
             canvas_draw_str_aligned(canvas, 1, 12, AlignCenter, AlignBottom, coordinates);
         }
     }
 
     if(game_state->state == GameStateGameOver) {
-        // Screen is 128x64 px
+        // Adjusted box height for exactly 3 lines of text
         canvas_set_color(canvas, ColorWhite);
-        canvas_draw_box(canvas, 34, 20, 62, 24);
+        canvas_draw_box(canvas, 24, 12, 82, 36); // Reduced height from 42 to 36
 
         canvas_set_color(canvas, ColorBlack);
-        canvas_draw_frame(canvas, 34, 20, 62, 24);
+        canvas_draw_frame(canvas, 24, 12, 82, 36);
 
+        // Game Over text
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str(canvas, 37, 31, "Game Over");
+        canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignBottom, "Game Over");
 
+        // Current score
         canvas_set_font(canvas, FontSecondary);
         char buffer[12];
         snprintf(buffer, sizeof(buffer), "Score: %u", game_state->points);
-        canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignBottom, buffer);
-    }
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignBottom, buffer);
 
+        // High score
+        char hi_buffer[16];
+        snprintf(hi_buffer, sizeof(hi_buffer), "Best: %u", game_state->high_score);
+        canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, hi_buffer);
+
+        // New Best! message (shown outside the box)
+        if(game_state->points > game_state->high_score) {
+            canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, "New Best!");
+        }
+
+        // Collision effect
+        if(game_state->collision_frame > 0) {
+            canvas_invert_color(canvas);
+        }
+    }
     furi_mutex_release(game_state->mutex);
 }
-
 static void flappy_game_input_callback(InputEvent* input_event, void* ctx) {
     furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
@@ -290,7 +495,6 @@ static void flappy_game_update_timer_callback(void* ctx) {
     GameEvent event = {.type = EventTypeTick};
     furi_message_queue_put(event_queue, &event, 0);
 }
-
 int32_t flappy_game_app(void* p) {
     UNUSED(p);
     int32_t return_code = 0;
@@ -334,30 +538,58 @@ int32_t flappy_game_app(void* p) {
                 if(event.input.type == InputTypePress) {
                     switch(event.input.key) {
                     case InputKeyUp:
-                        if(game_state->state == GameStateLife) {
+                        if(game_state->state == GameStateStart && !game_state->in_bird_select) {
+                            game_state->in_bird_select = true;
+                        } else if(game_state->state == GameStateLife) {
                             flappy_game_flap(game_state);
                         }
-
                         break;
+
                     case InputKeyDown:
-                        break;
-                    case InputKeyRight:
-                        break;
-                    case InputKeyLeft:
-                        break;
-                    case InputKeyOk:
-                        if(game_state->state == GameStateGameOver) {
-                            flappy_game_state_init(game_state);
+                        if(game_state->state == GameStateStart && game_state->in_bird_select) {
+                            game_state->in_bird_select = false;
                         }
+                        break;
 
-                        if(game_state->state == GameStateLife) {
+                    case InputKeyLeft:
+                        if(game_state->state == GameStateStart && game_state->in_bird_select) {
+                            if(game_state->selected_bird == 0) {
+                                game_state->selected_bird = BirdTypeMAX - 1;
+                            } else {
+                                game_state->selected_bird--;
+                            }
+                        }
+                        break;
+
+                    case InputKeyRight:
+                        if(game_state->state == GameStateStart && game_state->in_bird_select) {
+                            game_state->selected_bird =
+                                (game_state->selected_bird + 1) % BirdTypeMAX;
+                        }
+                        break;
+
+                    case InputKeyOk:
+                        if(game_state->state == GameStateStart) {
+                            if(game_state->in_bird_select) {
+                                game_state->in_bird_select = false;
+                            } else {
+                                game_state->state = GameStateLife;
+                            }
+                        } else if(game_state->state == GameStateGameOver) {
+                            flappy_game_state_init(game_state);
+                        } else if(game_state->state == GameStateLife) {
                             flappy_game_flap(game_state);
                         }
+                        break;
 
-                        break;
                     case InputKeyBack:
-                        processing = false;
+                        if(game_state->state == GameStateStart && game_state->in_bird_select) {
+                            game_state->in_bird_select = false;
+                        } else {
+                            processing = false;
+                        }
                         break;
+
                     default:
                         break;
                     }

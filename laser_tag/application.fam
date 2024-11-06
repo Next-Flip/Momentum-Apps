@@ -9,7 +9,7 @@ App(
     fap_version="2.3",
     fap_description="Laser Tag game for Flipper Zero",
     fap_icon="icons/laser_tag_10px.png",
-    fap_libs=["assets"],
+    fap_libs=[],
     fap_weburl="https://github.com/RocketGod-Git/Flipper-Zero-Laser-Tag",
     requires=[
         "gui",

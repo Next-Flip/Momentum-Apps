@@ -9,7 +9,7 @@ App(
     fap_version="1.1",
     fap_description="App generates a continous NFC field to make body mod implant LEDs glow. Tested on a Dangerous Things xSIID.",
     fap_icon="icons/cyborg_detector_icon.png",
-    fap_libs=["assets"],
+    fap_libs=[],
     fap_weburl="https://github.com/RocketGod-Git/Flipper-Zero-Cyborg-Detector",
     requires=[
         "gui",

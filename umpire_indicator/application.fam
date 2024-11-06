@@ -9,7 +9,7 @@ App(
     fap_version="0.1",
     fap_description="Umpire indicators keep track of balls, strikes, and outs for Baseball and Softball",
     fap_icon="icons/umpire_indicator_icon.png",
-    fap_libs=["assets"],
+    fap_libs=[],
     fap_weburl="https://github.com/RocketGod-Git/Flipper-Zero-Umpire-Indicator",
     requires=[
         "gui",
