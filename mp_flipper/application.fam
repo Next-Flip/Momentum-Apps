@@ -12,6 +12,7 @@ App(
     fap_author="Oliver Fabel",
     fap_file_assets="examples",
     fap_weburl="https://github.com/ofabel/mp-flipper",
+    flags=["UnloadAssetPacks"],
     sources=[
         "*.c*",
         "!./lib/micropython",
