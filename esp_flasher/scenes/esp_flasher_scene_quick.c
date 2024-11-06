@@ -1,8 +1,9 @@
 #include "../esp_flasher_app_i.h"
 
 // Marauder firmware source - https://github.com/justcallmekoko/ESP32Marauder
-// Wardriver firmware source - https://github.com/Sil333033/flipperzero-wardriver
 // BlackMagic firmware source - https://github.com/flipperdevices/blackmagic-esp32-s2
+// FlipperHTTP firmware source - https://github.com/jblanked/FlipperHTTP
+// Wardriver firmware source - https://github.com/Sil333033/flipperzero-wardriver
 
 // DO NOT use this code as an example, you should split into different scene files for each screen
 // To keep in a single file, this is setup in an unusual and confusing way
@@ -16,6 +17,7 @@ enum QuickState {
     QuickS2Boot,
     QuickS2Boot_Marauder,
     QuickS2Boot_Blackmagic,
+    QuickS2Boot_Flipperhttp,
     QuickWROOMBoot,
     QuickWROOMBoot_Marauder,
     QuickWROOMBoot_Wardriver,
@@ -28,6 +30,7 @@ enum QuickState {
     QuickS2,
     QuickS2_Marauder,
     QuickS2_Blackmagic,
+    QuickS2_Flipperhttp,
     QuickS3,
     QuickS3_Marauder,
     QuickS3_Wardriver,
@@ -89,8 +92,10 @@ void esp_flasher_scene_quick_on_enter(void* context) {
         break;
     case QuickS2Boot_Marauder:
     case QuickS2Boot_Blackmagic:
+    case QuickS2Boot_Flipperhttp:
     case QuickS2_Marauder:
     case QuickS2_Blackmagic:
+    case QuickS2_Flipperhttp:
         submenu_set_header(submenu, "Choose Firmware:");
         submenu_add_item(
             submenu,
@@ -102,6 +107,12 @@ void esp_flasher_scene_quick_on_enter(void* context) {
             submenu,
             "Black Magic (FZ debugger)",
             state > QuickS2 ? QuickS2_Blackmagic : QuickS2Boot_Blackmagic,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        submenu_add_item(
+            submenu,
+            "FlipperHTTP (web access)",
+            state > QuickS2 ? QuickS2_Flipperhttp : QuickS2Boot_Flipperhttp,
             esp_flasher_scene_quick_submenu_callback,
             app);
         break;
@@ -195,6 +206,15 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
             boot = APP_DATA_PATH("assets/blackmagic/s2/bootloader.bin");
             part = APP_DATA_PATH("assets/blackmagic/s2/partition-table.bin");
             firm = APP_DATA_PATH("assets/blackmagic/s2/blackmagic.bin");
+            break;
+
+        case QuickS2Boot_Flipperhttp:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickS2_Flipperhttp:
+            boot = APP_DATA_PATH("assets/flipperhttp/s2/flipper_http_bootloader.bin");
+            part = APP_DATA_PATH("assets/flipperhttp/s2/flipper_http_partitions.bin");
+            firm = APP_DATA_PATH("assets/flipperhttp/s2/flipper_http_firmware_a.bin");
             break;
 
         case QuickWROOMBoot_Marauder:
