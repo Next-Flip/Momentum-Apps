@@ -1,0 +1,14 @@
+App(
+    appid="web_crawler",
+    name="Web Crawler",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="web_crawler_app",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO/FlipperHTTP",
+    fap_icon_assets="assets",
+    fap_description="Use Wi-Fi to access the internet and scrape data from the web.",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/WebCrawler-FlipperZero",
+    fap_version="0.7",
+)
