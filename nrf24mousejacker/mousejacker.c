@@ -11,6 +11,7 @@
 #include <nrf24.h>
 #include <notification/notification_messages.h>
 #include "mousejacker_ducky.h"
+#include "keyboard_layout.h"
 #include <nrf24_mouse_jacker_icons.h>
 
 #define TAG "mousejacker"
@@ -34,11 +35,13 @@ typedef struct {
 uint8_t addrs_count = 0;
 int8_t addr_idx = 0;
 uint8_t loaded_addrs[MAX_ADDRS][6]; // first byte is rate, the rest are the address
+int8_t keyboard_layouts_idx = 0;
 
 char target_fmt_text[] = "Target addr: %s";
 char target_address_str[12] = "None";
 char target_text[30];
 char index_text[30];
+char kbd_layout_text[30];
 
 static void render_callback(Canvas* const canvas, void* ctx) {
     furi_assert(ctx);
@@ -57,8 +60,11 @@ static void render_callback(Canvas* const canvas, void* ctx) {
         snprintf(
             index_text, sizeof(index_text), "Address index: %d/%d", addr_idx + 1, addrs_count);
         canvas_draw_str_aligned(canvas, 10, 30, AlignLeft, AlignBottom, index_text);
-        canvas_draw_str_aligned(canvas, 10, 40, AlignLeft, AlignBottom, "Press Ok button to ");
-        canvas_draw_str_aligned(canvas, 10, 50, AlignLeft, AlignBottom, "browse for ducky script");
+        snprintf(
+            kbd_layout_text, sizeof(kbd_layout_text), "Keyboard layout: %s", keyboard_layouts[keyboard_layouts_idx].name);
+        canvas_draw_str_aligned(canvas, 10, 40, AlignLeft, AlignBottom, kbd_layout_text);
+        canvas_draw_str_aligned(canvas, 10, 50, AlignLeft, AlignBottom, "Press Ok button to ");
+        canvas_draw_str_aligned(canvas, 10, 60, AlignLeft, AlignBottom, "browse for ducky script");
         if(!plugin_state->is_nrf24_connected) {
             canvas_draw_str_aligned(
                 canvas, 10, 60, AlignLeft, AlignBottom, "Connect NRF24 to GPIO!");
@@ -334,8 +340,12 @@ int32_t mousejacker_app(void* p) {
                 if(event.input.type == InputTypePress) {
                     switch(event.input.key) {
                     case InputKeyUp:
+                        keyboard_layouts_idx--;
+                        if (keyboard_layouts_idx < 0) keyboard_layouts_idx = KEYBOARD_LAYOUT_QTY - 1;
                         break;
                     case InputKeyDown:
+                        keyboard_layouts_idx++;
+                        if (keyboard_layouts_idx >= KEYBOARD_LAYOUT_QTY) keyboard_layouts_idx = 0;
                         break;
                     case InputKeyRight:
                         if(!plugin_state->addr_err) {
