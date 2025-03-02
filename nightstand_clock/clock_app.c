@@ -7,7 +7,7 @@
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 #include <notification/notification_app.h>
-#include <momentum/momentum.h>
+#include <momentum/settings.h>
 
 #include "clock_app.h"
 
