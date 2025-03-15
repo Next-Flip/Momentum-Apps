@@ -54,7 +54,7 @@ The application will be compiled and copied onto your device
   - Wallets are encrypted with a randomly generated key, and that key is also encrypted
       - `.flipbip.dat` and `.flipbip.key` files are both required to be in `apps_data/flipbip`
       - Backups of both these files `.flipbip.dat.bak` and `.flipbip.key.bak` are also maintained
-      - If you want to externally back up your wallet, I recommend copying all these files, and storing the `key` and `dat` files seperately
+      - If you want to externally back up your wallet, I recommend copying all these files, and storing the `key` and `dat` files separately
   - NOTE: The wallets should be decently tough to crack off of a Flipper, however any Flipper with the app installed can load a wallet in the `apps_data/flipbip` directory if both the `key` and `dat` file are present. Therefore, it is HIGHLY RECOMMENDED to use the BIP39 passphrase functionality and store the passphrase in your brain or on paper separately from the Flipper!
 - BIP39 passphrase support
   - Configured in settings, not persisted between runs for security

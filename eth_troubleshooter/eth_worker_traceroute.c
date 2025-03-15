@@ -2,7 +2,7 @@
 #include <furi_hal.h>
 #include <traceroute.h>
 
-uint8_t traceroute_auto(uint8_t *adress)
+uint8_t traceroute_auto(uint8_t *address)
 {
-    return traceroute(PING_SOCKET, adress);
+    return traceroute(PING_SOCKET, address);
 }

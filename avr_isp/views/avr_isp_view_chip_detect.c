@@ -52,9 +52,9 @@ void avr_isp_chip_detect_view_draw(Canvas* canvas, AvrIspChipDetectViewModel* mo
         canvas_draw_str_aligned(canvas, 64, 45, AlignCenter, AlignCenter, model->name_chip);
         elements_button_right(canvas, "Next");
         break;
-    case AvrIspChipDetectViewStateErrorOccured:
+    case AvrIspChipDetectViewStateErrorOccurred:
         canvas_draw_str_aligned(
-            canvas, 64, 5, AlignCenter, AlignCenter, "Error occured, try again!");
+            canvas, 64, 5, AlignCenter, AlignCenter, "Error occurred, try again!");
         canvas_draw_icon(canvas, 29, 14, &I_chip_error_70x22);
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(

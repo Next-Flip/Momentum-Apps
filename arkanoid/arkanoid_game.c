@@ -160,7 +160,7 @@ void move_ball(Canvas* canvas, ArkanoidState* st) {
                     st->brick_state.topBrick = 6 * row + 1;
                     st->brick_state.bottomBrick = 6 * row + 7;
 
-                    //If A collison has occured
+                    //If A collision has occurred
                     if(st->ball_state.topBall <= st->brick_state.bottomBrick &&
                        st->ball_state.bottomBall >= st->brick_state.topBrick &&
                        st->ball_state.leftBall <= st->brick_state.rightBrick &&

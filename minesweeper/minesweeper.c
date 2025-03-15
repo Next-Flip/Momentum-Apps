@@ -59,7 +59,7 @@ static MineSweeperApp* app_alloc() {
 
         mine_sweeper_save_settings(app);
     } else {
-        FURI_LOG_I(TAG, "Save file loaded sucessfully");
+        FURI_LOG_I(TAG, "Save file loaded successfully");
     }
 
     // Alloc views and add to view dispatcher

@@ -76,6 +76,6 @@ void eth_worker_w5500(EthWorker* eth_worker);
 void eth_worker_init_process(EthWorker* eth_worker);
 
 #define PING_SOCKET 1
-uint8_t ping_auto_interface(uint8_t* adress);
-uint8_t traceroute_auto(uint8_t *adress); 
+uint8_t ping_auto_interface(uint8_t* address);
+uint8_t traceroute_auto(uint8_t *address); 
 void dhcp_timer_callback(void *context);

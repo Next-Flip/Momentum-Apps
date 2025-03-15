@@ -16,7 +16,7 @@ void avr_isp_scene_chip_detect_on_enter(void* context) {
     case AvrIspErrorWriting:
     case AvrIspErrorWritingFuse:
         avr_isp_chip_detect_set_state(
-            app->avr_isp_chip_detect_view, AvrIspChipDetectViewStateErrorOccured);
+            app->avr_isp_chip_detect_view, AvrIspChipDetectViewStateErrorOccurred);
         break;
     case AvrIspErrorVerification:
         avr_isp_chip_detect_set_state(

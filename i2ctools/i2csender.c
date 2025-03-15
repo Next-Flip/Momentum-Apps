@@ -2,10 +2,10 @@
 
 void i2c_send(i2cSender* i2c_sender) {
     furi_hal_i2c_acquire(I2C_BUS);
-    uint8_t adress = i2c_sender->scanner->addresses[i2c_sender->address_idx] << 1;
+    uint8_t address = i2c_sender->scanner->addresses[i2c_sender->address_idx] << 1;
     i2c_sender->error = furi_hal_i2c_trx(
         I2C_BUS,
-        adress,
+        address,
         &i2c_sender->value,
         sizeof(i2c_sender->value),
         i2c_sender->recv,
