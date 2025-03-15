@@ -21,6 +21,6 @@ Flipper zero exploiting vulnerability to open any Sentry Safe and Master Lock el
 - Recursively clone your base firmware (official or not)
 - Clone this repository in `applications_user`
 - Build with `./fbt fap_dist APPSRC=applications_user/flipperzero-sentry-safe-plugin`
-- Retreive builed fap in dist subfolders
+- Retrieve builed fap in dist subfolders
 
 (More info about build tool [here](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/documentation/fbt.md))

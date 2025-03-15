@@ -44,7 +44,7 @@ static void uart_parse_esp(void* context, char* line) {
 
     AccessPoint ap = {.ssid = malloc(MAX_SSID_LENGTH + 1), .bssid = malloc(MAX_BSSID_LENGTH + 1)};
 
-    Packet pkt = {.recievedMac = malloc(18 + 1), .sentMac = malloc(18 + 1)};
+    Packet pkt = {.receivedMac = malloc(18 + 1), .sentMac = malloc(18 + 1)};
 
     char* token = strtok(line, ",");
     int i = 0;
@@ -65,8 +65,8 @@ static void uart_parse_esp(void* context, char* line) {
                 removeSpaces(token);
                 strcpy(ap.ssid, token);
             } else if(!isAp && isValid) {
-                strncpy(pkt.recievedMac, token, 18);
-                pkt.recievedMac[18] = '\0';
+                strncpy(pkt.receivedMac, token, 18);
+                pkt.receivedMac[18] = '\0';
             }
             break;
         case 2:
@@ -95,7 +95,7 @@ static void uart_parse_esp(void* context, char* line) {
 
     if(isAp && isValid) {
         // free the packet
-        free(pkt.recievedMac);
+        free(pkt.receivedMac);
         free(pkt.sentMac);
 
         if(ctx->view_state == NO_APS) {
@@ -169,9 +169,9 @@ static void uart_parse_esp(void* context, char* line) {
 
         // check if values are valid
         // mac needs to be 6 characters long
-        if(strlen(pkt.recievedMac) != 17 || strlen(pkt.sentMac) != 17 ||
+        if(strlen(pkt.receivedMac) != 17 || strlen(pkt.sentMac) != 17 ||
            ctx->access_points_count == 0) {
-            free(pkt.recievedMac);
+            free(pkt.receivedMac);
             free(pkt.sentMac);
             return;
         }
@@ -180,7 +180,7 @@ static void uart_parse_esp(void* context, char* line) {
         furi_hal_light_set(LightBlue, 255);
 
         for(size_t i = 0; i < ctx->access_points_count; i++) {
-            if(strcmp(ctx->access_points[i].bssid, pkt.recievedMac) == 0) {
+            if(strcmp(ctx->access_points[i].bssid, pkt.receivedMac) == 0) {
                 ctx->access_points[i].packetRxCount++;
                 break;
             }
@@ -193,7 +193,7 @@ static void uart_parse_esp(void* context, char* line) {
             }
         }
 
-        free(pkt.recievedMac);
+        free(pkt.receivedMac);
         free(pkt.sentMac);
     }
 }

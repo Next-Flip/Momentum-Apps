@@ -1115,7 +1115,7 @@ extern "C" {
  * @brief UDP socket
  * @details This indicates Socket n is opened in UDP mode(Sn_MR(P[3:0]) = 010).\n
  * It changes to SOCK_UDP when Sn_MR(P[3:0]) = 010 and OPEN command is ordered.\n
- * Unlike TCP mode, data can be transfered without the connection-process.
+ * Unlike TCP mode, data can be transferred without the connection-process.
  */
 #define SOCK_UDP			0x22 ///< udp socket 
 

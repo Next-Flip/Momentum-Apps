@@ -38,7 +38,7 @@ typedef enum {
 } ViewState;
 
 typedef struct {
-    char* recievedMac;
+    char* receivedMac;
     char* sentMac;
 } Packet;
 

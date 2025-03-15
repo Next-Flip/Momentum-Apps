@@ -12,7 +12,7 @@ typedef enum {
     AvrIspChipDetectViewStateNoDetect,
     AvrIspChipDetectViewStateDetecting,
     AvrIspChipDetectViewStateDetected,
-    AvrIspChipDetectViewStateErrorOccured,
+    AvrIspChipDetectViewStateErrorOccurred,
     AvrIspChipDetectViewStateErrorVerification,
 } AvrIspChipDetectViewState;
 

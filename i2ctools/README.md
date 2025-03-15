@@ -18,7 +18,7 @@ GND -> GND
 
 ### Scanner
 
-Look for i2c peripherals adresses
+Look for i2c peripherals addresses
 
 ### Sniffer
 
@@ -36,7 +36,7 @@ Send command to i2c peripherals and read result
 
 ## V2
 - [ ] Read more than 2 bytes in sender mode
-- [ ] Add 10-bits adresses support
+- [ ] Add 10-bits addresses support
 - [ ] Test with rate > 100khz
 - [ ] Save records (Sigrok compatible?)
 - [ ] Play from files
