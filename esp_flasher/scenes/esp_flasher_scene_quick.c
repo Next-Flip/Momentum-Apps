@@ -18,22 +18,52 @@ enum QuickState {
     QuickS2Boot_Marauder,
     QuickS2Boot_Flipperhttp,
     QuickS2Boot_Blackmagic,
+    QuickS2Boot_GhostESP,
     QuickWROOMBoot,
     QuickWROOMBoot_Marauder,
     QuickWROOMBoot_Wardriver,
+    QuickWROOMBoot_GhostESP,
     QuickS3Boot,
     QuickS3Boot_Marauder,
     QuickS3Boot_Wardriver,
+    QuickS3Boot_GhostESP,
+    QuickC3Boot,
+    QuickC3Boot_Marauder,
+    QuickC3Boot_Flipperhttp,
+    QuickC3Boot_GhostESP,
+    QuickC5Boot,
+    QuickC5Boot_Marauder,
+    QuickC5Boot_Flipperhttp,
+    QuickC5Boot_GhostESP,
+    QuickC6Boot,
+    QuickC6Boot_Marauder,
+    QuickC6Boot_Flipperhttp,
+    QuickC6Boot_GhostESP,
     QuickWROOM,
     QuickWROOM_Marauder,
     QuickWROOM_Wardriver,
+    QuickWROOM_GhostESP,
     QuickS2,
     QuickS2_Marauder,
     QuickS2_Flipperhttp,
     QuickS2_Blackmagic,
+    QuickS2_GhostESP,
     QuickS3,
     QuickS3_Marauder,
     QuickS3_Wardriver,
+    QuickS3_GhostESP,
+    QuickC3,
+    QuickC3_Marauder,
+    QuickC3_Flipperhttp,
+    QuickC3_GhostESP,
+    QuickC5,
+    QuickC5_Marauder,
+    QuickC5_Flipperhttp,
+    QuickC5_GhostESP,
+    QuickC6,
+    QuickC6_Marauder,
+    QuickC6_Flipperhttp,
+    QuickC6_GhostESP,
 };
 
 void esp_flasher_scene_quick_submenu_callback(void* context, uint32_t index) {
@@ -57,9 +87,15 @@ void esp_flasher_scene_quick_on_enter(void* context) {
     case QuickS2Boot:
     case QuickWROOMBoot:
     case QuickS3Boot:
+    case QuickC3Boot:
+    case QuickC5Boot:
+    case QuickC6Boot:
     case QuickWROOM:
     case QuickS2:
     case QuickS3:
+    case QuickC3:
+    case QuickC5:
+    case QuickC6:
         submenu_set_header(submenu, "Choose ESP32 Type:");
         submenu_add_item(
             submenu,
@@ -89,13 +125,21 @@ void esp_flasher_scene_quick_on_enter(void* context) {
             submenu, "Other ESP32-S2", QuickS2, esp_flasher_scene_quick_submenu_callback, app);
         submenu_add_item(
             submenu, "Other ESP32-S3", QuickS3, esp_flasher_scene_quick_submenu_callback, app);
+        submenu_add_item(
+            submenu, "Other ESP32-C3", QuickC3, esp_flasher_scene_quick_submenu_callback, app);
+        submenu_add_item(
+            submenu, "Other ESP32-C5", QuickC5, esp_flasher_scene_quick_submenu_callback, app);
+        submenu_add_item(
+            submenu, "Other ESP32-C6", QuickC6, esp_flasher_scene_quick_submenu_callback, app);
         break;
     case QuickS2Boot_Marauder:
     case QuickS2Boot_Flipperhttp:
     case QuickS2Boot_Blackmagic:
+    case QuickS2Boot_GhostESP:
     case QuickS2_Marauder:
     case QuickS2_Flipperhttp:
     case QuickS2_Blackmagic:
+    case QuickS2_GhostESP:
         submenu_set_header(submenu, "Choose Firmware:");
         submenu_add_item(
             submenu,
@@ -115,11 +159,19 @@ void esp_flasher_scene_quick_on_enter(void* context) {
             state > QuickS2 ? QuickS2_Blackmagic : QuickS2Boot_Blackmagic,
             esp_flasher_scene_quick_submenu_callback,
             app);
+        submenu_add_item(
+            submenu,
+            "Ghost ESP (WiFi)",
+            state > QuickS2 ? QuickS2_GhostESP : QuickS2Boot_GhostESP,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
         break;
     case QuickWROOMBoot_Marauder:
     case QuickWROOMBoot_Wardriver:
+    case QuickWROOMBoot_GhostESP:
     case QuickWROOM_Marauder:
     case QuickWROOM_Wardriver:
+    case QuickWROOM_GhostESP:
         submenu_set_header(submenu, "Choose Firmware:");
         submenu_add_item(
             submenu,
@@ -133,11 +185,19 @@ void esp_flasher_scene_quick_on_enter(void* context) {
             state > QuickWROOM ? QuickWROOM_Wardriver : QuickWROOMBoot_Wardriver,
             esp_flasher_scene_quick_submenu_callback,
             app);
+        submenu_add_item(
+            submenu,
+            "GhostESP (WiFi)",
+            state > QuickWROOM ? QuickWROOM_GhostESP : QuickWROOMBoot_GhostESP,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
         break;
     case QuickS3Boot_Marauder:
     case QuickS3Boot_Wardriver:
+    case QuickS3Boot_GhostESP:
     case QuickS3_Marauder:
     case QuickS3_Wardriver:
+    case QuickS3_GhostESP:
         submenu_set_header(submenu, "Choose Firmware:");
         submenu_add_item(
             submenu,
@@ -149,6 +209,90 @@ void esp_flasher_scene_quick_on_enter(void* context) {
             submenu,
             "Wardriver (GPS -> Flipper)",
             state > QuickS3 ? QuickS3_Wardriver : QuickS3Boot_Wardriver,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        submenu_add_item(
+            submenu,
+            "GhostESP (WiFi)",
+            state > QuickS3 ? QuickS3_GhostESP : QuickS3Boot_GhostESP,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        break;
+    case QuickC3Boot_Marauder:
+    case QuickC3Boot_Flipperhttp:
+    case QuickC3Boot_GhostESP:
+    case QuickC3_Marauder:
+    case QuickC3_Flipperhttp:
+    case QuickC3_GhostESP:
+        submenu_set_header(submenu, "Choose Firmware:");
+        submenu_add_item(
+            submenu,
+            "Marauder (has Evil Portal)",
+            state > QuickC3 ? QuickC3_Marauder : QuickC3Boot_Marauder,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        submenu_add_item(
+            submenu,
+            "FlipperHTTP (web access)",
+            state > QuickC3 ? QuickC3_Flipperhttp : QuickC3_Flipperhttp,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        submenu_add_item(
+            submenu,
+            "GhostESP (WiFi)",
+            state > QuickC3 ? QuickC3_GhostESP : QuickC3Boot_GhostESP,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        break;
+    case QuickC5Boot_Marauder:
+    case QuickC5Boot_Flipperhttp:
+    case QuickC5Boot_GhostESP:
+    case QuickC5_Marauder:
+    case QuickC5_Flipperhttp:
+    case QuickC5_GhostESP:
+        submenu_set_header(submenu, "Choose Firmware:");
+        submenu_add_item(
+            submenu,
+            "Marauder (has Evil Portal)",
+            state > QuickC5 ? QuickC5_Marauder : QuickC5Boot_Marauder,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        submenu_add_item(
+            submenu,
+            "FlipperHTTP (web access)",
+            state > QuickC5 ? QuickC5_Flipperhttp : QuickC5Boot_Flipperhttp,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        submenu_add_item(
+            submenu,
+            "GhostESP (WiFi)",
+            state > QuickC5 ? QuickC5_GhostESP : QuickC5Boot_GhostESP,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        break;
+    case QuickC6Boot_Marauder:
+    case QuickC6Boot_Flipperhttp:
+    case QuickC6Boot_GhostESP:
+    case QuickC6_Marauder:
+    case QuickC6_Flipperhttp:
+    case QuickC6_GhostESP:
+        submenu_set_header(submenu, "Choose Firmware:");
+        submenu_add_item(
+            submenu,
+            "Marauder (has Evil Portal)",
+            state > QuickC6 ? QuickC6_Marauder : QuickC6Boot_Marauder,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        submenu_add_item(
+            submenu,
+            "FlipperHTTP (web access)",
+            state > QuickC6 ? QuickC6_Flipperhttp : QuickC6Boot_Flipperhttp,
+            esp_flasher_scene_quick_submenu_callback,
+            app);
+        submenu_add_item(
+            submenu,
+            "GhostESP (WiFi)",
+            state > QuickC6 ? QuickC6_GhostESP : QuickC6Boot_GhostESP,
             esp_flasher_scene_quick_submenu_callback,
             app);
         break;
@@ -171,7 +315,8 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
 
         bool enter_bootloader = false;
         bool s3 = false;
-        const char* boot = NULL; // 0x1000 (or 0x0 on S3)
+        bool c5 = false;
+        const char* boot = NULL; // 0x1000 (or 0x0 on S3, C3, C6 and or 0x2000 on C5)
         const char* part = NULL; // 0x8000
         const char* app0 = NULL; // 0xE000
         const char* firm = NULL; // 0x10000
@@ -180,9 +325,15 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
         case QuickS2Boot:
         case QuickWROOMBoot:
         case QuickS3Boot:
-        case QuickWROOM:
+        case QuickC3Boot:
+        case QuickC5Boot:
+        case QuickC6Boot:
+        case QuickWROOM: 
         case QuickS2:
-        case QuickS3:
+        case QuickS3: 
+        case QuickC3:
+        case QuickC5:
+        case QuickC6:
             // Select first item of submenu
             scene_manager_set_scene_state(
                 app->scene_manager, EspFlasherSceneQuick, event.event + 1);
@@ -217,6 +368,15 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
             firm = APP_DATA_PATH("assets/blackmagic/s2/blackmagic.bin");
             break;
 
+        case QuickS2Boot_GhostESP:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickS2_GhostESP:
+            boot = APP_DATA_PATH("assets/ghostesp/s2/bootloader.bin");
+            part = APP_DATA_PATH("assets/ghostesp/s2/partition-table.bin");
+            firm = APP_DATA_PATH("assets/ghostesp/s2/Ghost_ESP_IDF.bin");
+            break;
+
         case QuickWROOMBoot_Marauder:
             enter_bootloader = true;
             /* fallthrough */
@@ -232,6 +392,15 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
             /* fallthrough */
         case QuickWROOM_Wardriver:
             boot = APP_DATA_PATH("assets/wardriver/f0-wardrive-wroom.bin");
+            break;
+
+        case QuickWROOMBoot_GhostESP:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickWROOM_GhostESP:
+        boot = APP_DATA_PATH("assets/ghostesp/wroom/bootloader.bin"); 
+        part = APP_DATA_PATH("assets/ghostesp/wroom/partition-table.bin");
+        firm = APP_DATA_PATH("assets/ghostesp/wroom/Ghost_ESP_IDF.bin");
             break;
 
         case QuickS3Boot_Marauder:
@@ -253,6 +422,108 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
             boot = APP_DATA_PATH("assets/wardriver/f0-wardrive-s3.bin");
             break;
 
+        case QuickS3Boot_GhostESP:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickS3_GhostESP:
+            s3 = true;
+            boot = APP_DATA_PATH("assets/ghostesp/s3/bootloader.bin"); 
+            part = APP_DATA_PATH("assets/ghostesp/s3/partition-table.bin");
+            firm = APP_DATA_PATH("assets/ghostesp/s3/Ghost_ESP_IDF.bin");
+            break;
+
+            case QuickC3Boot_Marauder:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickC3_Marauder:
+            s3 = true;
+            boot = APP_DATA_PATH("assets/marauder/c3/esp32_marauder.ino.bootloader.bin");
+            part = APP_DATA_PATH("assets/marauder/esp32_marauder.ino.partitions.bin");
+            app0 = APP_DATA_PATH("assets/marauder/boot_app0.bin");
+            firm = APP_DATA_PATH("assets/marauder/c3/esp32_marauder.multiboardS3.bin");
+            break;
+
+        case QuickC3Boot_Flipperhttp:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickC3_Flipperhttp:
+            s3 = true;
+            boot = APP_DATA_PATH("assets/flipperhttp/c3/flipper_http_bootloader.bin");
+            part = APP_DATA_PATH("assets/flipperhttp/c3/flipper_http_firmware_a.bin");
+            firm = APP_DATA_PATH("assets/flipperhttp/c3/flipper_http_partitions.bin");
+            break;
+
+        case QuickC3Boot_GhostESP:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickC3_GhostESP:
+            s3 = true;
+            boot = APP_DATA_PATH("assets/ghostesp/c3/bootloader.bin"); 
+            part = APP_DATA_PATH("assets/ghostesp/c3/partition-table.bin");
+            firm = APP_DATA_PATH("assets/ghostesp/c3/Ghost_ESP_IDF.bin");
+            break;
+
+            case QuickC5Boot_Marauder:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickC5_Marauder:
+            c5 = true;
+            boot = APP_DATA_PATH("assets/marauder/c5/esp32_marauder.ino.bootloader.bin");
+            part = APP_DATA_PATH("assets/marauder/esp32_marauder.ino.partitions.bin");
+            app0 = APP_DATA_PATH("assets/marauder/boot_app0.bin");
+            firm = APP_DATA_PATH("assets/marauder/c5/esp32_marauder.multiboardS3.bin");
+            break;
+
+        case QuickC5Boot_Flipperhttp:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickC5_Flipperhttp:
+            c5 = true;
+            boot = APP_DATA_PATH("assets/flipperhttp/c5/flipper_http_bootloader.bin");
+            part = APP_DATA_PATH("assets/flipperhttp/c5/flipper_http_firmware_a.bin");
+            firm = APP_DATA_PATH("assets/flipperhttp/c5/flipper_http_partitions.bin");
+            break;
+
+        case QuickC5Boot_GhostESP:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickC5_GhostESP:
+            c5 = true;
+            boot = APP_DATA_PATH("assets/ghostesp/c5/bootloader.bin"); 
+            part = APP_DATA_PATH("assets/ghostesp/c5/partition-table.bin");
+            firm = APP_DATA_PATH("assets/ghostesp/c5/Ghost_ESP_IDF.bin");
+            break;
+
+        case QuickC6Boot_Marauder:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickC6_Marauder:
+            s3 = true;
+            boot = APP_DATA_PATH("assets/marauder/c6/esp32_marauder.ino.bootloader.bin");
+            part = APP_DATA_PATH("assets/marauder/esp32_marauder.ino.partitions.bin");
+            app0 = APP_DATA_PATH("assets/marauder/boot_app0.bin");
+            firm = APP_DATA_PATH("assets/marauder/c6/esp32_marauder.multiboardS3.bin");
+            break;
+
+        case QuickC6Boot_Flipperhttp:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickC6_Flipperhttp:
+            s3 = true;
+            boot = APP_DATA_PATH("assets/flipperhttp/c6/flipper_http_bootloader.bin");
+            part = APP_DATA_PATH("assets/flipperhttp/c6/flipper_http_firmware_a.bin");
+            firm = APP_DATA_PATH("assets/flipperhttp/c6/flipper_http_partitions.bin");
+            break;
+
+        case QuickC6Boot_GhostESP:
+            enter_bootloader = true;
+            /* fallthrough */
+        case QuickC6_GhostESP:
+            s3 = true;
+            boot = APP_DATA_PATH("assets/ghostesp/c6/bootloader.bin"); 
+            part = APP_DATA_PATH("assets/ghostesp/c6/partition-table.bin");
+            firm = APP_DATA_PATH("assets/ghostesp/c6/Ghost_ESP_IDF.bin");
+            break;
         default:
             consumed = false;
             return consumed;
@@ -286,6 +557,25 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
             strncpy(app->bin_file_path_app_a, firm, sizeof(app->bin_file_path_app_a));
         }
 
+        app->selected_flash_options[SelectedFlashC5Mode] = c5;
+        if(boot) {
+            app->selected_flash_options[SelectedFlashBoot] = true;
+            strncpy(app->bin_file_path_boot, boot, sizeof(app->bin_file_path_boot));
+        }
+        if(part) {
+            app->selected_flash_options[SelectedFlashPart] = true;
+            strncpy(app->bin_file_path_part, part, sizeof(app->bin_file_path_part));
+        }
+        if(app0) {
+            app->selected_flash_options[SelectedFlashBootApp0] = true;
+            strncpy(app->bin_file_path_boot_app0, app0, sizeof(app->bin_file_path_boot_app0));
+        }
+        if(firm) {
+            app->selected_flash_options[SelectedFlashAppA] = true;
+            strncpy(app->bin_file_path_app_a, firm, sizeof(app->bin_file_path_app_a));
+        }
+
+
         app->reset = false;
         app->quickflash = true;
         app->turbospeed = true;
@@ -306,6 +596,12 @@ bool esp_flasher_scene_quick_on_event(void* context, SceneManagerEvent event) {
             state = QuickWROOMBoot;
         else if(state > QuickS2Boot)
             state = QuickS2Boot;
+        else if(state > QuickC3Boot)
+            state = QuickC3Boot;
+        else if(state > QuickC5Boot)
+            state = QuickC5Boot;
+        else if(state > QuickC6Boot)
+            state = QuickC6Boot;        
         // If pressing back from quick flash menu (not submenu), state will not matter
         scene_manager_set_scene_state(app->scene_manager, EspFlasherSceneQuick, state);
     }
