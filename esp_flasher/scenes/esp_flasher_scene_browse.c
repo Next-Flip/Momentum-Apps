@@ -211,8 +211,8 @@ static void _refresh_submenu(EspFlasherApp* app) {
 
     submenu_add_item(
         submenu,
-        app->selected_flash_options[SelectedFlashC5Mode] ? "[x] Using ESP32-C5" :
-                                                           "[ ] Select for ESP32-C5",
+        app->selected_flash_options[SelectedFlashC5Mode] ? "[x] Using C5" :
+                                                           "[ ] Select for C5",
         SubmenuIndexC5Mode,
         esp_flasher_scene_browse_callback,
         app);
@@ -220,9 +220,9 @@ static void _refresh_submenu(EspFlasherApp* app) {
     const char* strSelectBootloader = STR_UNSELECT " " STR_BOOT;
     if(app->selected_flash_options[SelectedFlashC5Mode]) {
         if(app->selected_flash_options[SelectedFlashBoot]) {
-            strSelectBootloader = STR_SELECT " Bootloader (C5 @ 0x2000)";
+            strSelectBootloader = STR_SELECT " Bootloader (0x2000)";
         } else {
-            strSelectBootloader = STR_UNSELECT " Bootloader (C5 @ 0x2000)";
+            strSelectBootloader = STR_UNSELECT " Bootloader (0x2000)";
         }
     } else if(app->selected_flash_options[SelectedFlashS3Mode]) {
         if(app->selected_flash_options[SelectedFlashBoot]) {
