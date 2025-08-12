@@ -1,3 +1,8 @@
+## 2.0
+- Switched to C++ for better performance and maintainability.
+- Added support for comments on feed posts (press DOWN to view comments on the current post).
+- Simplified login and registration processes.
+
 ## 1.1
 - Restructured code.
 - Added auto‑updating.

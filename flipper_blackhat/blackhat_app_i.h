@@ -21,13 +21,14 @@
 #include "blackhat_uart.h"
 #include "scenes/blackhat_scene.h"
 
-#define NUM_MENU_ITEMS (18)
+#define NUM_MENU_ITEMS (19)
 
 #define BLACKHAT_TEXT_BOX_STORE_SIZE (4096)
 #define UART_CH FuriHalSerialIdUsart
 
 #define SHELL_CMD "whoami"
 #define SCAN_CMD "bh script scan"
+#define CHG_RUN_CMD_SCREEN "bh rcs"
 #define RUN_CMD "bh script run"
 #define WIFI_CON_CMD "bh wifi connect"
 #define SET_INET_SSID_CMD "bh set SSID"
@@ -35,6 +36,7 @@
 #define SET_AP_SSID_CMD "bh set AP_SSID"
 #define LIST_AP_CMD "bh wifi list"
 #define DEV_CMD "bh wifi dev"
+#define DEAUTH_CMD "bh deauth_broadcast"
 #define START_AP_CMD "bh wifi ap"
 #define START_KISMET_CMD "bh kismet"
 #define GET_IP_CMD "bh wifi ip"

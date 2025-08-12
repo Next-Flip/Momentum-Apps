@@ -4,19 +4,28 @@ The first social media app for Flipper Zero. Connect with other users directly o
 The highlight of this app is customizable pre-saves, which, as explained below, aim to address the challenges of typing with the directional pad.
 
 ## Requirements
-- WiFi Developer Board, Raspberry Pi, or ESP32 Device with FlipperHTTP Flash: https://github.com/jblanked/FlipperHTTP
-- 2.4 Ghz WiFi Access Point
+- Wi-Fi Developer Board, BW16, Raspberry Pi, or ESP32 device flashed with FlipperHTTP v2.0 or higher: https://github.com/jblanked/FlipperHTTP
+- 2.4 GHz or 5 GHz Wi-Fi access point
+
+## Connect Online
+- Discord: https://discord.gg/5aN9qwkEc6
+- YouTube: https://www.youtube.com/@jblanked
+- Instagram: https://www.instagram.com/jblanked
+- Other: https://www.jblanked.com/social/
 
 ## Features
 - Login/Logout
 - Registration
-- Feed
+- Feed (with comments, flipping, and posting)
 - Profile
 - Customizable Pre-Saves
 - Explore 
 - Friends 
 - Direct Messaging 
 
+## Feed/Comments Controls
+- Left/Right: Navigate through posts
+- Down: Scroll through comments/ post a comment
 
 **Login/Logout:** Log in to your account to view and post on the Feed. You can also change your password and log out when needed.
 

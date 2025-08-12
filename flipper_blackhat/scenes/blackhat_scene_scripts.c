@@ -10,7 +10,7 @@ static void blackhat_scene_script_list_enter_callback(
     BlackhatApp* app = context;
 
     console = true;
-    app->selected_tx_string = "bh script run";
+    app->selected_tx_string = RUN_CMD;
     app->selected_option_item_text = app->cmd[index + 1];
     app->text_input_req = false;
     app->selected_menu_index = index;

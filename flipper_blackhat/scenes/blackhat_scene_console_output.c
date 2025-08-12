@@ -52,7 +52,7 @@ void blackhat_scene_console_output_on_enter(void* context)
         app->scanned = true;
     }
 
-    if (!strcmp(app->selected_tx_string, RUN_CMD)) {
+    if (!strcmp(app->selected_tx_string, CHG_RUN_CMD_SCREEN)) {
         if (app->scanned) {
             app->script_text_ptr++;
             app->script_text[app->script_text_ptr] = 0x00;
