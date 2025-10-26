@@ -52,7 +52,7 @@ static const NotificationSequence led_reset = {
 
 void set_backlight_brightness(float brightness) {
     notif->settings.display_brightness = brightness;
-    notification_message(notif, &sequence_display_backlight_on);
+    furi_hal_light_set(LightBacklight, brightness * 0xFF);
 }
 
 void handle_up() {
@@ -315,7 +315,6 @@ int32_t clock_app(void* p) {
     float tmpBrightness = notif->settings.display_brightness;
     brightness = tmpBrightness * 100; // Keep current brightness by default
 
-    notification_message(notif, &sequence_display_backlight_enforce_on);
     notification_message(notif, &led_off);
 
     // Set system callbacks
@@ -395,7 +394,6 @@ int32_t clock_app(void* p) {
     free(plugin_state);
 
     set_backlight_brightness(tmpBrightness);
-    notification_message(notif, &sequence_display_backlight_enforce_auto);
     notification_message(notif, &led_reset);
 
     return 0;
