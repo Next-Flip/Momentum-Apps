@@ -396,5 +396,16 @@ int32_t clock_app(void* p) {
     set_backlight_brightness(tmpBrightness);
     notification_message(notif, &led_reset);
 
+    // Force RGB backlight update to restore original color settings
+    // by temporarily changing brightness and restoring it
+    if(momentum_settings.rgb_backlight) {
+        uint8_t current_brightness = tmpBrightness * 0xFF;
+        // Temporarily set brightness to 0 to force update
+        furi_hal_light_set(LightBacklight, 0);
+        furi_delay_ms(10); // Small delay to ensure the change takes effect
+        // Restore original brightness
+        furi_hal_light_set(LightBacklight, current_brightness);
+    }
+
     return 0;
 }
