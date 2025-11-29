@@ -1,3 +1,5 @@
+## 3.1
+ - Updates for latest SDK
 ## 3.0
  - Added Static Encrypted Nested key recovery, added NFC app support, dropped FlipperNested support
 ## 2.7
