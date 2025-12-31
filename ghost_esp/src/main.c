@@ -67,6 +67,7 @@ int32_t ghost_esp_app(void* p) {
     state->last_ble_scanning_index = 0;
     state->last_ble_capture_index = 0;
     state->last_ble_attack_index = 0;
+    state->last_aerial_category_index = 0;
     state->last_gps_index = 0;
     state->last_ir_index = 0;
     state->current_index = 0;
@@ -74,10 +75,9 @@ int32_t ghost_esp_app(void* p) {
     state->previous_view = 0;
     state->came_from_settings = false;
 
-    // Initialize essential text buffers with minimal size
-    state->textBoxBuffer = malloc(1);
-    if(state->textBoxBuffer) {
-        state->textBoxBuffer[0] = '\0';
+    state->textBoxBuffer = malloc(TEXT_LOG_BUFFER_SIZE);
+    if(state && state->textBoxBuffer) {
+        memset(state->textBoxBuffer, 0, TEXT_LOG_BUFFER_SIZE);
     }
     state->buffer_length = 0;
     state->input_buffer = malloc(INPUT_BUFFER_SIZE);
@@ -110,6 +110,7 @@ int32_t ghost_esp_app(void* p) {
     state->ble_scanning_menu = submenu_alloc();
     state->ble_capture_menu = submenu_alloc();
     state->ble_attack_menu = submenu_alloc();
+    state->aerial_menu = submenu_alloc();
     state->gps_menu = submenu_alloc();
     state->ir_menu = submenu_alloc();
     state->ir_remotes_menu = submenu_alloc();
@@ -118,6 +119,9 @@ int32_t ghost_esp_app(void* p) {
     state->text_box = text_box_alloc();
     state->settings_menu = variable_item_list_alloc();
     state->text_input = text_input_alloc();
+#ifdef HAS_MOMENTUM_SUPPORT
+    if(state->text_input) text_input_show_illegal_symbols(state->text_input, true);
+#endif
     state->confirmation_view = confirmation_view_alloc();
     state->settings_actions_menu = submenu_alloc();
 
@@ -142,16 +146,13 @@ int32_t ghost_esp_app(void* p) {
     }
 
     // Initialize filter config
-    state->filter_config = malloc(sizeof(FilterConfig));
-    if(state->filter_config) {
-        state->filter_config->enabled = state->settings.enable_filtering_index;
-        state->filter_config->show_ble_status = true;
-        state->filter_config->show_wifi_status = true;
-        state->filter_config->show_flipper_devices = true;
-        state->filter_config->show_wifi_networks = true;
-        state->filter_config->strip_ansi_codes = true;
-        state->filter_config->add_prefixes = true;
-    }
+    state->filter_config.enabled = state->settings.enable_filtering_index;
+    state->filter_config.show_ble_status = true;
+    state->filter_config.show_wifi_status = true;
+    state->filter_config.show_flipper_devices = true;
+    state->filter_config.show_wifi_networks = true;
+    state->filter_config.strip_ansi_codes = true;
+    state->filter_config.add_prefixes = true;
 
     // Set up settings UI context
     state->settings_ui_context.settings = &state->settings;
@@ -183,6 +184,9 @@ int32_t ghost_esp_app(void* p) {
             view_dispatcher_add_view(state->view_dispatcher, 2, submenu_get_view(state->ble_menu));
         if(state->gps_menu)
             view_dispatcher_add_view(state->view_dispatcher, 3, submenu_get_view(state->gps_menu));
+        if(state->aerial_menu)
+            view_dispatcher_add_view(
+                state->view_dispatcher, 15, submenu_get_view(state->aerial_menu));
         if(state->settings_menu)
             view_dispatcher_add_view(
                 state->view_dispatcher, 4, variable_item_list_get_view(state->settings_menu));
@@ -287,6 +291,7 @@ int32_t ghost_esp_app(void* p) {
     // Clean up UART context (this will also handle storage cleanup)
     if(state && state->uart_context) {
         FURI_LOG_I("Ghost_ESP", "Freeing UART context...");
+        uart_cleanup_capture_streams(state->uart_context); // Ensure capture streams are freed
         uart_free(state->uart_context);
         state->uart_context = NULL;
         FURI_LOG_I("Ghost_ESP", "UART context freed.");
@@ -309,6 +314,7 @@ int32_t ghost_esp_app(void* p) {
         if(state->wifi_attack_menu) view_dispatcher_remove_view(state->view_dispatcher, 12);
         if(state->wifi_network_menu) view_dispatcher_remove_view(state->view_dispatcher, 13);
         if(state->wifi_settings_menu) view_dispatcher_remove_view(state->view_dispatcher, 14);
+        if(state->aerial_menu) view_dispatcher_remove_view(state->view_dispatcher, 15);
         if(state->status_idle_menu) view_dispatcher_remove_view(state->view_dispatcher, 40);
         if(state->ble_scanning_menu) view_dispatcher_remove_view(state->view_dispatcher, 20);
         if(state->ble_capture_menu) view_dispatcher_remove_view(state->view_dispatcher, 21);
@@ -346,6 +352,7 @@ int32_t ghost_esp_app(void* p) {
     if(state && state->ble_scanning_menu) submenu_free(state->ble_scanning_menu);
     if(state && state->ble_capture_menu) submenu_free(state->ble_capture_menu);
     if(state && state->ble_attack_menu) submenu_free(state->ble_attack_menu);
+    if(state && state->aerial_menu) submenu_free(state->aerial_menu);
     if(state && state->gps_menu) submenu_free(state->gps_menu);
     if(state && state->ir_menu) submenu_free(state->ir_menu);
     if(state && state->ir_remotes_menu) submenu_free(state->ir_remotes_menu);
@@ -356,13 +363,23 @@ int32_t ghost_esp_app(void* p) {
     // Close GUI record after all GUI-related components are freed
     furi_record_close("gui");
     FURI_LOG_I("Ghost_ESP", "GUI record closed.");
+    if(state && state->dialogs) {
+        furi_record_close(RECORD_DIALOGS);
+        state->dialogs = NULL;
+        FURI_LOG_I("Ghost_ESP", "Dialogs record closed.");
+    }
 
     // Cleanup buffers
     FURI_LOG_I("Ghost_ESP", "Freeing buffers...");
     if(state && state->input_buffer) free(state->input_buffer);
     if(state && state->textBoxBuffer) free(state->textBoxBuffer);
-    if(state && state->filter_config) free(state->filter_config);
+    // state->filter_config is now embedded, no need to free
     if(state && state->ir_file_buffer) free(state->ir_file_buffer);
+    if(state && state->active_confirm_context) {
+        FURI_LOG_I("Ghost_ESP", "Freeing active confirmation context...");
+        free(state->active_confirm_context);
+        state->active_confirm_context = NULL;
+    }
     FURI_LOG_I("Ghost_ESP", "Buffers freed.");
 
     // Final state cleanup

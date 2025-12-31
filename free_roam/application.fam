@@ -10,5 +10,5 @@ App(
     fap_description="3D Open World Multiplayer Game", 
     fap_author="JBlanked",
     fap_weburl="https://github.com/jblanked/Free-Roam",
-    fap_version="0.3.2",
+    fap_version="0.4",
 )

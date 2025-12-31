@@ -1,10 +1,8 @@
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
+#include <furi.h>
+#include "bytes.h"
+#include "debug.h"
 
 #define DELTA 0x9E3779B9
-
-#include "./usb/usb_toypad.h"
 
 // Encipher function: core TEA encryption logic
 void encipher(uint32_t* v, uint32_t* k, uint32_t* result) {
@@ -36,48 +34,30 @@ void decipher(uint32_t* v, uint32_t* k, uint32_t* result) {
     result[1] = v1;
 }
 
-// Load 32-bit value safely (portable)
-static uint32_t bytes_to_uint32(const uint8_t* buf) {
-    return (uint32_t)buf[0] | ((uint32_t)buf[1] << 8) | ((uint32_t)buf[2] << 16) |
-           ((uint32_t)buf[3] << 24);
-}
-
-// Store 32-bit value safely (portable)
-static void uint32_to_bytes(uint32_t value, uint8_t* buf) {
-    buf[0] = (uint8_t)(value & 0xFF);
-    buf[1] = (uint8_t)((value >> 8) & 0xFF);
-    buf[2] = (uint8_t)((value >> 16) & 0xFF);
-    buf[3] = (uint8_t)((value >> 24) & 0xFF);
-}
-
 // Encryption function
 void tea_encrypt(const uint8_t* buffer, const uint8_t* key, uint8_t* out) {
     if(!buffer || !key || !out) return;
 
-    uint32_t v[2] = {bytes_to_uint32(buffer), bytes_to_uint32(buffer + 4)};
+    uint32_t v[2] = {readUInt32LE(buffer, 0), readUInt32LE(buffer, 4)};
+
     uint32_t k[4] = {
-        bytes_to_uint32(key),
-        bytes_to_uint32(key + 4),
-        bytes_to_uint32(key + 8),
-        bytes_to_uint32(key + 12)};
+        readUInt32LE(key, 0), readUInt32LE(key, 4), readUInt32LE(key, 8), readUInt32LE(key, 12)};
 
     uint32_t result[2];
     encipher(v, k, result);
 
-    uint32_to_bytes(result[0], out);
-    uint32_to_bytes(result[1], out + 4);
+    writeUInt32LE(out, result[0], 0);
+    writeUInt32LE(out, result[1], 4);
 }
 
 // Decryption function
 void tea_decrypt(const uint8_t* buffer, const uint8_t* key, uint8_t* out) {
     furi_assert(key);
 
-    uint32_t v[2] = {bytes_to_uint32(buffer), bytes_to_uint32(buffer + 4)};
+    uint32_t v[2] = {readUInt32LE(buffer, 0), readUInt32LE(buffer, 4)};
+
     uint32_t k[4] = {
-        bytes_to_uint32(key),
-        bytes_to_uint32(key + 4),
-        bytes_to_uint32(key + 8),
-        bytes_to_uint32(key + 12)};
+        readUInt32LE(key, 0), readUInt32LE(key, 4), readUInt32LE(key, 8), readUInt32LE(key, 12)};
 
     // dechiper the buffer
     uint32_t result[2];
@@ -88,6 +68,6 @@ void tea_decrypt(const uint8_t* buffer, const uint8_t* key, uint8_t* out) {
         return;
     }
 
-    uint32_to_bytes(result[0], out);
-    uint32_to_bytes(result[1], out + 4);
+    writeUInt32LE(out, result[0], 0);
+    writeUInt32LE(out, result[1], 4);
 }

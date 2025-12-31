@@ -1,3 +1,6 @@
+## 1.21
+ - Removed wiegand plugin
+ - Support for changing CN during emulation for some formats
 ## 1.20
  - Parse SIO
  - Move to GitHub

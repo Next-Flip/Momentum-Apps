@@ -18,6 +18,9 @@
 #include "game/game.hpp"
 
 #define TAG "Free Roam"
+#define VERSION "0.4"
+#define VERSION_TAG TAG " " VERSION
+#define APP_ID "free_roam"
 
 typedef enum
 {
@@ -77,33 +80,18 @@ public:
     void setSoundEnabled(bool enabled);     // set sound enabled/disabled
 
     HTTPState getHttpState() const noexcept { return flipperHttp ? flipperHttp->state : INACTIVE; }
-    bool setHttpState(HTTPState state = IDLE) noexcept
-    {
-        if (flipperHttp)
-        {
-            flipperHttp->state = state;
-            return true;
-        }
-        return false;
-    }
+    bool hasWiFiCredentials();
+    bool hasUserCredentials();
+    bool setHttpState(HTTPState state = IDLE) noexcept;
 
-    FuriString *httpRequest(
-        const char *url,
-        HTTPMethod method = GET,
-        const char *headers = "{\"Content-Type\": \"application/json\"}",
-        const char *payload = nullptr);
-
-    // for this one, check the HttpState to see if the request is finished
-    // and then check the location
-    // I think I'll add the loading view/animation to the one above
-    // so this one is just like we used in the old apps
-    // saveLocation is just a filename (like "response.json" or "data.json")
     bool httpRequestAsync(
         const char *saveLocation,
         const char *url,
         HTTPMethod method = GET,
         const char *headers = "{\"Content-Type\": \"application/json\"}",
         const char *payload = nullptr);
+
+    bool sendWiFiCredentials(const char *ssid, const char *password); // send WiFi credentials to the board
 
     FreeRoamApp();
     ~FreeRoamApp();

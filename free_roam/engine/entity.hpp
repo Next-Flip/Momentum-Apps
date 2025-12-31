@@ -8,6 +8,11 @@ class Sprite3D;
 struct Vertex3D;
 struct Triangle3D;
 
+#define ENTITY_LEFT Vector(-1, 0)
+#define ENTITY_RIGHT Vector(1, 0)
+#define ENTITY_UP Vector(0, -1)
+#define ENTITY_DOWN Vector(0, 1)
+
 typedef enum
 {
     ENTITY_IDLE,
@@ -117,13 +122,15 @@ public:
     void render3DSprite(Draw *draw, Vector player_pos, Vector player_dir, Vector player_plane, float view_height) const;
     void update3DSpritePosition();
 
+    bool hasChangedPosition() const; // Check if the entity's position has changed
+
 private:
     // Internal 3D sprite management
     void create3DSprite(Sprite3DType type, float height = 2.0f, float width = 1.0f, float rotation = 0.0f);
     void destroy3DSprite();
 
     // Helper methods for 3D sprite rendering
-    Vector project3DTo2D(const Vertex3D &vertex, Vector player_pos, Vector player_dir, Vector player_plane, float view_height) const;
+    Vector project3DTo2D(float x, float y, float z, Vector player_pos, Vector player_dir, Vector player_plane, float view_height) const;
     void fillTriangle(Draw *const draw, Vector p1, Vector p2, Vector p3) const;
 
     void (*_start)(Entity *, Game *);

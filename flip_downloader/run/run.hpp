@@ -26,6 +26,7 @@ typedef enum
     RunViewMainMenu,
     RunViewCatalog,
     RunViewESP32,
+    RunViewFlipperHTTP,
     RunViewVGM,
     RunViewGitHubAuthor,
     RunViewGitHubRepo,
@@ -36,13 +37,47 @@ typedef enum
 
 typedef enum
 {
-    // ESP32
+    // Marauder
     DownloadLinkFirmwareMarauderLink1,
     DownloadLinkFirmwareMarauderLink2,
     DownloadLinkFirmwareMarauderLink3,
-    DownloadLinkFirmwareFlipperHTTPLink1,
-    DownloadLinkFirmwareFlipperHTTPLink2,
-    DownloadLinkFirmwareFlipperHTTPLink3,
+    // FlipperHTTP - WiFi Devboard
+    DownloadLinkFlipperHTTPWiFiDevboardLink1,
+    DownloadLinkFlipperHTTPWiFiDevboardLink2,
+    DownloadLinkFlipperHTTPWiFiDevboardLink3,
+    // FlipperHTTP - ESP32-C3
+    DownloadLinkFlipperHTTPESP32C3Link1,
+    DownloadLinkFlipperHTTPESP32C3Link2,
+    DownloadLinkFlipperHTTPESP32C3Link3,
+    // FlipperHTTP - ESP32-C5
+    DownloadLinkFlipperHTTPESP32C5Link1,
+    DownloadLinkFlipperHTTPESP32C5Link2,
+    DownloadLinkFlipperHTTPESP32C5Link3,
+    // FlipperHTTP - ESP32-C6
+    DownloadLinkFlipperHTTPESP32C6Link1,
+    DownloadLinkFlipperHTTPESP32C6Link2,
+    DownloadLinkFlipperHTTPESP32C6Link3,
+    // FlipperHTTP - ESP32-Cam
+    DownloadLinkFlipperHTTPESP32CamLink1,
+    DownloadLinkFlipperHTTPESP32CamLink2,
+    DownloadLinkFlipperHTTPESP32CamLink3,
+    // FlipperHTTP - ESP32-S3
+    DownloadLinkFlipperHTTPESP32S3Link1,
+    DownloadLinkFlipperHTTPESP32S3Link2,
+    DownloadLinkFlipperHTTPESP32S3Link3,
+    // FlipperHTTP - ESP32-WROOM
+    DownloadLinkFlipperHTTPESP32WROOMLink1,
+    DownloadLinkFlipperHTTPESP32WROOMLink2,
+    DownloadLinkFlipperHTTPESP32WROOMLink3,
+    // FlipperHTTP - ESP32-WROVER
+    DownloadLinkFlipperHTTPESP32WROVERLink1,
+    DownloadLinkFlipperHTTPESP32WROVERLink2,
+    DownloadLinkFlipperHTTPESP32WROVERLink3,
+    // FlipperHTTP - PicoCalc W
+    DownloadLinkFlipperHTTPPicoCalcWLink1,
+    // FlipperHTTP - PicoCalc 2W
+    DownloadLinkFlipperHTTPPicoCalc2WLink1,
+    // Black Magic
     DownloadLinkFirmwareBlackMagicLink1,
     DownloadLinkFirmwareBlackMagicLink2,
     DownloadLinkFirmwareBlackMagicLink3,
@@ -83,7 +118,9 @@ class FlipDownloaderRun
     int github_total_files = 0;                           // Total files to download from GitHub
     uint8_t github_download_delay_counter = 0;            // Delay counter to prevent rapid-fire downloads
     uint16_t idleCheckCounter = 0;                        // Counter to delay completion check
+    bool isDownloadStarted = false;                       // Flag to indicate if a download has been initiated
     bool isDownloading = false;                           // Flag to indicate if a download is in progress
+    bool hasDownloadTransitioned = false;                 // Flag to indicate if HTTP state has transitioned to SENDING/RECEIVING
     bool isDownloadComplete = false;                      // Flag to indicate if the download is complete
     bool isGitHubDownloading = false;                     // Flag to indicate if a GitHub file download is in progress
     bool isGitHubDownloadComplete = false;                // Flag to indicate if GitHub downloads are complete
@@ -95,6 +132,7 @@ class FlipDownloaderRun
     uint8_t selectedIndexMain = 0;                        // Currently selected menu item
     uint8_t selectedIndexCatalog = 0;                     // Currently selected catalog item
     uint8_t selectedIndexESP32 = 0;                       // Currently selected ESP32 item
+    uint8_t selectedIndexFlipperHTTP = 0;                 // Currently selected FlipperHTTP item
     uint8_t selectedIndexVGM = 0;                         // Currently selected VGM item
     uint8_t selectedIndexApps = 0;                        // Currently selected app item
     bool shouldReturnToMenu = false;                      // Flag to signal return to menu
@@ -109,10 +147,10 @@ class FlipDownloaderRun
     void drawMainMenu(Canvas *canvasx);                                                                 // Draw the main menu
     void drawMenu(Canvas *canvas, uint8_t selectedIndex, const char **menuItems, uint8_t menuCount);    // Generic menu drawer
     void drawMenuCatalog(Canvas *canvasx);                                                              // Draw the app catalog menu
-    void drawMenuESP32(Canvas *canvasx);                                                                // Draw the firmware menu
+    void drawMenuESP32(Canvas *canvasx);                                                                // Draw the esp32 firmware menu
+    void drawMenuFlipperHTTP(Canvas *canvasx);                                                          // Draw the flipperHTTP firmware menu
     void drawMenuVGM(Canvas *canvasx);                                                                  // Draw the VGM menu
     void drawApps(Canvas *canvas);                                                                      // Draw the apps view
-    void drawGitHubInput(Canvas *canvas);                                                               // Draw GitHub input screen
     void drawGitHubProgress(Canvas *canvas);                                                            // Draw GitHub download progress
     bool downloadApp(const char *appId, const char *buildId, const char *category);                     // Download an app based on the category and index
     bool downloadCategoryInfo(FlipperAppCategory category, uint8_t iteration);                          // Download category information based on the category and iteration

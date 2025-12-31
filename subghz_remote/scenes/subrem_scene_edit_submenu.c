@@ -54,6 +54,8 @@ void subrem_scene_edit_submenu_on_enter(void* context) {
     variable_item_set_current_value_index(item, sub_preset->button);
     variable_item_set_current_value_text(item, custom_button_text[sub_preset->button]);
 
+    variable_item_list_add(var_item_list, "Clear Slot", 0, NULL, NULL);
+
     variable_item_list_set_selected_item(
         var_item_list, scene_manager_get_scene_state(app->scene_manager, SubRemSceneEditSubMenu));
 
@@ -72,6 +74,11 @@ bool subrem_scene_edit_submenu_on_event(void* context, SceneManagerEvent event) 
             consumed = true;
         } else if(event.event == SubRemCustomEventEnterEditFile) {
             scene_manager_next_scene(app->scene_manager, SubRemSceneOpenSubFile);
+            consumed = true;
+        } else if(event.event == EditSubmenuIndexClearSlot) {
+            subrem_sub_file_preset_reset(app->map_preset->subs_preset[app->chosen_sub]);
+            app->map_not_saved = true;
+            scene_manager_previous_scene(app->scene_manager);
             consumed = true;
         }
     }

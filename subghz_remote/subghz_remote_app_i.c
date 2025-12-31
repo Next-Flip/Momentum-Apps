@@ -312,6 +312,63 @@ SubRemLoadMapState subrem_load_from_file(SubGhzRemoteApp* app) {
     return ret;
 }
 
+bool subrem_load_default_path(SubGhzRemoteApp* app) {
+    furi_assert(app);
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    FlipperFormat* ff = flipper_format_file_alloc(storage);
+    FuriString* default_path = furi_string_alloc();
+    bool success = false;
+
+    if(flipper_format_file_open_existing(ff, SUBREM_APP_CONFIG)) {
+        if(flipper_format_read_string(ff, "Default", default_path)) {
+            if(!furi_string_empty(default_path)) {
+                furi_string_set(app->file_path, default_path);
+                success = true;
+            }
+        }
+    }
+
+    furi_string_free(default_path);
+    flipper_format_free(ff);
+    furi_record_close(RECORD_STORAGE);
+    return success;
+}
+
+bool subrem_save_default_path(const char* path) {
+    furi_assert(path);
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    FlipperFormat* ff = flipper_format_file_alloc(storage);
+    bool success = false;
+
+    if(flipper_format_file_open_always(ff, SUBREM_APP_CONFIG)) {
+        if(flipper_format_write_header_cstr(ff, "SubGhzRemote Config", 1)) {
+            if(flipper_format_write_string_cstr(ff, "Default", path)) {
+                success = true;
+            }
+        }
+    }
+
+    flipper_format_free(ff);
+    furi_record_close(RECORD_STORAGE);
+    return success;
+}
+
+bool subrem_clear_default_path(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    bool success = storage_simply_remove(storage, SUBREM_APP_CONFIG);
+    furi_record_close(RECORD_STORAGE);
+    return success;
+}
+
+bool subrem_has_default_path(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    bool exists = storage_file_exists(storage, SUBREM_APP_CONFIG);
+    furi_record_close(RECORD_STORAGE);
+    return exists;
+}
+
 bool subrem_save_map_to_file(SubGhzRemoteApp* app) {
     furi_assert(app);
 

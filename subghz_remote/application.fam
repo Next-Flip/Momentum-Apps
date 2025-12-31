@@ -36,6 +36,6 @@ App(
     fap_category="Sub-GHz",
     fap_icon_assets="icons",
     fap_icon_assets_symbol="subghz_remote",
-    fap_version="1.5",
+    fap_version="1.8",
     fap_weburl="https://github.com/DarkFlippers/SubGHz_Remote",
 )

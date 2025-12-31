@@ -1,3 +1,10 @@
+## v1.3.5
+- Updated the keyboard class input handling to support long presses for capitalization.
+- Updated the keyboard class to show a blinking text cursor 
+- Updated the keyboard class to allow users to change the text cursor position (scroll up until you reach the text box, then use left/right buttons to move the cursor)
+- Added support for downloading the FlipperHTTP firmware for the PicoCalc, ESP32-C3, ESP32-C5, and more ESP32 variants.
+- Optimized the queue handling for downloading multiple files
+
 ## v1.3.4
 - Updated the save/load functions to use a specific folder ("flipper_http") for storing Wi-Fi and user credentials. This simplifies management and avoids potential conflicts with other applications.
 

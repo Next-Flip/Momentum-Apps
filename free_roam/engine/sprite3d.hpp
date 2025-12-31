@@ -5,12 +5,35 @@
 
 #define MAX_TRIANGLES_PER_SPRITE 28
 
+static void scale_vertex(float &x, float &y, float &z, float scale_factor)
+{
+    x *= scale_factor;
+    y *= scale_factor;
+    z *= scale_factor;
+}
+
+static void rotateY_vertex(float &x, float &z, float angle)
+{
+    float cos_a = cosf(angle);
+    float sin_a = sinf(angle);
+    float orig_x = x; // Store original x
+    x = orig_x * cos_a - z * sin_a;
+    z = orig_x * sin_a + z * cos_a; // Use original x
+}
+
+static void translate_vertex(float &x, float &y, float &z, float dx, float dy, float dz)
+{
+    x += dx;
+    y += dy;
+    z += dz;
+}
+
 // 3D vertex structure
 struct Vertex3D
 {
     float x, y, z;
 
-    Vertex3D() : x(0), y(0), z(0) {}
+    Vertex3D() : x(0.0), y(0.0), z(0.0) {}
     Vertex3D(float x, float y, float z) : x(x), y(y), z(z) {}
 
     // Rotate vertex around Y axis (for sprite facing)
@@ -46,35 +69,53 @@ struct Vertex3D
 // 3D triangle structure
 struct Triangle3D
 {
-    Vertex3D vertices[3];
+    float x1 = 0.0, y1 = 0.0, z1 = 0.0, x2 = 0.0, y2 = 0.0, z2 = 0.0, x3 = 0.0, y3 = 0.0, z3 = 0.0;
     bool visible;
     float distance; // For depth sorting
+    bool set;
 
-    Triangle3D() : visible(true), distance(0) {}
+    Triangle3D() : visible(true), distance(0), set(false) {}
 
     Triangle3D(const Vertex3D &v1, const Vertex3D &v2, const Vertex3D &v3)
-        : visible(true), distance(0)
+        : visible(true), distance(0), set(true)
     {
-        vertices[0] = v1;
-        vertices[1] = v2;
-        vertices[2] = v3;
+        x1 = v1.x;
+        y1 = v1.y;
+        z1 = v1.z;
+        x2 = v2.x;
+        y2 = v2.y;
+        z2 = v2.z;
+        x3 = v3.x;
+        y3 = v3.y;
+        z3 = v3.z;
     }
+
+    Triangle3D(float x1, float y1, float z1,
+               float x2, float y2, float z2,
+               float x3, float y3, float z3)
+        : x1(x1), y1(y1), z1(z1),
+          x2(x2), y2(y2), z2(z2),
+          x3(x3), y3(y3), z3(z3),
+          visible(true), distance(0), set(true) {}
 
     // Calculate triangle center for distance sorting
     Vertex3D getCenter() const
     {
         return Vertex3D(
-            (vertices[0].x + vertices[1].x + vertices[2].x) / 3.0f,
-            (vertices[0].y + vertices[1].y + vertices[2].y) / 3.0f,
-            (vertices[0].z + vertices[1].z + vertices[2].z) / 3.0f);
+            (this->x1 + this->x2 + this->x3) / 3.0f,
+            (this->y1 + this->y2 + this->y3) / 3.0f,
+            (this->z1 + this->z2 + this->z3) / 3.0f);
     }
 
     // Check if triangle is facing the camera (basic backface culling)
     bool isFacingCamera(const Vector &camera_pos) const
     {
         // Calculate triangle normal using cross product
-        Vertex3D v1 = vertices[1] - vertices[0];
-        Vertex3D v2 = vertices[2] - vertices[0];
+        Vertex3D vert_0 = Vertex3D(this->x1, this->y1, this->z1);
+        Vertex3D vert_1 = Vertex3D(this->x2, this->y2, this->z2);
+        Vertex3D vert_2 = Vertex3D(this->x3, this->y3, this->z3);
+        Vertex3D v1 = vert_1 - vert_0;
+        Vertex3D v2 = vert_2 - vert_0;
 
         // Cross product to get normal (right-hand rule)
         Vertex3D normal = Vertex3D(
@@ -122,6 +163,7 @@ public:
 
     // Basic sprite operations
     void setPosition(Vector pos) { position = pos; }
+    uint8_t getTriangleCount() const { return triangle_count; }
     Vector getPosition() const { return position; }
     void setRotation(float rot) { rotation_y = rot; }
     float getRotation() const { return rotation_y; }
@@ -188,43 +230,65 @@ public:
         createPillar(height, radius);
     }
 
-    // Get transformed triangles (with position, rotation, scale applied)
-    void getTransformedTriangles(Triangle3D *output_triangles, uint8_t &count, const Vector &camera_pos) const
+    Triangle3D getTransformedTriangle(uint8_t index, const Vector &camera_pos) const
     {
-        count = 0;
-        if (!active)
-            return;
+        if (index >= triangle_count)
+            return Triangle3D();
 
-        for (uint8_t i = 0; i < triangle_count; i++)
+        Triangle3D transformed = triangles[index];
+
+        // Apply transformations to each vertex
+        for (uint8_t v = 0; v < 3; v++)
         {
-            Triangle3D transformed = triangles[i];
-
-            // Apply transformations to each vertex
-            for (uint8_t v = 0; v < 3; v++)
+            switch (v)
+            {
+            case 0:
             {
                 // Scale
-                transformed.vertices[v] = transformed.vertices[v].scale(scale_factor, scale_factor, scale_factor);
-
+                scale_vertex(transformed.x1, transformed.y1, transformed.z1, scale_factor);
                 // Rotate around Y axis
-                transformed.vertices[v] = transformed.vertices[v].rotateY(rotation_y);
-
+                rotateY_vertex(transformed.x1, transformed.z1, rotation_y);
                 // Translate to world position
-                transformed.vertices[v] = transformed.vertices[v].translate(position.x, 0, position.y);
+                translate_vertex(transformed.x1, transformed.y1, transformed.z1, position.x, 0, position.y);
+                break;
             }
-
-            // Check if triangle should be rendered
-            if (transformed.isFacingCamera(camera_pos))
+            case 1:
             {
-                // Calculate distance for sorting
-                Vertex3D center = transformed.getCenter();
-                float dx = center.x - camera_pos.x;
-                float dz = center.z - camera_pos.y;
-                transformed.distance = sqrtf(dx * dx + dz * dz);
-
-                output_triangles[count] = transformed;
-                count++;
+                // Scale
+                scale_vertex(transformed.x2, transformed.y2, transformed.z2, scale_factor);
+                // Rotate around Y axis
+                rotateY_vertex(transformed.x2, transformed.z2, rotation_y);
+                // Translate to world position
+                translate_vertex(transformed.x2, transformed.y2, transformed.z2, position.x, 0, position.y);
+                break;
             }
+            case 2:
+            {
+                // Scale
+                scale_vertex(transformed.x3, transformed.y3, transformed.z3, scale_factor);
+                // Rotate around Y axis
+                rotateY_vertex(transformed.x3, transformed.z3, rotation_y);
+                // Translate to world position
+                translate_vertex(transformed.x3, transformed.y3, transformed.z3, position.x, 0, position.y);
+                break;
+            }
+            default:
+                break;
+            };
         }
+
+        // Check if triangle should be rendered
+        if (transformed.isFacingCamera(camera_pos))
+        {
+            // Calculate distance for sorting
+            Vertex3D center = transformed.getCenter();
+            float dx = center.x - camera_pos.x;
+            float dz = center.z - camera_pos.y;
+            transformed.distance = sqrtf(dx * dx + dz * dz);
+
+            return transformed;
+        }
+        return Triangle3D(); // Return empty triangle if not facing camera
     }
 
     // Create a humanoid character
@@ -322,43 +386,43 @@ private:
 
         // Front face (2 triangles)
         addTriangle(Triangle3D(
-            Vertex3D(x - hw, y - hh, z + hd),
-            Vertex3D(x + hw, y - hh, z + hd),
-            Vertex3D(x + hw, y + hh, z + hd)));
+            x - hw, y - hh, z + hd,
+            x + hw, y - hh, z + hd,
+            x + hw, y + hh, z + hd));
         addTriangle(Triangle3D(
-            Vertex3D(x - hw, y - hh, z + hd),
-            Vertex3D(x + hw, y + hh, z + hd),
-            Vertex3D(x - hw, y + hh, z + hd)));
+            x - hw, y - hh, z + hd,
+            x + hw, y + hh, z + hd,
+            x - hw, y + hh, z + hd));
 
         // Back face (2 triangles)
         addTriangle(Triangle3D(
-            Vertex3D(x + hw, y - hh, z - hd),
-            Vertex3D(x - hw, y - hh, z - hd),
-            Vertex3D(x - hw, y + hh, z - hd)));
+            x + hw, y - hh, z - hd,
+            x - hw, y - hh, z - hd,
+            x - hw, y + hh, z - hd));
         addTriangle(Triangle3D(
-            Vertex3D(x + hw, y - hh, z - hd),
-            Vertex3D(x - hw, y + hh, z - hd),
-            Vertex3D(x + hw, y + hh, z - hd)));
+            x + hw, y - hh, z - hd,
+            x - hw, y + hh, z - hd,
+            x + hw, y + hh, z - hd));
 
         // Right face (2 triangles)
         addTriangle(Triangle3D(
-            Vertex3D(x + hw, y - hh, z + hd),
-            Vertex3D(x + hw, y - hh, z - hd),
-            Vertex3D(x + hw, y + hh, z - hd)));
+            x + hw, y - hh, z + hd,
+            x + hw, y - hh, z - hd,
+            x + hw, y + hh, z - hd));
         addTriangle(Triangle3D(
-            Vertex3D(x + hw, y - hh, z + hd),
-            Vertex3D(x + hw, y + hh, z - hd),
-            Vertex3D(x + hw, y + hh, z + hd)));
+            x + hw, y - hh, z + hd,
+            x + hw, y + hh, z - hd,
+            x + hw, y + hh, z + hd));
 
         // Left face (2 triangles)
         addTriangle(Triangle3D(
-            Vertex3D(x - hw, y - hh, z - hd),
-            Vertex3D(x - hw, y - hh, z + hd),
-            Vertex3D(x - hw, y + hh, z + hd)));
+            x - hw, y - hh, z - hd,
+            x - hw, y - hh, z + hd,
+            x - hw, y + hh, z + hd));
         addTriangle(Triangle3D(
-            Vertex3D(x - hw, y - hh, z - hd),
-            Vertex3D(x - hw, y + hh, z + hd),
-            Vertex3D(x - hw, y + hh, z - hd)));
+            x - hw, y - hh, z - hd,
+            x - hw, y + hh, z + hd,
+            x - hw, y + hh, z - hd));
     }
 
     void createCylinder(float x, float y, float z, float radius, float height, uint8_t segments)
@@ -382,13 +446,13 @@ private:
 
             // Side face triangles only
             addTriangle(Triangle3D(
-                Vertex3D(x1, y - hh, z1),
-                Vertex3D(x2, y - hh, z2),
-                Vertex3D(x2, y + hh, z2)));
+                x1, y - hh, z1,
+                x2, y - hh, z2,
+                x2, y + hh, z2));
             addTriangle(Triangle3D(
-                Vertex3D(x1, y - hh, z1),
-                Vertex3D(x2, y + hh, z2),
-                Vertex3D(x1, y + hh, z1)));
+                x1, y - hh, z1,
+                x2, y + hh, z2,
+                x1, y + hh, z1));
         }
     }
 
@@ -409,31 +473,30 @@ private:
                 float phi2 = (float)(lon + 1) * 2.0f * M_PI / segments;
 
                 // Calculate vertices
-                Vertex3D v1(
-                    x + radius * sinf(theta1) * cosf(phi1),
-                    y + radius * cosf(theta1),
-                    z + radius * sinf(theta1) * sinf(phi1));
-                Vertex3D v2(
-                    x + radius * sinf(theta1) * cosf(phi2),
-                    y + radius * cosf(theta1),
-                    z + radius * sinf(theta1) * sinf(phi2));
-                Vertex3D v3(
-                    x + radius * sinf(theta2) * cosf(phi1),
-                    y + radius * cosf(theta2),
-                    z + radius * sinf(theta2) * sinf(phi1));
-                Vertex3D v4(
-                    x + radius * sinf(theta2) * cosf(phi2),
-                    y + radius * cosf(theta2),
-                    z + radius * sinf(theta2) * sinf(phi2));
+                float x1 = x + radius * sinf(theta1) * cosf(phi1);
+                float y1 = y + radius * cosf(theta1);
+                float z1 = z + radius * sinf(theta1) * sinf(phi1);
+                //
+                float x2 = x + radius * sinf(theta1) * cosf(phi2);
+                float y2 = y + radius * cosf(theta1);
+                float z2 = z + radius * sinf(theta1) * sinf(phi2);
+                //
+                float x3 = x + radius * sinf(theta2) * cosf(phi1);
+                float y3 = y + radius * cosf(theta2);
+                float z3 = z + radius * sinf(theta2) * sinf(phi1);
+                //
+                float x4 = x + radius * sinf(theta2) * cosf(phi2);
+                float y4 = y + radius * cosf(theta2);
+                float z4 = z + radius * sinf(theta2) * sinf(phi2);
 
                 // Add triangles
                 if (lat > 0)
                 {
-                    addTriangle(Triangle3D(v1, v2, v3));
+                    addTriangle(Triangle3D(x1, y1, z1, x2, y2, z2, x3, y3, z3));
                 }
                 if (lat < segments / 2 - 1)
                 {
-                    addTriangle(Triangle3D(v2, v4, v3));
+                    addTriangle(Triangle3D(x2, y2, z2, x4, y4, z4, x3, y3, z3));
                 }
             }
         }
@@ -447,43 +510,43 @@ private:
 
         // Front triangle
         addTriangle(Triangle3D(
-            Vertex3D(x - hw, y - hh, z + hd),
-            Vertex3D(x + hw, y - hh, z + hd),
-            Vertex3D(x, y + hh, z + hd)));
+            x - hw, y - hh, z + hd,
+            x + hw, y - hh, z + hd,
+            x, y + hh, z + hd));
 
         // Back triangle
         addTriangle(Triangle3D(
-            Vertex3D(x + hw, y - hh, z - hd),
-            Vertex3D(x - hw, y - hh, z - hd),
-            Vertex3D(x, y + hh, z - hd)));
+            x + hw, y - hh, z - hd,
+            x - hw, y - hh, z - hd,
+            x, y + hh, z - hd));
 
         // Bottom face
         addTriangle(Triangle3D(
-            Vertex3D(x - hw, y - hh, z - hd),
-            Vertex3D(x + hw, y - hh, z - hd),
-            Vertex3D(x + hw, y - hh, z + hd)));
+            x - hw, y - hh, z - hd,
+            x + hw, y - hh, z - hd,
+            x + hw, y - hh, z + hd));
         addTriangle(Triangle3D(
-            Vertex3D(x - hw, y - hh, z - hd),
-            Vertex3D(x + hw, y - hh, z + hd),
-            Vertex3D(x - hw, y - hh, z + hd)));
+            x - hw, y - hh, z - hd,
+            x + hw, y - hh, z + hd,
+            x - hw, y - hh, z + hd));
 
         // Side faces
         addTriangle(Triangle3D(
-            Vertex3D(x - hw, y - hh, z + hd),
-            Vertex3D(x, y + hh, z + hd),
-            Vertex3D(x, y + hh, z - hd)));
+            x - hw, y - hh, z + hd,
+            x, y + hh, z + hd,
+            x, y + hh, z - hd));
         addTriangle(Triangle3D(
-            Vertex3D(x - hw, y - hh, z + hd),
-            Vertex3D(x, y + hh, z - hd),
-            Vertex3D(x - hw, y - hh, z - hd)));
+            x - hw, y - hh, z + hd,
+            x, y + hh, z - hd,
+            x - hw, y - hh, z - hd));
 
         addTriangle(Triangle3D(
-            Vertex3D(x, y + hh, z + hd),
-            Vertex3D(x + hw, y - hh, z + hd),
-            Vertex3D(x + hw, y - hh, z - hd)));
+            x, y + hh, z + hd,
+            x + hw, y - hh, z + hd,
+            x + hw, y - hh, z - hd));
         addTriangle(Triangle3D(
-            Vertex3D(x, y + hh, z + hd),
-            Vertex3D(x + hw, y - hh, z - hd),
-            Vertex3D(x, y + hh, z - hd)));
+            x, y + hh, z + hd,
+            x + hw, y - hh, z - hd,
+            x, y + hh, z - hd));
     }
 };

@@ -1,3 +1,6 @@
+## 0.4
+ - Add more figures
+
 ## 0.3
  - Prevent 0x88 in UID byte 3
  - Added more figures to the database

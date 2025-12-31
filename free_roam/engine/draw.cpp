@@ -85,8 +85,18 @@ void Draw::image(Vector position, const uint8_t *bitmap, Vector size)
     {
         return;
     }
-    canvas_draw_bitmap(display, position.x, position.y, size.x, size.y, bitmap);
-    // might try canvas_draw_xbm if that doesnt look as expected
+    // canvas_draw_bitmap(display, position.x, position.y, size.x, size.y, bitmap);
+    // draw pixel by pixel instead
+    uint8_t pixel;
+    for (int y = 0; y < size.y; y++)
+    {
+        for (int x = 0; x < size.x; x++)
+        {
+            pixel = bitmap[y * (int)size.x + x];
+            canvas_set_color(display, (pixel == 0xFF) ? ColorWhite : ColorBlack);
+            canvas_draw_dot(display, position.x + x, position.y + y);
+        }
+    }
 }
 
 void Draw::setFontCustom(FontSize fontSize)

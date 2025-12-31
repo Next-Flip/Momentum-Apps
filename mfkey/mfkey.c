@@ -69,17 +69,22 @@ static inline void flush_key_buffer(ProgramState *program_state)
 {
 	if (program_state->key_buffer && program_state->key_buffer_count > 0 && program_state->cuid_dict)
 	{
-		// Pre-allocate exact size needed: 12 hex chars + 1 newline per key
-		size_t total_size = program_state->key_buffer_count * 13;
+		// Pre-allocate exact size needed: 2 hex chars (key_idx) + 12 hex chars (key) + 1 newline per key
+		size_t total_size = program_state->key_buffer_count * 15;
 		//FURI_LOG_I(TAG, "Flushing key buffer: %d keys", program_state->key_buffer_count);
 		//FURI_LOG_I(TAG, "Total size: %d bytes", total_size);
 		char* batch_buffer = malloc(total_size + 1); // +1 for null terminator
-		
+
 		char* ptr = batch_buffer;
 		const char hex_chars[] = "0123456789ABCDEF";
-		
+
 		for (size_t i = 0; i < program_state->key_buffer_count; i++)
 		{
+			// Write key_idx as 2 hex chars
+			uint8_t key_idx = program_state->key_idx_buffer[i];
+			*ptr++ = hex_chars[key_idx >> 4];
+			*ptr++ = hex_chars[key_idx & 0x0F];
+
 			// Convert key to hex string directly into buffer
 			for (size_t j = 0; j < sizeof(MfClassicKey); j++)
 			{
@@ -90,18 +95,18 @@ static inline void flush_key_buffer(ProgramState *program_state)
 			*ptr++ = '\n';
 		}
 		*ptr = '\0';
-		
+
 		// Write all keys at once by directly accessing the stream
 		Stream* stream = program_state->cuid_dict->stream;
 		uint32_t actual_pos = stream_tell(stream);
-		
-		if (stream_seek(stream, 0, StreamOffsetFromEnd) && 
+
+		if (stream_seek(stream, 0, StreamOffsetFromEnd) &&
 			stream_write(stream, (uint8_t*)batch_buffer, total_size) == total_size)
 		{
 			// Update total key count
 			program_state->cuid_dict->total_keys += program_state->key_buffer_count;
 		}
-		
+
 		// May not be needed
 		stream_seek(stream, actual_pos, StreamOffsetFromStart);
 		free(batch_buffer);
@@ -158,11 +163,12 @@ check_state(struct Crypto1State *t, MfClassicNonce *n, ProgramState *program_sta
 				// Found key candidate
 				crypto1_get_lfsr(t, &(n->key));
 				program_state->num_candidates++;
-				
+
 				// Use key buffer - buffer is guaranteed to be available for static_encrypted
 				program_state->key_buffer[program_state->key_buffer_count] = n->key;
+				program_state->key_idx_buffer[program_state->key_buffer_count] = n->key_idx;
 				program_state->key_buffer_count++;
-				
+
 				// Flush buffer when full
 				if (program_state->key_buffer_count >= program_state->key_buffer_size)
 				{
@@ -785,17 +791,18 @@ bool recover(MfClassicNonce *n, int ks2, unsigned int in, ProgramState *program_
 	if (n->attack == static_encrypted)
 	{
 		size_t available_ram = memmgr_heap_get_max_free_block();
-		// Each key becomes 12 hex chars + 1 newline = 13 bytes in the batch string
-		// Plus original 6 bytes in buffer = 19 bytes total per key
+		// Each key becomes 2 hex chars (key_idx) + 12 hex chars (key) + 1 newline = 15 bytes in the batch string
+		// Plus original 6 bytes (key) + 1 byte (key_idx) in buffer = 22 bytes total per key
 		// Add extra safety margin for string overhead and other allocations
 		const size_t safety_threshold = STATIC_ENCRYPTED_RAM_THRESHOLD;
-		const size_t bytes_per_key = sizeof(MfClassicKey) + 13; // buffer + string representation
+		const size_t bytes_per_key = sizeof(MfClassicKey) + sizeof(uint8_t) + 15; // buffer + string representation
 		if (available_ram > safety_threshold)
 		{
 			program_state->key_buffer_size = (available_ram - safety_threshold) / bytes_per_key;
 			program_state->key_buffer = malloc(program_state->key_buffer_size * sizeof(MfClassicKey));
+			program_state->key_idx_buffer = malloc(program_state->key_buffer_size * sizeof(uint8_t));
 			program_state->key_buffer_count = 0;
-			if (!program_state->key_buffer)
+			if (!program_state->key_buffer || !program_state->key_idx_buffer)
 			{
 				// Free the allocated blocks before returning
 				for (int i = 0; i < num_blocks; i++)
@@ -824,6 +831,7 @@ bool recover(MfClassicNonce *n, int ks2, unsigned int in, ProgramState *program_
 	else
 	{
 		program_state->key_buffer = NULL;
+		program_state->key_idx_buffer = NULL;
 		program_state->key_buffer_size = 0;
 		program_state->key_buffer_count = 0;
 	}
@@ -875,7 +883,9 @@ bool recover(MfClassicNonce *n, int ks2, unsigned int in, ProgramState *program_
 	{
 		flush_key_buffer(program_state);
 		free(program_state->key_buffer);
+		free(program_state->key_idx_buffer);
 		program_state->key_buffer = NULL;
+		program_state->key_idx_buffer = NULL;
 		program_state->key_buffer_size = 0;
 		program_state->key_buffer_count = 0;
 	}

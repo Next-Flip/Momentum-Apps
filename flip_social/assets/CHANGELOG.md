@@ -1,3 +1,7 @@
+## 2.0.5
+- Updated the display of feed posts to show the comment count for each post.
+- Added more detailed handling for registration errors to provide better feedback to users during the sign-up process.
+
 ## 2.0.4
 - Updated to use the flipper_http folder as intended
 

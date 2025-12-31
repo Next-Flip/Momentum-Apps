@@ -29,6 +29,7 @@
 #include <flipper_format/flipper_format_i.h>
 
 #define SUBREM_APP_FOLDER   EXT_PATH("subghz/remote")
+#define SUBREM_APP_CONFIG   EXT_PATH("subghz/remote/.config")
 #define SUBREM_MAX_LEN_NAME 64
 
 typedef struct {
@@ -72,3 +73,11 @@ void subrem_map_preset_reset(SubRemMapPreset* map_preset);
 bool subrem_save_map_to_file(SubGhzRemoteApp* app);
 
 void subrem_save_active_sub(void* context);
+
+bool subrem_load_default_path(SubGhzRemoteApp* app);
+
+bool subrem_save_default_path(const char* path);
+
+bool subrem_clear_default_path(void);
+
+bool subrem_has_default_path(void);

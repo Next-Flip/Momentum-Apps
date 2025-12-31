@@ -97,6 +97,11 @@ void Entity::collision(Entity *other, Game *game)
     }
 }
 
+bool Entity::hasChangedPosition() const
+{
+    return (this->position.x != this->old_position.x) || (this->position.y != this->old_position.y);
+}
+
 Vector Entity::position_get()
 {
     return this->position;
@@ -244,24 +249,38 @@ void Entity::render3DSprite(Draw *draw, Vector player_pos, Vector player_dir, Ve
     if (!has3DSprite())
         return;
 
-    // Get triangles from the 3D sprite
-    Triangle3D triangles[MAX_TRIANGLES_PER_SPRITE];
-    uint8_t triangle_count;
-    sprite_3d->getTransformedTriangles(triangles, triangle_count, player_pos);
-
-    // Render each triangle
+    // Get triangles from the 3D sprite and render them
+    static Vector screen_points[3];
+    static Vector screen_point;
+    static Triangle3D triangle;
+    //
+    const uint8_t triangle_count = sprite_3d->getTriangleCount();
     for (uint8_t i = 0; i < triangle_count; i++)
     {
+        triangle = sprite_3d->getTransformedTriangle(i, player_pos);
+        if (!triangle.set)
+            continue;
+
         // Only render triangles facing the camera
-        if (triangles[i].isFacingCamera(player_pos))
+        if (triangle.isFacingCamera(player_pos))
         {
             // Project 3D vertices to 2D screen coordinates
-            Vector screen_points[3];
             bool all_visible = true;
 
             for (uint8_t j = 0; j < 3; j++)
             {
-                Vector screen_point = project3DTo2D(triangles[i].vertices[j], player_pos, player_dir, player_plane, view_height);
+                switch (j)
+                {
+                case 0:
+                    screen_point = project3DTo2D(triangle.x1, triangle.y1, triangle.z1, player_pos, player_dir, player_plane, view_height);
+                    break;
+                case 1:
+                    screen_point = project3DTo2D(triangle.x2, triangle.y2, triangle.z2, player_pos, player_dir, player_plane, view_height);
+                    break;
+                case 2:
+                    screen_point = project3DTo2D(triangle.x3, triangle.y3, triangle.z3, player_pos, player_dir, player_plane, view_height);
+                    break;
+                };
 
                 // Check if point is on screen
                 if (screen_point.x < 0 || screen_point.x >= 128 || screen_point.y < 0 || screen_point.y >= 64)
@@ -282,12 +301,12 @@ void Entity::render3DSprite(Draw *draw, Vector player_pos, Vector player_dir, Ve
     }
 }
 
-Vector Entity::project3DTo2D(const Vertex3D &vertex, Vector player_pos, Vector player_dir, Vector /*player_plane*/, float view_height) const
+Vector Entity::project3DTo2D(float x, float y, float z, Vector player_pos, Vector player_dir, Vector /*player_plane*/, float view_height) const
 {
     // Transform world coordinates to camera coordinates
-    float world_dx = vertex.x - player_pos.x;
-    float world_dz = vertex.z - player_pos.y; // player_pos.y is actually the Z coordinate in world space
-    float world_dy = vertex.y - view_height;  // Height difference from camera
+    float world_dx = x - player_pos.x;
+    float world_dz = z - player_pos.y; // player_pos.y is actually the Z coordinate in world space
+    float world_dy = y - view_height;  // Height difference from camera
 
     // Create camera coordinate system
     float forward_x = player_dir.x;
@@ -342,6 +361,7 @@ void Entity::fillTriangle(Draw *const draw, Vector p1, Vector p2, Vector p3) con
     if (y1 == y3)
         return;
 
+    static Vector triangleVect = {0, 0};
     // Fill the triangle using horizontal scanlines
     for (int y = y1; y <= y3; y++)
     {
@@ -426,7 +446,9 @@ void Entity::fillTriangle(Draw *const draw, Vector p1, Vector p2, Vector p3) con
 
             for (int x = start_x; x <= end_x; x++)
             {
-                draw->drawPixel(Vector(x, y), ColorBlack);
+                triangleVect.x = x;
+                triangleVect.y = y;
+                draw->drawPixel(triangleVect, ColorBlack);
             }
         }
     }

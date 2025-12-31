@@ -13,9 +13,8 @@ App(
     fap_category="NFC",
     fap_author="@noproto",
     fap_icon_assets="images",
-    fap_weburl="https://github.com/noproto/FlipperMfkey",
     fap_description="MIFARE Classic key recovery tool",
-    fap_version="3.1",
+    fap_version="4.0",
     flags=["UnloadAssetPacks"],
 )
 

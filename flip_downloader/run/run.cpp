@@ -8,6 +8,12 @@ FlipDownloaderRun::FlipDownloaderRun() : isLoadingNextApps{false}
     currentDownloadIndex = 0;
     isProcessingQueue = false;
 
+    // Initialize download state
+    isDownloadStarted = false;
+    isDownloading = false;
+    isDownloadComplete = false;
+    idleCheckCounter = 0;
+
     // Initialize GitHub download state
     isGitHubDownloading = false;
     isGitHubDownloadComplete = false;
@@ -208,7 +214,9 @@ bool FlipDownloaderRun::downloadFile(FlipDownloaderDownloadLink link)
 {
     FlipDownloaderApp *app = static_cast<FlipDownloaderApp *>(appContext);
     furi_check(app);
-    isDownloading = false;
+    isDownloadStarted = true;
+    isDownloading = true;
+    hasDownloadTransitioned = false;
     isDownloadComplete = false;
     setSavePath(link);
     switch (link)
@@ -216,45 +224,88 @@ bool FlipDownloaderRun::downloadFile(FlipDownloaderDownloadLink link)
         // Marauder (ESP32)
     case DownloadLinkFirmwareMarauderLink1:
         return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/FZEEFlasher/fzeeflasher.github.io/main/resources/STATIC/M/FLIPDEV/esp32_marauder.ino.bootloader.bin");
-        break;
     case DownloadLinkFirmwareMarauderLink2:
         return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/FZEEFlasher/fzeeflasher.github.io/main/resources/STATIC/M/FLIPDEV/esp32_marauder.ino.partitions.bin");
-        break;
     case DownloadLinkFirmwareMarauderLink3:
-        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/fzeeflasher.github.io/main/resources/CURRENT/esp32_marauder_v1_6_2_20250531_flipper.bin");
-        break;
-        // FlipperHTTP (ESP32)
-    case DownloadLinkFirmwareFlipperHTTPLink1:
-        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/WiFi%20Developer%20Board%20(ESP32S2)/flipper_http_bootloader.bin");
-        break;
-    case DownloadLinkFirmwareFlipperHTTPLink2:
-        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/WiFi%20Developer%20Board%20(ESP32S2)/flipper_http_firmware_a.bin");
-        break;
-    case DownloadLinkFirmwareFlipperHTTPLink3:
-        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/WiFi%20Developer%20Board%20(ESP32S2)/flipper_http_partitions.bin");
-        break;
-        // Black Magic (ESP32)
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/fzeeflasher.github.io/main/resources/CURRENT/esp32_marauder_v1_9_0_20251213_flipper.bin");
+    // Black Magic (ESP32)
     case DownloadLinkFirmwareBlackMagicLink1:
         return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/FZEEFlasher/fzeeflasher.github.io/main/resources/STATIC/BM/bootloader.bin");
-        break;
     case DownloadLinkFirmwareBlackMagicLink2:
         return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/FZEEFlasher/fzeeflasher.github.io/main/resources/STATIC/BM/partition-table.bin");
-        break;
     case DownloadLinkFirmwareBlackMagicLink3:
         return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/FZEEFlasher/fzeeflasher.github.io/main/resources/STATIC/BM/blackmagic.bin");
-        break;
+        // FlipperHTTP (WiFi Devboard)
+    case DownloadLinkFlipperHTTPWiFiDevboardLink1:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/WiFi%20Developer%20Board%20(ESP32S2)/flipper_http_bootloader.bin");
+    case DownloadLinkFlipperHTTPWiFiDevboardLink2:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/WiFi%20Developer%20Board%20(ESP32S2)/flipper_http_firmware_a.bin");
+    case DownloadLinkFlipperHTTPWiFiDevboardLink3:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/WiFi%20Developer%20Board%20(ESP32S2)/flipper_http_partitions.bin");
+        // FlipperHTTP (ESP32-C3)
+    case DownloadLinkFlipperHTTPESP32C3Link1:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-C3/flipper_http_bootloader_esp32_c3.bin");
+    case DownloadLinkFlipperHTTPESP32C3Link2:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-C3/flipper_http_firmware_a_esp32_c3.bin");
+    case DownloadLinkFlipperHTTPESP32C3Link3:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-C3/flipper_http_partitions_esp32_c3.bin");
+        // FlipperHTTP (ESP32-C5)
+    case DownloadLinkFlipperHTTPESP32C5Link1:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-C5/flipper_http_bootloader_esp32_c5.bin");
+    case DownloadLinkFlipperHTTPESP32C5Link2:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-C5/flipper_http_firmware_a_esp32_c5.bin");
+    case DownloadLinkFlipperHTTPESP32C5Link3:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-C5/flipper_http_partitions_esp32_c5.bin");
+        // FlipperHTTP (ESP32-C6)
+    case DownloadLinkFlipperHTTPESP32C6Link1:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-C6/flipper_http_bootloader_esp32_c6.bin");
+    case DownloadLinkFlipperHTTPESP32C6Link2:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-C6/flipper_http_firmware_a_esp32_c6.bin");
+    case DownloadLinkFlipperHTTPESP32C6Link3:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-C6/flipper_http_partitions_esp32_c6.bin");
+        // FlipperHTTP (ESP32-Cam)
+    case DownloadLinkFlipperHTTPESP32CamLink1:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-Cam/flipper_http_bootloader_esp32_cam.bin");
+    case DownloadLinkFlipperHTTPESP32CamLink2:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-Cam/flipper_http_firmware_a_esp32_cam.bin");
+    case DownloadLinkFlipperHTTPESP32CamLink3:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-Cam/flipper_http_partitions_esp32_cam.bin");
+        // FlipperHTTP (ESP32-S3)
+    case DownloadLinkFlipperHTTPESP32S3Link1:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-S3/flipper_http_bootloader_esp32_s3.bin");
+    case DownloadLinkFlipperHTTPESP32S3Link2:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-S3/flipper_http_firmware_a_esp32_s3.bin");
+    case DownloadLinkFlipperHTTPESP32S3Link3:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-S3/flipper_http_partitions_esp32_s3.bin");
+        // FlipperHTTP (ESP32-WROOM)
+    case DownloadLinkFlipperHTTPESP32WROOMLink1:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-WROOM/flipper_http_bootloader_esp32_wroom.bin");
+    case DownloadLinkFlipperHTTPESP32WROOMLink2:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-WROOM/flipper_http_firmware_a_esp32_wroom.bin");
+    case DownloadLinkFlipperHTTPESP32WROOMLink3:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-WROOM/flipper_http_partitions_esp32_wroom.bin");
+        // FlipperHTTP (ESP32-WROVER)
+    case DownloadLinkFlipperHTTPESP32WROVERLink1:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-WROVER/flipper_http_bootloader_esp32_wrover.bin");
+    case DownloadLinkFlipperHTTPESP32WROVERLink2:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-WROVER/flipper_http_firmware_a_esp32_wrover.bin");
+    case DownloadLinkFlipperHTTPESP32WROVERLink3:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/ESP32-WROVER/flipper_http_partitions_esp32_wrover.bin");
+        // FlipperHTTP (PicoCalc W)
+    case DownloadLinkFlipperHTTPPicoCalcWLink1:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/PicoCalc/flipper_http_picocalc_w.uf2");
+        // FlipperHTTP (PicoCalc 2W)
+    case DownloadLinkFlipperHTTPPicoCalc2WLink1:
+        return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/PicoCalc/flipper_http_picocalc_2w.uf2");
         // FlipperHTTP (VGM)
     case DownloadLinkVGMFlipperHTTP:
         return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/FlipperHTTP/main/Video%20Game%20Module/C%2B%2B/flipper_http_vgm_c%2B%2B.uf2");
-        break;
         // Picoware (VGM)
     case DownloadLinkVGMPicoware:
         return app->httpDownloadFile(savePath, "https://raw.githubusercontent.com/jblanked/Picoware/main/builds/ArduinoIDE/Picoware-VGM.uf2");
-        break;
     default:
-        break;
+        return false;
     }
-    return true;
 }
 
 void FlipDownloaderRun::drawApps(Canvas *canvas)
@@ -339,7 +390,114 @@ void FlipDownloaderRun::drawDownloadProgress(Canvas *canvas)
     switch (app->getHttpState())
     {
     case IDLE:
-        if (!isDownloadComplete && !isDownloading)
+        // First, check if we just finished a download (highest priority)
+        // Only consider download complete if we've actually seen SENDING/RECEIVING state
+        if (isDownloading && hasDownloadTransitioned)
+        {
+            // Download just completed - we're in IDLE state but isDownloading is still true
+            // Now set isDownloading = false and isDownloadComplete = true
+            isDownloading = false;
+            hasDownloadTransitioned = false; // Reset for next download
+
+            // Check if we're processing a queue
+            if (isProcessingQueue)
+            {
+                currentDownloadIndex++;
+
+                // Check if there are more downloads in the queue
+                if (currentDownloadIndex >= downloadQueueSize)
+                {
+                    // All downloads in queue are complete
+                    isDownloadComplete = true;
+                    isDownloadStarted = false;
+                    isProcessingQueue = false;
+                }
+                else
+                {
+                    // More files to download
+                    isDownloadComplete = false;
+                }
+            }
+            else
+            {
+                // Single download or not in queue mode - mark as complete
+                isDownloadComplete = true;
+                isDownloadStarted = false;
+            }
+
+            // If download is truly complete, show completion message
+            if (isDownloadComplete)
+            {
+                canvas_set_font_custom(canvas, FONT_SIZE_MEDIUM);
+                canvas_draw_str(canvas, 0, 10, "Download complete!");
+                if (loading)
+                {
+                    loading->stop();
+                    loading.reset();
+                }
+            }
+
+            idleCheckCounter = 0;
+        }
+        // Check if we need to start the next download in queue
+        else if (isProcessingQueue && !isDownloading && currentDownloadIndex < downloadQueueSize)
+        {
+            // Start the next download in the queue
+            processDownloadQueue();
+        }
+        // Show final completion message
+        else if (isDownloadComplete && !isDownloading)
+        {
+            canvas_set_font_custom(canvas, FONT_SIZE_MEDIUM);
+
+            // Check if we were downloading an individual app
+            if (isDownloadingIndividualApp)
+            {
+                canvas_draw_str(canvas, 0, 10, "App downloaded!");
+            }
+            // Check if we were downloading category info
+            else if (currentCategory != CategoryUnknown)
+            {
+                // Check if there are any apps available in this category
+                if (hasAppsAvailable(currentCategory))
+                {
+                    canvas_draw_str(canvas, 0, 10, "Loading apps...");
+                    // Automatically transition to Apps view after a brief moment
+                    if (loading)
+                    {
+                        loading->stop();
+                        loading.reset();
+                    }
+                    // Transition to Apps view
+                    currentView = RunViewApps;
+                    isDownloadComplete = false;
+                    if (isLoadingNextApps)
+                    {
+                        isLoadingNextApps = false;
+                        selectedIndexApps = 0; // Reset to first app of new batch
+                    }
+                    return; // Early return to avoid showing completion message
+                }
+                else
+                {
+                    canvas_draw_str(canvas, 0, 10, "No apps available");
+                    canvas_set_font_custom(canvas, FONT_SIZE_SMALL);
+                    canvas_draw_str(canvas, 0, 60, "Press Back to return");
+                }
+            }
+            else
+            {
+                canvas_draw_str(canvas, 0, 10, "Download complete!");
+            }
+
+            if (loading)
+            {
+                loading->stop();
+                loading.reset();
+            }
+        }
+        // Show fetching message only if no download has started yet
+        else if (!isDownloadStarted)
         {
             // If we have a category set, we might be waiting for a download to complete
             if (currentCategory != CategoryUnknown)
@@ -368,97 +526,6 @@ void FlipDownloaderRun::drawDownloadProgress(Canvas *canvas)
                 loading.reset();
             }
         }
-        else if (isDownloadComplete)
-        {
-            isDownloading = false;
-            canvas_set_font_custom(canvas, FONT_SIZE_MEDIUM);
-
-            // Check if we were downloading an individual app
-            if (isDownloadingIndividualApp)
-            {
-                canvas_draw_str(canvas, 0, 10, "App downloaded!");
-                if (loading)
-                {
-                    loading->stop();
-                    loading.reset();
-                }
-            }
-            // Check if we were downloading category info
-            else if (currentCategory != CategoryUnknown)
-            {
-                // Check if there are any apps available in this category
-                if (hasAppsAvailable(currentCategory))
-                {
-                    canvas_draw_str(canvas, 0, 10, "Loading apps...");
-                    // Automatically transition to Apps view after a brief moment
-                    if (loading)
-                    {
-                        loading->stop();
-                        loading.reset();
-                    }
-                    // Transition to Apps view
-                    currentView = RunViewApps;
-                    isDownloadComplete = false;
-                    if (isLoadingNextApps)
-                    {
-                        isLoadingNextApps = false;
-                        selectedIndexApps = 0; // Reset to first app of new batch
-                    }
-                }
-                else
-                {
-                    canvas_draw_str(canvas, 0, 10, "No apps available");
-                    canvas_set_font_custom(canvas, FONT_SIZE_SMALL);
-                    canvas_draw_str(canvas, 0, 60, "Press Back to return");
-                    if (loading)
-                    {
-                        loading->stop();
-                        loading.reset();
-                    }
-                }
-            }
-            else
-            {
-                canvas_draw_str(canvas, 0, 10, "Download complete!");
-                if (loading)
-                {
-                    loading->stop();
-                    loading.reset();
-                }
-            }
-        }
-        else if (isDownloading)
-        {
-            // if we get here that means download is done
-            // since the state is IDLE
-            isDownloading = false;
-
-            // Check if we're processing a queue
-            if (isProcessingQueue)
-            {
-                currentDownloadIndex++;
-                idleCheckCounter = 0; // Reset counter
-
-                // Check if there are more downloads in the queue
-                if (currentDownloadIndex < downloadQueueSize)
-                {
-                    // Process next download
-                    processDownloadQueue();
-                }
-                else
-                {
-                    // Queue is complete
-                    isDownloadComplete = true;
-                    isProcessingQueue = false;
-                }
-            }
-            else
-            {
-                isDownloadComplete = true;
-            }
-
-            idleCheckCounter = 0; // Reset counter
-        }
         break;
     case INACTIVE:
         canvas_set_font_custom(canvas, FONT_SIZE_MEDIUM);
@@ -481,6 +548,9 @@ void FlipDownloaderRun::drawDownloadProgress(Canvas *canvas)
     case RECEIVING:
     case SENDING:
     {
+        // Mark that we've actually started receiving/sending - the download has truly begun
+        hasDownloadTransitioned = true;
+        // Ensure isDownloading is true while actively downloading
         isDownloading = true;
         isDownloadComplete = false;
         if (!loading)
@@ -796,8 +866,8 @@ void FlipDownloaderRun::drawGitHubProgress(Canvas *canvas)
 
 void FlipDownloaderRun::drawMainMenu(Canvas *canvas)
 {
-    const char *menuItems[4] = {"App Catalog", "ESP32 Firmware", "VGM Firmware", "GitHub Repo"};
-    drawMenu(canvas, selectedIndexMain, menuItems, 4);
+    const char *menuItems[5] = {"App Catalog", "ESP32 Firmware", "FlipperHTTP Firmware", "VGM Firmware", "GitHub Repo"};
+    drawMenu(canvas, selectedIndexMain, menuItems, 5);
 }
 
 void FlipDownloaderRun::drawMenu(Canvas *canvas, uint8_t selectedIndex, const char **menuItems, uint8_t menuCount)
@@ -870,8 +940,14 @@ void FlipDownloaderRun::drawMenu(Canvas *canvas, uint8_t selectedIndex, const ch
 
 void FlipDownloaderRun::drawMenuESP32(Canvas *canvas)
 {
-    const char *menuItems[3] = {"Black Magic", "Marauder", "FlipperHTTP"};
-    drawMenu(canvas, selectedIndexESP32, menuItems, 3);
+    const char *menuItems[2] = {"Black Magic", "Marauder"};
+    drawMenu(canvas, selectedIndexESP32, menuItems, 2);
+}
+
+void FlipDownloaderRun::drawMenuFlipperHTTP(Canvas *canvas)
+{
+    const char *menuItems[10] = {"WiFi Devboard", "ESP32-C3", "ESP32-C5", "ESP32-C6", "ESP32-Cam", "ESP32-S3", "ESP32-WROOM", "ESP32-WROVER", "PicoCalc W", "PicoCalc 2W"};
+    drawMenu(canvas, selectedIndexFlipperHTTP, menuItems, 10);
 }
 
 void FlipDownloaderRun::drawMenuCatalog(Canvas *canvas)
@@ -2336,6 +2412,12 @@ void FlipDownloaderRun::processDownloadQueue()
         return;
     }
 
+    // Wait until the current download is finished before starting the next one
+    if (isDownloading)
+    {
+        return;
+    }
+
     FlipDownloaderDownloadLink currentLink = downloadQueue[currentDownloadIndex];
 
     // Download the current file
@@ -2520,37 +2602,213 @@ void FlipDownloaderRun::setSavePath(FlipDownloaderDownloadLink link)
         storage_common_mkdir(storage, directory_path);
         snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/Marauder/esp32_marauder_v1_6_2_20250531_flipper.bin");
         break;
-        // FlipperHTTP (ESP32)
-    case DownloadLinkFirmwareFlipperHTTPLink1:
-        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
-        storage_common_mkdir(storage, directory_path);
-        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/flipper_http_bootloader.bin");
-        break;
-    case DownloadLinkFirmwareFlipperHTTPLink2:
-        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
-        storage_common_mkdir(storage, directory_path);
-        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/flipper_http_firmware_a.bin");
-        break;
-    case DownloadLinkFirmwareFlipperHTTPLink3:
-        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
-        storage_common_mkdir(storage, directory_path);
-        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/flipper_http_partitions.bin");
-        break;
         // Black Magic (ESP32)
     case DownloadLinkFirmwareBlackMagicLink1:
-        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/BlackMagic");
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/Black Magic");
         storage_common_mkdir(storage, directory_path);
-        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/BlackMagic/bootloader.bin");
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/Black Magic/bootloader.bin");
         break;
     case DownloadLinkFirmwareBlackMagicLink2:
-        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/BlackMagic");
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/Black Magic");
         storage_common_mkdir(storage, directory_path);
-        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/BlackMagic/partition-table.bin");
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/Black Magic/partition-table.bin");
         break;
     case DownloadLinkFirmwareBlackMagicLink3:
-        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/BlackMagic");
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/Black Magic");
         storage_common_mkdir(storage, directory_path);
-        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/BlackMagic/blackmagic.bin");
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/Black Magic/blackmagic.bin");
+        break;
+        // FlipperHTTP (WiFi Devboard)
+    case DownloadLinkFlipperHTTPWiFiDevboardLink1:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/WiFi-Devboard");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/WiFi-Devboard/flipper_http_bootloader.bin");
+        break;
+    case DownloadLinkFlipperHTTPWiFiDevboardLink2:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/WiFi-Devboard");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/WiFi-Devboard/flipper_http_firmware_a.bin");
+        break;
+    case DownloadLinkFlipperHTTPWiFiDevboardLink3:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/WiFi-Devboard");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/WiFi-Devboard/flipper_http_partitions.bin");
+        break;
+        // FlipperHTTP (ESP32-C3)
+    case DownloadLinkFlipperHTTPESP32C3Link1:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C3");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C3/flipper_http_bootloader_esp32_c3.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32C3Link2:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C3");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C3/flipper_http_firmware_a_esp32_c3.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32C3Link3:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C3");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C3/flipper_http_partitions_esp32_c3.bin");
+        break;
+        // FlipperHTTP (ESP32-C5)
+    case DownloadLinkFlipperHTTPESP32C5Link1:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C5");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C5/flipper_http_bootloader_esp32_c5.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32C5Link2:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C5");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C5/flipper_http_firmware_a_esp32_c5.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32C5Link3:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C5");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C5/flipper_http_partitions_esp32_c5.bin");
+        break;
+        // FlipperHTTP (ESP32-C6)
+    case DownloadLinkFlipperHTTPESP32C6Link1:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C6");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C6/flipper_http_bootloader_esp32_c6.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32C6Link2:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C6");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C6/flipper_http_firmware_a_esp32_c6.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32C6Link3:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C6");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-C6/flipper_http_partitions_esp32_c6.bin");
+        break;
+        // FlipperHTTP (ESP32-Cam)
+    case DownloadLinkFlipperHTTPESP32CamLink1:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-Cam");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-Cam/flipper_http_bootloader_esp32_cam.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32CamLink2:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-Cam");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-Cam/flipper_http_firmware_a_esp32_cam.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32CamLink3:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-Cam");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-Cam/flipper_http_partitions_esp32_cam.bin");
+        break;
+        // FlipperHTTP (ESP32-S3)
+    case DownloadLinkFlipperHTTPESP32S3Link1:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-S3");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-S3/flipper_http_bootloader_esp32_s3.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32S3Link2:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-S3");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-S3/flipper_http_firmware_a_esp32_s3.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32S3Link3:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-S3");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-S3/flipper_http_partitions_esp32_s3.bin");
+        break;
+        // FlipperHTTP (ESP32-WROOM)
+    case DownloadLinkFlipperHTTPESP32WROOMLink1:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROOM");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROOM/flipper_http_bootloader_esp32_wroom.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32WROOMLink2:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROOM");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROOM/flipper_http_firmware_a_esp32_wroom.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32WROOMLink3:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROOM");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROOM/flipper_http_partitions_esp32_wroom.bin");
+        break;
+        // FlipperHTTP (ESP32-WROVER)
+    case DownloadLinkFlipperHTTPESP32WROVERLink1:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROVER");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROVER/flipper_http_bootloader_esp32_wrover.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32WROVERLink2:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROVER");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROVER/flipper_http_firmware_a_esp32_wrover.bin");
+        break;
+    case DownloadLinkFlipperHTTPESP32WROVERLink3:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROVER");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/ESP32-WROVER/flipper_http_partitions_esp32_wrover.bin");
+        break;
+        // FlipperHTTP (PicoCalc W)
+    case DownloadLinkFlipperHTTPPicoCalcWLink1:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/PicoCalcW");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/PicoCalcW/flipper_http_picocalc_w.uf2");
+        break;
+        // FlipperHTTP (PicoCalc 2W)
+    case DownloadLinkFlipperHTTPPicoCalc2WLink1:
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(directory_path, sizeof(directory_path), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/PicoCalc2W");
+        storage_common_mkdir(storage, directory_path);
+        snprintf(savePath, sizeof(savePath), STORAGE_EXT_PATH_PREFIX "/apps_data/esp_flasher/FlipperHTTP/PicoCalc2W/flipper_http_picocalc_2w.uf2");
         break;
         // FlipperHTTP (VGM)
     case DownloadLinkVGMFlipperHTTP:
@@ -2579,6 +2837,9 @@ void FlipDownloaderRun::updateDraw(Canvas *canvas)
         break;
     case RunViewESP32:
         drawMenuESP32(canvas);
+        break;
+    case RunViewFlipperHTTP:
+        drawMenuFlipperHTTP(canvas);
         break;
     case RunViewVGM:
         drawMenuVGM(canvas);
@@ -2611,7 +2872,7 @@ void FlipDownloaderRun::updateDraw(Canvas *canvas)
 
 void FlipDownloaderRun::updateInput(InputEvent *event)
 {
-    if (event->type == InputTypePress)
+    if (event->type == InputTypeShort || event->type == InputTypeLong)
     {
         //  download progress view - only allow back button
         if (currentView == RunViewDownloadProgress)
@@ -2653,14 +2914,14 @@ void FlipDownloaderRun::updateInput(InputEvent *event)
         }
 
         // Get current selected index and menu count based on current view
-        uint8_t *currentSelectedIndex;
-        uint8_t menuCount;
+        uint8_t *currentSelectedIndex = 0;
+        uint8_t menuCount = 0;
 
         switch (currentView)
         {
         case RunViewMainMenu:
             currentSelectedIndex = &selectedIndexMain;
-            menuCount = 4;
+            menuCount = 5;
             break;
         case RunViewCatalog:
             currentSelectedIndex = &selectedIndexCatalog;
@@ -2668,7 +2929,11 @@ void FlipDownloaderRun::updateInput(InputEvent *event)
             break;
         case RunViewESP32:
             currentSelectedIndex = &selectedIndexESP32;
-            menuCount = 3;
+            menuCount = 2;
+            break;
+        case RunViewFlipperHTTP:
+            currentSelectedIndex = &selectedIndexFlipperHTTP;
+            menuCount = 10;
             break;
         case RunViewVGM:
             currentSelectedIndex = &selectedIndexVGM;
@@ -2712,7 +2977,7 @@ void FlipDownloaderRun::updateInput(InputEvent *event)
                     default:
                         if (keyboard)
                         {
-                            if (keyboard->handleInput(event->key))
+                            if (keyboard->handleInput(event))
                             {
                                 // Handle successful input
                                 if (currentView == RunViewGitHubAuthor)
@@ -2856,10 +3121,13 @@ void FlipDownloaderRun::updateInput(InputEvent *event)
                 case 1: // ESP32 Firmware
                     currentView = RunViewESP32;
                     break;
-                case 2: // VGM Firmware
+                case 2: // FlipperHTTP Firmware
+                    currentView = RunViewFlipperHTTP;
+                    break;
+                case 3: // VGM Firmware
                     currentView = RunViewVGM;
                     break;
-                case 3: // GitHub Repo
+                case 4: // GitHub Repo
                     currentView = RunViewGitHubAuthor;
                     startTextInput(RunViewGitHubAuthor);
                     break;
@@ -2884,13 +3152,86 @@ void FlipDownloaderRun::updateInput(InputEvent *event)
                     queueDownload(DownloadLinkFirmwareMarauderLink3);
                     startDownloadQueue();
                     break;
-                case 2:                                    // FlipperHTTP - download 3 files
+                }
+                break;
+            case RunViewFlipperHTTP:
+                switch (selectedIndexFlipperHTTP) // {"WiFi Devboard", "ESP32-C3", "ESP32-C5", "ESP32-C6", "ESP32-Cam", "ESP32-S3", "ESP32-WROOM", "ESP32-WROVER", "PicoCalc W", "PicoCalc 2W"};
+                {
+                case 0:                                    // FlipperHTTP (WiFi Devboard)
                     currentView = RunViewDownloadProgress; // Switch to download view
                     clearDownloadQueue();
-                    queueDownload(DownloadLinkFirmwareFlipperHTTPLink1);
-                    queueDownload(DownloadLinkFirmwareFlipperHTTPLink2);
-                    queueDownload(DownloadLinkFirmwareFlipperHTTPLink3);
+                    queueDownload(DownloadLinkFlipperHTTPWiFiDevboardLink1);
+                    queueDownload(DownloadLinkFlipperHTTPWiFiDevboardLink2);
+                    queueDownload(DownloadLinkFlipperHTTPWiFiDevboardLink3);
                     startDownloadQueue();
+                    break;
+                case 1:                                    // FlipperHTTP (ESP32-C3)
+                    currentView = RunViewDownloadProgress; // Switch to download view
+                    clearDownloadQueue();
+                    queueDownload(DownloadLinkFlipperHTTPESP32C3Link1);
+                    queueDownload(DownloadLinkFlipperHTTPESP32C3Link2);
+                    queueDownload(DownloadLinkFlipperHTTPESP32C3Link3);
+                    startDownloadQueue();
+                    break;
+                case 2:                                    // FlipperHTTP (ESP32-C5)
+                    currentView = RunViewDownloadProgress; // Switch to download view
+                    clearDownloadQueue();
+                    queueDownload(DownloadLinkFlipperHTTPESP32C5Link1);
+                    queueDownload(DownloadLinkFlipperHTTPESP32C5Link2);
+                    queueDownload(DownloadLinkFlipperHTTPESP32C5Link3);
+                    startDownloadQueue();
+                    break;
+                case 3:                                    // FlipperHTTP (ESP32-C6)
+                    currentView = RunViewDownloadProgress; // Switch to download view
+                    clearDownloadQueue();
+                    queueDownload(DownloadLinkFlipperHTTPESP32C6Link1);
+                    queueDownload(DownloadLinkFlipperHTTPESP32C6Link2);
+                    queueDownload(DownloadLinkFlipperHTTPESP32C6Link3);
+                    startDownloadQueue();
+                    break;
+                case 4:                                    // FlipperHTTP (ESP32-Cam)
+                    currentView = RunViewDownloadProgress; // Switch to download view
+                    clearDownloadQueue();
+                    queueDownload(DownloadLinkFlipperHTTPESP32CamLink1);
+                    queueDownload(DownloadLinkFlipperHTTPESP32CamLink2);
+                    queueDownload(DownloadLinkFlipperHTTPESP32CamLink3);
+                    startDownloadQueue();
+                    break;
+                case 5:                                    // FlipperHTTP (ESP32-S3)
+                    currentView = RunViewDownloadProgress; // Switch to download view
+                    clearDownloadQueue();
+                    queueDownload(DownloadLinkFlipperHTTPESP32S3Link1);
+                    queueDownload(DownloadLinkFlipperHTTPESP32S3Link2);
+                    queueDownload(DownloadLinkFlipperHTTPESP32S3Link3);
+                    startDownloadQueue();
+                    break;
+                case 6:                                    // FlipperHTTP (ESP32-WROOM)
+                    currentView = RunViewDownloadProgress; // Switch to download view
+                    clearDownloadQueue();
+                    queueDownload(DownloadLinkFlipperHTTPESP32WROOMLink1);
+                    queueDownload(DownloadLinkFlipperHTTPESP32WROOMLink2);
+                    queueDownload(DownloadLinkFlipperHTTPESP32WROOMLink3);
+                    startDownloadQueue();
+                    break;
+                case 7:                                    // FlipperHTTP (ESP32-WROVER)
+                    currentView = RunViewDownloadProgress; // Switch to download view
+                    clearDownloadQueue();
+                    queueDownload(DownloadLinkFlipperHTTPESP32WROVERLink1);
+                    queueDownload(DownloadLinkFlipperHTTPESP32WROVERLink2);
+                    queueDownload(DownloadLinkFlipperHTTPESP32WROVERLink3);
+                    startDownloadQueue();
+                    break;
+                case 8:                                    // FlipperHTTP (PicoCalc W) - download 1 file
+                    currentView = RunViewDownloadProgress; // Switch to download view
+                    clearDownloadQueue();
+                    downloadFile(DownloadLinkFlipperHTTPPicoCalcWLink1);
+                    break;
+                case 9:                                    // FlipperHTTP (PicoCalc 2W) - download 1 file
+                    currentView = RunViewDownloadProgress; // Switch to download view
+                    clearDownloadQueue();
+                    downloadFile(DownloadLinkFlipperHTTPPicoCalc2WLink1);
+                    break;
+                default:
                     break;
                 }
                 break;

@@ -1,6 +1,6 @@
 #include "minifigures.h"
 
-#include "furi.h"
+#include <furi.h>
 
 #define MAX_MINIFIGS 75
 #define MAX_VEHICLES 240
@@ -84,7 +84,7 @@ const Minifigure minifigures[MAX_MINIFIGS] = {
     {76, "Buttercup"},
     {77, "Starfire"},
 };
-const int minifigures_count = sizeof(minifigures) / sizeof(Minifigure);
+const int minifigures_count = COUNT_OF(minifigures);
 
 const Vehicle vehicles[MAX_VEHICLES] = {
     {1000, "Police Car"},
@@ -328,7 +328,7 @@ const Vehicle vehicles[MAX_VEHICLES] = {
     {1264, "* T-Rocket"},
     {1265, "* Robot Retriever"}};
 
-const int vehicles_count = sizeof(vehicles) / sizeof(Vehicle);
+const int vehicles_count = COUNT_OF(vehicles);
 
 const char* get_minifigure_name(int id) {
     for(int i = 0; i < MAX_MINIFIGS && minifigures[i].name != NULL; i++) {

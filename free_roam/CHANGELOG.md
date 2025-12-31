@@ -1,3 +1,6 @@
+## v0.4
+- Updated the settings with a connect to WiFi button and conditional compilation for Momentum support
+
 ## v0.3.2
 - Updated to use the flipper_http folder as intended
 

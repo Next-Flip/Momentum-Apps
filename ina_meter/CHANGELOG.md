@@ -1,3 +1,6 @@
+v0.7
+- Added new averaging settings allowing faster sampling
+
 v0.6:
 - Fixed deadlock when closing datalog file
 

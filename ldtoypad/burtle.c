@@ -1,7 +1,7 @@
 #include "burtle.h"
 
 // Helper function for rotation
-static uint32_t rot(uint32_t a, int b) {
+static inline uint32_t rot(uint32_t a, int b) {
     return (a << b) | (a >> (32 - b));
 }
 

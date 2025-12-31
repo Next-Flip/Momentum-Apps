@@ -41,12 +41,19 @@ typedef enum
 
 typedef enum
 {
-    RegistrationCredentialsMissing = -1, // Credentials missing
-    RegistrationSuccess = 0,             // Registration successful
-    RegistrationUserExists = 1,          // User already exists
-    RegistrationRequestError = 2,        // Request error
-    RegistrationNotStarted = 3,          // Registration not started
-    RegistrationWaiting = 4,             // Waiting for response
+    RegistrationCredentialsMissing = -1,      // Credentials missing
+    RegistrationSuccess = 0,                  // Registration successful
+    RegistrationUserExists = 1,               // User already exists
+    RegistrationRequestError = 2,             // Request error
+    RegistrationNotStarted = 3,               // Registration not started
+    RegistrationWaiting = 4,                  // Waiting for response
+    RegistrationErrorAllOneLetter = 5,        // Error: All one letter username/password
+    RegistrationErrorAllNumbers = 6,          // Error: All numbers username/password
+    RegistrationErrorUsernameTooLong = 7,     // Error: Username too long
+    RegistrationErrorUsernameTooShort = 8,    // Error: Username too short
+    RegistrationErrorPasswordTooLong = 9,     // Error: Password too long
+    RegistrationErrorPasswordTooShort = 10,   // Error: Password too short
+    RegistrationErrorUsernameNotAllowed = 11, // Error: Username not allowed
 } RegistrationStatus;
 
 typedef enum
@@ -183,26 +190,26 @@ class FlipSocialRun
     bool shouldReturnToMenu;                         // Flag to signal return to menu
     UserInfoStatus userInfoStatus;                   // current user info status
     //
-    void debounceInput();                                                                                             // debounce input to prevent multiple triggers
-    void drawCommentsView(Canvas *canvas);                                                                            // draw the comments view
-    void drawExploreView(Canvas *canvas);                                                                             // draw the explore view
-    void drawFeedItem(Canvas *canvas, char *username, char *message, char *flipped, char *flips, char *date_created); // draw a single feed item
-    void drawFeedMessage(Canvas *canvas, const char *user_message, int x, int y);                                     // draw the feed message with wrapping
-    void drawFeedView(Canvas *canvas);                                                                                // draw the feed view
-    void drawLoginView(Canvas *canvas);                                                                               // draw the login view
-    void drawMainMenuView(Canvas *canvas);                                                                            // draw the main menu view
-    void drawMessagesView(Canvas *canvas);                                                                            // draw the messages view
-    void drawMessageUsersView(Canvas *canvas);                                                                        // draw the message users view
-    void drawPostView(Canvas *canvas);                                                                                // draw the post view
-    void drawProfileView(Canvas *canvas);                                                                             // draw the profile view
-    void drawRegistrationView(Canvas *canvas);                                                                        // draw the registration view
-    void drawUserInfoView(Canvas *canvas);                                                                            // draw the user info view
-    void drawWrappedBio(Canvas *canvas, const char *text, uint8_t x, uint8_t y);                                      // draw wrapped text on the canvas
-    bool getMessageUser(char *buffer, size_t buffer_size);                                                            // get the message user at the specified messageUserIndex
-    bool getSelectedPost(char *buffer, size_t buffer_size);                                                           // get the selected post at the specified postIndex
-    bool httpRequestIsFinished();                                                                                     // check if the HTTP request is finished
-    void updateFeedItemFlipStatus();                                                                                  // update the flip status of the current feed item in cached data
-    void userRequest(RequestType requestType);                                                                        // Send a user request to the server based on the request type
+    void debounceInput();                                                                                                                                     // debounce input to prevent multiple triggers
+    void drawCommentsView(Canvas *canvas);                                                                                                                    // draw the comments view
+    void drawExploreView(Canvas *canvas);                                                                                                                     // draw the explore view
+    void drawFeedItem(Canvas *canvas, char *username, char *message, char *flipped, char *flips, char *date_created, char *comments, bool isComment = false); // draw a single feed item
+    void drawFeedMessage(Canvas *canvas, const char *user_message, int x, int y);                                                                             // draw the feed message with wrapping
+    void drawFeedView(Canvas *canvas);                                                                                                                        // draw the feed view
+    void drawLoginView(Canvas *canvas);                                                                                                                       // draw the login view
+    void drawMainMenuView(Canvas *canvas);                                                                                                                    // draw the main menu view
+    void drawMessagesView(Canvas *canvas);                                                                                                                    // draw the messages view
+    void drawMessageUsersView(Canvas *canvas);                                                                                                                // draw the message users view
+    void drawPostView(Canvas *canvas);                                                                                                                        // draw the post view
+    void drawProfileView(Canvas *canvas);                                                                                                                     // draw the profile view
+    void drawRegistrationView(Canvas *canvas);                                                                                                                // draw the registration view
+    void drawUserInfoView(Canvas *canvas);                                                                                                                    // draw the user info view
+    void drawWrappedBio(Canvas *canvas, const char *text, uint8_t x, uint8_t y);                                                                              // draw wrapped text on the canvas
+    bool getMessageUser(char *buffer, size_t buffer_size);                                                                                                    // get the message user at the specified messageUserIndex
+    bool getSelectedPost(char *buffer, size_t buffer_size);                                                                                                   // get the selected post at the specified postIndex
+    bool httpRequestIsFinished();                                                                                                                             // check if the HTTP request is finished
+    void updateFeedItemFlipStatus();                                                                                                                          // update the flip status of the current feed item in cached data
+    void userRequest(RequestType requestType);                                                                                                                // Send a user request to the server based on the request type
 public:
     FlipSocialRun(void *appContext);
     ~FlipSocialRun();

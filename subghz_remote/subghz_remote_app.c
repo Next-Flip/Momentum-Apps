@@ -188,6 +188,7 @@ int32_t subghz_remote_app(void* arg) {
 #ifdef FW_ORIGIN_Official
     const bool fw_ofw = strcmp(version_get_firmware_origin(version_get()), "Official") == 0;
 #endif
+    // Check for command-line argument first
     if((arg != NULL) && (strlen(arg) != 0)) {
         furi_string_set(subghz_remote_app->file_path, (const char*)arg);
         SubRemLoadMapState load_state = subrem_map_file_load(
@@ -200,8 +201,20 @@ int32_t subghz_remote_app(void* arg) {
             dialog_message_show_storage_error(subghz_remote_app->dialogs, "Cannot load\nmap file");
         }
     }
+    // Try loading default map if no argument provided
+    else if(subrem_load_default_path(subghz_remote_app)) {
+        SubRemLoadMapState load_state = subrem_map_file_load(
+            subghz_remote_app, furi_string_get_cstr(subghz_remote_app->file_path));
+
+        if(load_state == SubRemLoadMapStateOK || load_state == SubRemLoadMapStateNotAllOK) {
+            map_loaded = true;
+        }
+        // If default fails to load, silently fall through to file browser
+    }
 
     if(map_loaded) {
+        // Always push Start scene first so back button returns to menu
+        scene_manager_next_scene(subghz_remote_app->scene_manager, SubRemSceneStart);
         scene_manager_next_scene(subghz_remote_app->scene_manager, SubRemSceneRemote);
     } else {
         furi_string_set(subghz_remote_app->file_path, SUBREM_APP_FOLDER);

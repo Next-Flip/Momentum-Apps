@@ -214,18 +214,8 @@ void FlipSocialRun::drawCommentsView(Canvas *canvas)
                             continue;
                         }
                         commentItemID = atoi(id_str);
-                        drawFeedItem(canvas, username, message, flipped, flips_str, date_created);
-
-                        // Draw navigation arrows if there are multiple comments
-                        canvas_set_font_custom(canvas, FONT_SIZE_SMALL);
-                        if (commentsIndex > 0)
-                        {
-                            canvas_draw_str(canvas, 2, 60, "< Prev");
-                        }
-                        if (commentsIndex < (total_comments - 1))
-                        {
-                            canvas_draw_str(canvas, 96, 60, "Next >");
-                        }
+                        char zero_comments[] = "0";
+                        drawFeedItem(canvas, username, message, flipped, flips_str, date_created, zero_comments, true);
 
                         // Draw comment counter
                         char comment_counter[32];
@@ -548,13 +538,30 @@ void FlipSocialRun::drawExploreView(Canvas *canvas)
     }
 }
 
-void FlipSocialRun::drawFeedItem(Canvas *canvas, char *username, char *message, char *flipped, char *flips, char *date_created)
+void FlipSocialRun::drawFeedItem(Canvas *canvas, char *username, char *message, char *flipped, char *flips, char *date_created, char *comments, bool isComment)
 {
     bool isFlipped = strcmp(flipped, "true") == 0;
     auto flipCount = atoi(flips);
+    // auto commentCount = atoi(comments);
     canvas_clear(canvas);
     canvas_set_font_custom(canvas, FONT_SIZE_LARGE);
     canvas_draw_str(canvas, 0, 7, username);
+
+    if (!isComment)
+    {
+        // Draw date in top-right corner
+        canvas_set_font_custom(canvas, FONT_SIZE_SMALL);
+        int date_width = canvas_string_width(canvas, date_created);
+        canvas_draw_str(canvas, 128 - date_width, 7, date_created);
+    }
+    else
+    {
+        // draw in bottom-right corner for comments
+        canvas_set_font_custom(canvas, FONT_SIZE_SMALL);
+        int date_width = canvas_string_width(canvas, date_created);
+        canvas_draw_str(canvas, 128 - date_width, 60, date_created);
+    }
+
     canvas_set_font_custom(canvas, FONT_SIZE_MEDIUM);
     drawFeedMessage(canvas, message, 0, 12);
     canvas_set_font_custom(canvas, FONT_SIZE_SMALL);
@@ -565,13 +572,15 @@ void FlipSocialRun::drawFeedItem(Canvas *canvas, char *username, char *message, 
     char flip_status[16];
     snprintf(flip_status, sizeof(flip_status), isFlipped ? "Unflip" : "Flip");
     canvas_draw_str(canvas, isFlipped ? 44 : 46, 60, flip_status);
-    if (strstr(date_created, "minutes ago") == NULL)
+
+    if (!isComment)
     {
-        canvas_draw_str(canvas, 76, 60, date_created);
-    }
-    else
-    {
-        canvas_draw_str(canvas, 72, 60, date_created);
+        // Draw down arrow icon and comment count
+        canvas_draw_icon(canvas, 74, 56, &I_ButtonDown_5x3);
+        canvas_draw_str(canvas, 83, 60, "Comment");
+        canvas_draw_str(canvas, 112, 60, "(");
+        canvas_draw_str(canvas, 118, 60, comments);
+        canvas_draw_str(canvas, 124, 60, ")");
     }
 }
 
@@ -810,7 +819,8 @@ void FlipSocialRun::drawFeedView(Canvas *canvas)
                     char *flips_str = get_json_value("flip_count", feedItem);
                     char *date_created = get_json_value("date_created", feedItem);
                     char *id_str = get_json_value("id", feedItem);
-                    if (!username || !message || !flipped || !flips_str || !date_created || !id_str)
+                    char *comments_str = get_json_value("comment_count", feedItem);
+                    if (!username || !message || !flipped || !flips_str || !date_created || !id_str || !comments_str)
                     {
                         if (username)
                             free(username);
@@ -824,6 +834,8 @@ void FlipSocialRun::drawFeedView(Canvas *canvas)
                             free(date_created);
                         if (id_str)
                             free(id_str);
+                        if (comments_str)
+                            free(comments_str);
                         free(feedItem);
                         feedItemIndex++;
                         continue;
@@ -865,7 +877,7 @@ void FlipSocialRun::drawFeedView(Canvas *canvas)
                         finalFlipsStr = overrideFlipsStr;
                     }
 
-                    drawFeedItem(canvas, username, message, finalFlipped, finalFlipsStr, date_created);
+                    drawFeedItem(canvas, username, message, finalFlipped, finalFlipsStr, date_created, comments_str);
                     //
                     free(username);
                     free(message);
@@ -873,6 +885,7 @@ void FlipSocialRun::drawFeedView(Canvas *canvas)
                     free(flips_str);
                     free(date_created);
                     free(id_str);
+                    free(comments_str);
                     free(feedItem);
                 }
             }
@@ -2003,18 +2016,46 @@ void FlipSocialRun::drawRegistrationView(Canvas *canvas)
             char response[256];
             if (app && app->loadChar("register", response, sizeof(response)))
             {
-                if (strstr(response, "[SUCCESS]") != NULL)
+                if (strstr(response, "[SUCCESS]") != NULL) // [SUCCESS]: User created
                 {
                     registrationStatus = RegistrationSuccess;
                     currentView = SocialViewMenu;
                 }
-                else if (strstr(response, "Username or password not provided") != NULL)
+                else if (strstr(response, "Username or password is empty") != NULL) // [ERROR]: Username or password is empty.
                 {
                     registrationStatus = RegistrationCredentialsMissing;
                 }
-                else if (strstr(response, "User already exists") != NULL)
+                else if (strstr(response, "User already exists") != NULL) // [ERROR]: User already exists.
                 {
                     registrationStatus = RegistrationUserExists;
+                }
+                else if (strstr(response, "Username is all one letter") != NULL) // [ERROR]: Username is all one letter.
+                {
+                    registrationStatus = RegistrationErrorAllOneLetter;
+                }
+                else if (strstr(response, "Username cannot be all numbers") != NULL) // [ERROR]: Username cannot be all numbers.
+                {
+                    registrationStatus = RegistrationErrorAllNumbers;
+                }
+                else if (strstr(response, "Username too short") != NULL) // [ERROR]: Username too short (5 or more).
+                {
+                    registrationStatus = RegistrationErrorUsernameTooShort;
+                }
+                else if (strstr(response, "Password too short") != NULL) // [ERROR]: Password too short (5 or more).
+                {
+                    registrationStatus = RegistrationErrorPasswordTooShort;
+                }
+                else if (strstr(response, "Username too long") != NULL) // [ERROR]: Username too long (32 or less).
+                {
+                    registrationStatus = RegistrationErrorUsernameTooLong;
+                }
+                else if (strstr(response, "Password too long") != NULL) // [ERROR]: Password too long (32 or less).
+                {
+                    registrationStatus = RegistrationErrorPasswordTooLong;
+                }
+                else if (strstr(response, "Username not allowed") != NULL) // [ERROR]: Username not allowed.
+                {
+                    registrationStatus = RegistrationErrorUsernameNotAllowed;
                 }
                 else
                 {
@@ -2035,6 +2076,40 @@ void FlipSocialRun::drawRegistrationView(Canvas *canvas)
         canvas_draw_str(canvas, 0, 10, "Missing credentials!");
         canvas_draw_str(canvas, 0, 20, "Please set your username");
         canvas_draw_str(canvas, 0, 30, "and password in the app.");
+        break;
+    case RegistrationErrorAllOneLetter:
+        canvas_draw_str(canvas, 0, 10, "Username cannot be");
+        canvas_draw_str(canvas, 0, 20, "all one letter!");
+        break;
+    case RegistrationErrorAllNumbers:
+        canvas_draw_str(canvas, 0, 10, "Username cannot be");
+        canvas_draw_str(canvas, 0, 20, "all numbers!");
+        break;
+    case RegistrationErrorUsernameTooShort:
+        canvas_draw_str(canvas, 0, 10, "Username too short!");
+        canvas_draw_str(canvas, 0, 20, "Must be at least 5 chars.");
+        break;
+    case RegistrationErrorPasswordTooShort:
+        canvas_draw_str(canvas, 0, 10, "Password too short!");
+        canvas_draw_str(canvas, 0, 20, "Must be at least 5 chars.");
+        break;
+    case RegistrationErrorUsernameTooLong:
+        canvas_draw_str(canvas, 0, 10, "Username too long!");
+        canvas_draw_str(canvas, 0, 20, "Must be 32 chars or less.");
+        break;
+    case RegistrationErrorPasswordTooLong:
+        canvas_draw_str(canvas, 0, 10, "Password too long!");
+        canvas_draw_str(canvas, 0, 20, "Must be 32 chars or less.");
+        break;
+    case RegistrationErrorUsernameNotAllowed:
+        canvas_draw_str(canvas, 0, 10, "Username not allowed!");
+        canvas_draw_str(canvas, 0, 20, "Please choose another.");
+        break;
+    case RegistrationUserExists:
+        canvas_draw_str(canvas, 0, 10, "User already exists!");
+        canvas_draw_str(canvas, 0, 20, "Please choose another");
+        ;
+        canvas_draw_str(canvas, 0, 30, "username.");
         break;
     case RegistrationRequestError:
         canvas_draw_str(canvas, 0, 10, "Registration request failed!");

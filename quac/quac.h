@@ -17,9 +17,8 @@
 #include "item.h"
 
 #define QUAC_NAME    "Quac!"
-#define QUAC_VERSION "v0.9.1"
 #define QUAC_ABOUT                                    \
-    "Quick Action remote control\n" QUAC_VERSION "\n" \
+    "Quick Action remote control\nv" FAP_VERSION "\n" \
     "github.com/rdefeo/quac"
 #define TAG "Quac" // log statement id
 
