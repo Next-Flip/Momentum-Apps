@@ -1,4 +1,0 @@
-- 0.4 - Add Auto-Dim functionality and improved layout
-- 0.3 - Add CSV logging functionality
-- 0.2 - Update for use with new serial API
-- 0.1 - Initial version
