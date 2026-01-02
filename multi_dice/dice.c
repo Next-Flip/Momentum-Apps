@@ -148,6 +148,86 @@ static void dice_render_callback(Canvas* const canvas, void* ctx) {
                 state->rollTime[0]);
             uint8_t d1_i = rand() % COUNT_OF(eightBall);
             snprintf(state->strings[1], sizeof(state->strings[1]), "%s", eightBall[d1_i]);
+        } else if(state->diceSelect == 200) {
+            const char* lcrDie[] = {
+                "L",
+                "C",
+                "R",
+                "O",
+                "O",
+                "O",};
+            state->diceRoll =
+                ((rand() % state->diceSelect) + 1); // JUST TO GET IT GOING? AND FIX BUG
+            snprintf(state->diceType[0], sizeof(state->diceType[0]), "%s", "LCR");
+            snprintf(
+                state->strings[0],
+                sizeof(state->strings[0]),
+                "%s at %s",
+                state->diceType[0],
+                state->rollTime[0]);
+
+            
+            if(state->diceQty == 1) {
+                        uint8_t d1_i = rand() % COUNT_OF(lcrDie);
+                snprintf(state->strings[1], sizeof(state->strings[1]), "%s", lcrDie[d1_i]);
+                } 
+                    
+                 else if(state->diceQty == 2) {
+                    uint8_t d1_i = rand() % COUNT_OF(lcrDie);
+                    uint8_t d2_i = rand() % COUNT_OF(lcrDie);
+                    snprintf(
+                        state->strings[1], sizeof(state->strings[1]), "%s    %s", lcrDie[d1_i], lcrDie[d2_i]);
+            }
+                 else if(state->diceQty == 3) {
+                    uint8_t d1_i = rand() % COUNT_OF(lcrDie);
+                    uint8_t d2_i = rand() % COUNT_OF(lcrDie);
+                    uint8_t d3_i = rand() % COUNT_OF(lcrDie);                 
+                    snprintf(
+                        state->strings[1], sizeof(state->strings[1]), "%s    %s    %s", lcrDie[d1_i], lcrDie[d2_i], lcrDie[d3_i]);
+            }
+
+                    
+                
+        } else if(state->diceSelect == 201) {
+            const char* lcrwDie[] = {
+                "L",
+                "C",
+                "R",
+                "W",
+                "O",
+                "O",};
+            state->diceRoll =
+                ((rand() % state->diceSelect) + 1); // JUST TO GET IT GOING? AND FIX BUG
+            snprintf(state->diceType[0], sizeof(state->diceType[0]), "%s", "LCRW");
+            snprintf(
+                state->strings[0],
+                sizeof(state->strings[0]),
+                "%s at %s",
+                state->diceType[0],
+                state->rollTime[0]);
+
+            
+            if(state->diceQty == 1) {
+                        uint8_t d1_i = rand() % COUNT_OF(lcrwDie);
+                snprintf(state->strings[1], sizeof(state->strings[1]), "%s", lcrwDie[d1_i]);
+                } 
+                    
+                 else if(state->diceQty == 2) {
+                    uint8_t d1_i = rand() % COUNT_OF(lcrwDie);
+                    uint8_t d2_i = rand() % COUNT_OF(lcrwDie);
+                    snprintf(
+                        state->strings[1], sizeof(state->strings[1]), "%s    %s", lcrwDie[d1_i], lcrwDie[d2_i]);
+            }
+                 else if(state->diceQty == 3) {
+                    uint8_t d1_i = rand() % COUNT_OF(lcrwDie);
+                    uint8_t d2_i = rand() % COUNT_OF(lcrwDie);
+                    uint8_t d3_i = rand() % COUNT_OF(lcrwDie);                 
+                    snprintf(
+                        state->strings[1], sizeof(state->strings[1]), "%s    %s    %s", lcrwDie[d1_i], lcrwDie[d2_i], lcrwDie[d3_i]);
+            }
+
+                    
+                
         } else if(state->diceSelect == 231) {
             const char* deckOne[] = {"2H", "2C", "2D", "2S", "3H", "3C",  "3D",  "3S",  "4H",
                                      "4C", "4D", "4S", "5H", "5C", "5D",  "5S",  "6H",  "6C",
@@ -369,14 +449,18 @@ static void dice_render_callback(Canvas* const canvas, void* ctx) {
         elements_button_right(canvas, "WAR");
     } else if(state->diceSelect == 232) {
         elements_button_right(canvas, "WEED");
+    } else if(state->diceSelect == 200) {
+        elements_button_right(canvas, "LCR");        
+    } else if(state->diceSelect == 201) {
+        elements_button_right(canvas, "LCRW");        
     }
 }
 
 static void dice_state_init(DiceState* const state) {
     memset(state, 0, sizeof(DiceState));
     furi_hal_rtc_get_datetime(&state->datetime);
-    state->diceSelect = 20;
-    state->diceQty = 1;
+    state->diceSelect = 200;
+    state->diceQty = 3;
     state->diceRoll = 0;
     state->playerOneScore = 0;
     state->playerTwoScore = 0;
@@ -471,12 +555,23 @@ int32_t dice_app(void* p) {
                             plugin_state->diceSelect = 59;
                         } else if(plugin_state->diceSelect == 59) {
                             plugin_state->diceSelect = 69;
+                        } else if(plugin_state->diceSelect == 69) {
+                            plugin_state->diceSelect = 200;
+                            plugin_state->diceQty = 3;  // set default diceQty for LCR to 3
+                        } else if(plugin_state->diceSelect == 200) {
+                            plugin_state->diceSelect = 201;
+                            plugin_state->diceQty = 3;  // set default diceQty for LCR to 3
                         } else {
                             plugin_state->diceSelect = 2;
                         }
                         break;
+                    // this gets a bit hacky
+                    // this adds a restriction that if diceSelect is >= 200, n dice can't exceed 3
+                    // this doesn't break any of the existing dice configurations with diceSelect >= 200 because they don't use diceQty 
                     case InputKeyLeft:
-                        if(plugin_state->diceQty <= 5) {
+                        if(plugin_state->diceSelect < 200 && plugin_state->diceQty <= 5) {  // LCR diceQty should not exceed 3, so we check them later
+                            plugin_state->diceQty = plugin_state->diceQty + 1;
+                        } else if (plugin_state->diceSelect >= 200 && plugin_state->diceQty <= 2) { // here we check for LCR dice, restricting n to 3 max
                             plugin_state->diceQty = plugin_state->diceQty + 1;
                         } else {
                             plugin_state->diceQty = 1;
