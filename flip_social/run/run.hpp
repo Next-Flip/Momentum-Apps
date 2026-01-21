@@ -1,7 +1,7 @@
 #pragma once
 #include "easy_flipper/easy_flipper.h"
 #include "loading/loading.hpp"
-#include "run/keyboard.hpp"
+#include "keyboard/keyboard.hpp"
 
 #define MAX_PRE_SAVED_MESSAGES 20 // Maximum number of pre-saved messages
 #define MAX_MESSAGE_LENGTH 100    // Maximum length of a message in the feed
@@ -163,6 +163,7 @@ class FlipSocialRun
     bool commentIsValid;                             // flag to check if the comment is valid
     uint16_t commentItemID;                          // current comment item ID
     CommentsStatus commentsStatus;                   // current comment status
+    uint8_t currentCount;                            // current count of items in the current view
     SocialView currentMenuIndex;                     // current menu index
     uint8_t currentProfileElement;                   // current profile element being viewed
     SocialView currentView;                          // current view of the social run
@@ -174,7 +175,6 @@ class FlipSocialRun
     FeedStatus feedStatus;                           // current feed status
     bool feedItemFlipOverride[MAX_FEED_ITEMS];       // local override for flip status to show immediate feedback
     bool feedItemFlipOverrideActive[MAX_FEED_ITEMS]; // track which items have local overrides
-    bool inputHeld;                                  // flag to check if input is held
     InputKey lastInput;                              // last input key pressed
     std::unique_ptr<Keyboard> keyboard;              // keyboard instance for input handling
     std::unique_ptr<Loading> loading;                // loading animation instance
@@ -186,11 +186,9 @@ class FlipSocialRun
     uint8_t postIndex;                               // index of the post in the Post submenu
     PostStatus postStatus;                           // current post status
     RegistrationStatus registrationStatus;           // current registration status
-    bool shouldDebounce;                             // flag to debounce input
     bool shouldReturnToMenu;                         // Flag to signal return to menu
     UserInfoStatus userInfoStatus;                   // current user info status
     //
-    void debounceInput();                                                                                                                                     // debounce input to prevent multiple triggers
     void drawCommentsView(Canvas *canvas);                                                                                                                    // draw the comments view
     void drawExploreView(Canvas *canvas);                                                                                                                     // draw the explore view
     void drawFeedItem(Canvas *canvas, char *username, char *message, char *flipped, char *flips, char *date_created, char *comments, bool isComment = false); // draw a single feed item
@@ -208,6 +206,7 @@ class FlipSocialRun
     bool getMessageUser(char *buffer, size_t buffer_size);                                                                                                    // get the message user at the specified messageUserIndex
     bool getSelectedPost(char *buffer, size_t buffer_size);                                                                                                   // get the selected post at the specified postIndex
     bool httpRequestIsFinished();                                                                                                                             // check if the HTTP request is finished
+    void loadKeyboardSuggestions();                                                                                                                           // load suggestions into the keyboard autocomplete
     void updateFeedItemFlipStatus();                                                                                                                          // update the flip status of the current feed item in cached data
     void userRequest(RequestType requestType);                                                                                                                // Send a user request to the server based on the request type
 public:
