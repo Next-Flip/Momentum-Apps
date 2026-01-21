@@ -129,13 +129,6 @@ static void scheduler_scene_start_set_tx_delay(VariableItem* item) {
     scheduler_set_tx_delay(app->scheduler, index);
 }
 
-static void scheduler_scene_start_set_radio(VariableItem* item) {
-    SchedulerApp* app = variable_item_get_context(item);
-    uint8_t index = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, radio_device_text[index]);
-    scheduler_set_radio(app->scheduler, index);
-}
-
 void scheduler_scene_start_on_enter(void* context) {
     SchedulerApp* app = context;
     VariableItemList* var_item_list = app->var_item_list;
