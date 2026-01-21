@@ -1,4 +1,12 @@
 # Unitemp changelog
+
+## Unitemp 1.7
+- Add MAX31725 temperature sensor. 
+- Fix bug in SHT3x detection and reading. 
+- Decrease SCD40 pooling interval. 
+
+## Unitemp 1.6
+- Add SCD30 and SCD40 Co2 sensors. 
 ## Unitemp 1.5
 - Add Cry_dolph_55x52 image (build on latest API) (Thanks jamisonderek)
 ## Unitemp 1.4

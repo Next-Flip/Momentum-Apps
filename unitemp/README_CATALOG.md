@@ -1,5 +1,5 @@
 # Unitemp - Universal temperature sensor reader
-Application for reading temperature, humidity and pressure sensors like a DHT11/22, DS18B20, BMP280, HTU21 and more. 
+Application for reading temperature, humidity, and pressure sensors like a DHT11/22, DS18B20, BMP280, HTU21, and more. 
 ## List of supported sensors
 - DHT11
 - DHT12
@@ -12,6 +12,11 @@ Application for reading temperature, humidity and pressure sensors like a DHT11/
 - SHT30/GXHT30
 - SHT31/GXHT31
 - SHT35/GXHT35
+- SCD30
+- SCD40
+- SCD41
+- SCD42
+- SCD43
 - LM75
 - BMP180
 - BMP280
@@ -23,9 +28,13 @@ Application for reading temperature, humidity and pressure sensors like a DHT11/
 - DS18S20 (DS1820)
 - DS1822
 - MAX31855
+- MAX31725
 - MAX6675
 
 ## Need help? Discussions?
-Join the discussion, ask a question or just send a photo of the flipper with sensors to [Discord](https://discord.com/channels/740930220399525928/1056727938747351060). [Invite link](https://discord.com/invite/flipper)
-## Gratitudes
-Thanks to [@Svaarich](https://github.com/Svaarich) for the UI design and to the Unleashed firmware community for sensors testing and feedbacks.
+Join the discussion, ask a question, or just send a photo of the flipper with sensors to [Discord](https://discord.com/channels/740930220399525928/1056727938747351060). [Invite link](https://discord.com/invite/flipper)
+
+## Acknowledgement
+
+Thanks to [@Svaarich](https://github.com/Svaarich) for the UI design and to the Unleashed firmware community for sensor testing and feedback.
+Thanks to Victor Nikitchuk [@quen0n](https://github.com/quen0n) for coding and maintenance of the initial version of the unitemp application. 
