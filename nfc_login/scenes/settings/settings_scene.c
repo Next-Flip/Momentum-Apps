@@ -132,7 +132,7 @@ void app_render_settings(App* app) {
     snprintf(setting_lines[4], sizeof(setting_lines[4]), "%s Reset Passcode",
              (app->settings_menu_index == 4) ? ">" : " ");
     snprintf(setting_lines[5], sizeof(setting_lines[5]), "%s Disable Passcode: %s",
-             (app->settings_menu_index == 5) ? ">" : " ", app->passcode_disabled ? "ON" : "OFF");
+             (app->settings_menu_index == 5) ? ">" : " ", get_passcode_disabled() ? "ON" : "OFF");
     snprintf(setting_lines[6], sizeof(setting_lines[6]), "%s Credits",
              (app->settings_menu_index == 6) ? ">" : " ");
 
@@ -154,7 +154,7 @@ void app_render_settings(App* app) {
     } else if(app->settings_menu_index == 4) {
         widget_add_string_element(app->widget, 0, SETTINGS_HELP_Y_POS, AlignLeft, AlignTop, FontSecondary, "OK=Reset  Back=Menu");
     } else if(app->settings_menu_index == 5) {
-        widget_add_string_element(app->widget, 0, SETTINGS_HELP_Y_POS, AlignLeft, AlignTop, FontSecondary, "OK=Toggle  Back=Menu");
+        widget_add_string_element(app->widget, 0, SETTINGS_HELP_Y_POS, AlignLeft, AlignTop, FontSecondary, "<-> Toggle  Back=Menu");
     } else if(app->settings_menu_index == 6) {
         widget_add_string_element(app->widget, 0, SETTINGS_HELP_Y_POS, AlignLeft, AlignTop, FontSecondary, "OK=View  Back=Menu");
     }

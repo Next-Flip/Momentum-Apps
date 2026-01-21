@@ -211,6 +211,7 @@ bool app_save_cards(App* app) {
                         if(passcode_header) {
                             passcode_header[0] = 0;
                             passcode_header[1] = 0;
+                            passcode_header[2] = 0; // flags byte
                             passcode_header_len = PASSCODE_HEADER_SIZE;
                         }
                     }
@@ -222,6 +223,7 @@ bool app_save_cards(App* app) {
             if(passcode_header) {
                 passcode_header[0] = 0;
                 passcode_header[1] = 0;
+                passcode_header[2] = 0; // flags byte
                 passcode_header_len = PASSCODE_HEADER_SIZE;
             }
         }
@@ -231,6 +233,7 @@ bool app_save_cards(App* app) {
         if(passcode_header) {
             passcode_header[0] = 0;
             passcode_header[1] = 0;
+            passcode_header[2] = 0; // flags byte
             passcode_header_len = PASSCODE_HEADER_SIZE;
         }
     }
@@ -280,8 +283,8 @@ bool app_save_cards(App* app) {
         if(passcode_header) {
             storage_file_write(file, passcode_header, passcode_header_len);
         } else {
-            uint8_t header[2] = {0, 0};
-            storage_file_write(file, header, 2);
+            uint8_t header[3] = {0, 0, 0};
+            storage_file_write(file, header, 3);
         }
         success = true;
     }
@@ -333,9 +336,9 @@ void app_load_cards(App* app) {
             return;
         }
         
-        uint8_t length_bytes[2];
-        size_t bytes_read = storage_file_read(file, length_bytes, 2);
-        if(bytes_read != 2) {
+        uint8_t header[3];
+        size_t bytes_read = storage_file_read(file, header, 3);
+        if(bytes_read < 2) {
             FURI_LOG_E(TAG, "app_load_cards: Failed to read passcode header");
             storage_file_close(file);
             storage_file_free(file);
@@ -343,7 +346,7 @@ void app_load_cards(App* app) {
             return;
         }
         
-        uint16_t passcode_len = (uint16_t)(length_bytes[0] | (length_bytes[1] << 8));
+        uint16_t passcode_len = (uint16_t)(header[0] | (header[1] << 8));
         
         uint8_t* file_data = malloc(file_size);
         if(!file_data) {

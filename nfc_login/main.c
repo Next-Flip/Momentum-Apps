@@ -35,7 +35,7 @@ int32_t nfc_login(void* p) {
     app->passcode_failed_attempts = 0;
     memset(app->passcode_sequence, 0, sizeof(app->passcode_sequence));
     
-    if(app->passcode_disabled) {
+    if(get_passcode_disabled()) {
         app_load_cards(app);
         app_switch_to_view(app, ViewSubmenu);
     } else {
@@ -77,8 +77,13 @@ int32_t nfc_login(void* p) {
         }
     }
     
-    if(app->previous_usb_config || app->hid_mode == HidModeBle) {
-        deinitialize_hid_with_restore_and_mode(app->previous_usb_config, app->hid_mode);
+    // CRITICAL: Only deinitialize USB if USB mode was used
+    // BLE mode should NEVER touch USB functions
+    if(app->hid_mode == HidModeUsb && app->previous_usb_config) {
+        deinitialize_hid_with_restore_and_mode(app->previous_usb_config, HidModeUsb);
+    } else if(app->hid_mode == HidModeBle) {
+        // BLE mode - stop advertising but don't deinit (let it stay connected)
+        app_stop_ble_advertising();
     }
     
     view_dispatcher_remove_view(app->view_dispatcher, ViewSubmenu);

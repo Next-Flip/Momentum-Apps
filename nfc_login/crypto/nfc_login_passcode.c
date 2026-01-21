@@ -72,12 +72,12 @@ bool get_passcode_sequence(char* sequence_out, size_t sequence_buf_size) {
         size_t file_size = storage_file_size(file);
         
         if(file_size >= PASSCODE_HEADER_SIZE) {
-            // Read passcode length (2 bytes)
-            uint8_t length_bytes[2];
-            size_t bytes_read = storage_file_read(file, length_bytes, 2);
+            // Read passcode length (2 bytes) and flags (1 byte)
+            uint8_t header_bytes[3];
+            size_t bytes_read = storage_file_read(file, header_bytes, 3);
             
-            if(bytes_read == 2) {
-                uint16_t passcode_len = (uint16_t)(length_bytes[0] | (length_bytes[1] << 8));
+            if(bytes_read >= 2) {
+                uint16_t passcode_len = (uint16_t)(header_bytes[0] | (header_bytes[1] << 8));
                 
                 if(passcode_len > 0 && passcode_len < 512 && passcode_len % AES_BLOCK_SIZE == 0) {
                     // Read encrypted passcode
@@ -182,10 +182,11 @@ bool set_passcode_sequence(const char* sequence) {
     
     app_ensure_data_dir(storage);
     
-    // Read existing cards.enc to preserve card data (read entire file into memory)
+    // Read existing cards.enc to preserve card data and flags (read entire file into memory)
     File* read_file = storage_file_alloc(storage);
     uint8_t* existing_cards = NULL;
     size_t existing_cards_len = 0;
+    uint8_t flags = 0; // Preserve existing flags
     
     if(storage_file_open(read_file, NFC_CARDS_FILE_ENC, FSAM_READ, FSOM_OPEN_EXISTING)) {
         size_t file_size = storage_file_size(read_file);
@@ -198,6 +199,11 @@ bool set_passcode_sequence(const char* sequence) {
                 if(bytes_read == file_size) {
                     // Parse header
                     uint16_t old_passcode_len = (uint16_t)(file_data[0] | (file_data[1] << 8));
+                    
+                    // Extract flags byte (3rd byte of header)
+                    if(file_size >= 3) {
+                        flags = file_data[2];
+                    }
                     
                     // Extract card data (skip header and old passcode)
                     size_t card_data_offset = PASSCODE_HEADER_SIZE + old_passcode_len;
@@ -227,11 +233,12 @@ bool set_passcode_sequence(const char* sequence) {
     bool success = false;
     
     if(storage_file_open(write_file, NFC_CARDS_FILE_ENC, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        // Write passcode length (2 bytes, little-endian)
-        uint8_t length_bytes[2];
-        length_bytes[0] = (uint8_t)(encrypted_len & 0xFF);
-        length_bytes[1] = (uint8_t)((encrypted_len >> 8) & 0xFF);
-        storage_file_write(write_file, length_bytes, 2);
+        // Write passcode length (2 bytes, little-endian) and flags (1 byte)
+        uint8_t header_bytes[3];
+        header_bytes[0] = (uint8_t)(encrypted_len & 0xFF);
+        header_bytes[1] = (uint8_t)((encrypted_len >> 8) & 0xFF);
+        header_bytes[2] = flags; // Preserve existing flags
+        storage_file_write(write_file, header_bytes, 3);
         
         // Write encrypted passcode
         size_t written = storage_file_write(write_file, encrypted, encrypted_len);
@@ -430,4 +437,102 @@ bool derive_key_from_passcode_sequence(const char* sequence, uint8_t* key_out, s
     memset(hash_output, 0, PASSCODE_HASH_SIZE);
     
     return true;
+}
+
+bool get_passcode_disabled(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) {
+        return false;
+    }
+    
+    File* file = storage_file_alloc(storage);
+    bool disabled = false;
+    
+    if(storage_file_open(file, NFC_CARDS_FILE_ENC, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        size_t file_size = storage_file_size(file);
+        
+        if(file_size >= PASSCODE_HEADER_SIZE) {
+            uint8_t header[3];
+            if(storage_file_read(file, header, 3) == 3) {
+                disabled = (header[2] & PASSCODE_FLAG_DISABLED) != 0;
+            }
+        }
+        
+        storage_file_close(file);
+    }
+    
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+    
+    return disabled;
+}
+
+bool set_passcode_disabled(bool disabled) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) {
+        return false;
+    }
+    
+    File* file = storage_file_alloc(storage);
+    bool success = false;
+    
+    if(storage_file_open(file, NFC_CARDS_FILE_ENC, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        size_t file_size = storage_file_size(file);
+        
+        if(file_size >= PASSCODE_HEADER_SIZE) {
+            // Read entire file
+            uint8_t* file_data = malloc(file_size);
+            if(file_data) {
+                size_t bytes_read = storage_file_read(file, file_data, file_size);
+                
+                if(bytes_read == file_size) {
+                    // Update flags byte
+                    if(file_size >= 3) {
+                        if(disabled) {
+                            file_data[2] |= PASSCODE_FLAG_DISABLED;
+                        } else {
+                            file_data[2] &= ~PASSCODE_FLAG_DISABLED;
+                        }
+                        
+                        storage_file_close(file);
+                        
+                        // Write back
+                        if(storage_file_open(file, NFC_CARDS_FILE_ENC, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+                            size_t written = storage_file_write(file, file_data, file_size);
+                            if(written == file_size) {
+                                success = true;
+                            }
+                            storage_file_close(file);
+                        }
+                    }
+                }
+                
+                free(file_data);
+            }
+        } else {
+            // File too small, create new header
+            storage_file_close(file);
+            if(storage_file_open(file, NFC_CARDS_FILE_ENC, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+                uint8_t header[3] = {0, 0, disabled ? PASSCODE_FLAG_DISABLED : 0};
+                if(storage_file_write(file, header, 3) == 3) {
+                    success = true;
+                }
+                storage_file_close(file);
+            }
+        }
+    } else {
+        // File doesn't exist, create new header
+        if(storage_file_open(file, NFC_CARDS_FILE_ENC, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+            uint8_t header[3] = {0, 0, disabled ? PASSCODE_FLAG_DISABLED : 0};
+            if(storage_file_write(file, header, 3) == 3) {
+                success = true;
+            }
+            storage_file_close(file);
+        }
+    }
+    
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+    
+    return success;
 }
