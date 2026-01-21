@@ -1,3 +1,13 @@
+# v2.3 (2026-01-11)
+
+## New Features
+- Added new interval times (1, 2, and 5 second).
+- Added external CC1101 radio support.
+## Bug-fix
+- Fixed missing initialization setters on scene enter.
+- Fixed TX delay & radio initializer bug.
+- General code updates and fixes.
+
 # v2.2 (2025-02-11)
 
 ## New Features

@@ -190,7 +190,6 @@ void scheduler_scene_run_on_exit(void* context) {
 
 bool scheduler_scene_run_on_event(void* context, SceneManagerEvent event) {
     SchedulerApp* app = context;
-    //static uint32_t prev_time = 0;
 
     bool consumed = false;
     bool update = (!app->is_transmitting | scheduler_get_timing_mode(app->scheduler)) &&
@@ -202,9 +201,6 @@ bool scheduler_scene_run_on_event(void* context, SceneManagerEvent event) {
             bool trig = scheduler_time_to_trigger(app->scheduler);
 
             if(trig) {
-                //uint32_t delta = furi_hal_rtc_get_timestamp() - prev_time;
-                //prev_time = furi_hal_rtc_get_timestamp();
-                //FURI_LOG_W(TAG, "TIME DELTA: %lu", delta);
                 scheduler_start_tx(app);
             } else {
                 notification_message(app->notifications, &sequence_blink_red_10);
