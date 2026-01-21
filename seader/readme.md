@@ -25,9 +25,7 @@ Buy it at [Red Team Tools](https://www.redteamtools.com/flippermeister/).
 
 Buy HID SAM:
  * [USA](https://www.cdw.com/product/hp-sim-for-hid-iclass-for-hip2-reader-security-sim/4854794)
- * [Europe](https://www.rfideas-shop.com/en/kt-sim-se-sim-card-hid-iclass-and-seos-for-sphip-r.html)
  * [Canada](https://www.pc-canada.com/item/hp-sim-for-hid-iclass-se-and-hid-iclass-seos-for-hip2-reader/y7c07a)
- * [eBay](https://www.ebay.com/p/4037642616)
 
 Put SAM into **[adapter](https://a.co/d/1E9Zk1h)** (because of chip on top) and plug into **Smart Card 2 Click** ([Mikroe](https://www.mikroe.com/smart-card-2-click) [digikey](https://www.digikey.com/en/products/detail/mikroelektronika/MIKROE-5492/20840872) with cheaper US shipping). Connect Smart Card 2 Click to Flipper Zero (See `Connections` below).
 
