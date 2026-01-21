@@ -5,7 +5,7 @@ App(
     entry_point="co2_logger_app",
     stack_size=4 * 1024,
     fap_category="GPIO/Sensors",
-    fap_version="0.3",
+    fap_version="0.4",
     fap_icon="co2_logger.png",
     fap_description="CO2 Logger with CSV export",
     fap_author="Harry O'Brien",
