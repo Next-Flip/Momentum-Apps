@@ -1,0 +1,124 @@
+name: Daily Auto Build FAP
+
+on:
+  schedule:
+    - cron: "0 12 * * *" 
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: "Force build"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Official Release
+            sdk-channel: release
+            sdk-index-url: ""
+            release-tag: official-release
+          - name: Official Dev
+            sdk-channel: dev
+            sdk-index-url: ""
+            release-tag: official-dev
+          - name: Unleashed Release
+            sdk-channel: release
+            sdk-index-url: https://up.unleashedflip.com/directory.json
+            release-tag: unleashed-release
+          - name: Unleashed Dev
+            sdk-channel: dev
+            sdk-index-url: https://up.unleashedflip.com/directory.json
+            release-tag: unleashed-dev
+          - name: Momentum Release
+            sdk-channel: release
+            sdk-index-url: https://up.momentum-fw.dev/firmware/directory.json
+            release-tag: momentum-release
+          - name: Momentum Dev
+            sdk-channel: dev
+            sdk-index-url: https://up.momentum-fw.dev/firmware/directory.json
+            release-tag: momentum-dev
+
+    name: "Build for ${{ matrix.name }}"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get timestamp
+        id: timestamp
+        run: |
+          TIMESTAMP=$(date -u +%Y%m%d_%H%M%S)
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.2
+        id: build-app
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+          sdk-index-url: ${{ matrix.sdk-index-url || '' }}
+
+      - name: Get app info
+        id: app-info
+        run: |
+          APP_NAME=$(grep -E "name\s*=" application.fam | sed 's/.*name\s*=\s*"\([^"]*\)".*/\1/' | head -1)
+          APP_NAME_CLEAN=$(echo "$APP_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g')
+          echo "name=$APP_NAME" >> $GITHUB_OUTPUT
+          echo "clean_name=$APP_NAME_CLEAN" >> $GITHUB_OUTPUT
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.release-tag }}-${{ steps.timestamp.outputs.timestamp }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ matrix.release-tag }}-${{ steps.timestamp.outputs.timestamp }}
+          name: ${{ steps.app-info.outputs.name }} - ${{ matrix.name }} (${{ steps.timestamp.outputs.timestamp }})
+          files: ${{ steps.build-app.outputs.fap-artifacts }}
+          body: |
+            ## ${{ steps.app-info.outputs.name }}
+
+            **Firmware:** ${{ matrix.name }}
+            **Built:** ${{ steps.timestamp.outputs.timestamp }}
+
+            ### Installation
+            1. Download the .fap file
+            2. Copy to your Flipper Zero's `apps` folder
+            3. The app will appear in your applications menu
+
+            ### Compatibility
+            - ✅ ${{ matrix.name }}
+            - ❌ Other firmware/channel combinations
+          draft: false
+          prerelease: ${{ contains(matrix.sdk-channel, 'dev') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cleanup-old-releases:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cleanup releases older than 10 weeks
+        run: |
+          CUTOFF_DATE=$(date -u -d "70 days ago" +%s)
+
+          RELEASES=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/releases)
+
+          OLD_RELEASES=$(echo "$RELEASES" | jq -r --argjson cutoff "$CUTOFF_DATE" \
+            '.[] | select((.created_at | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) < $cutoff) | .id')
+
+          for release_id in $OLD_RELEASES; do
+            echo "Deleting old release: $release_id"
+            curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
+          done
