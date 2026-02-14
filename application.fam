@@ -14,7 +14,7 @@ App(
     fap_author="@noproto",
     fap_icon_assets="images",
     fap_description="MIFARE Classic key recovery tool",
-    fap_version="4.0",
+    fap_version="4.1",
 )
 
 App(

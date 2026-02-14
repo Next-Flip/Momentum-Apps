@@ -63,8 +63,8 @@
 // #define SIZEOF(arr) sizeof(arr) / sizeof(*arr)
 
 // Reduced to 16-bit as these values are small and don't need 32-bit
-static int16_t eta_round_time = 44;
-static int16_t eta_total_time = 705;
+static int16_t eta_round_time = 30;
+static int16_t eta_total_time = 481;
 // MSB_LIMIT: Chunk size (out of 256) - can be 8-bit as it's a small value
 // Not static - referenced by mfkey_attack.c
 uint8_t MSB_LIMIT = 16;
@@ -193,10 +193,10 @@ bool recover(MfClassicNonce *n, int ks2, unsigned int in, ProgramState *program_
 	const size_t reduced_block_sizes[] = {18496, 18496, 5120, 5120, 4096};
 	const int num_blocks = sizeof(block_sizes) / sizeof(block_sizes[0]);
 	// Reset globals each nonce
-	eta_round_time = 44;
-    eta_total_time = 705;
+	eta_round_time = 30;
+        eta_total_time = 481;
 	MSB_LIMIT = 16;
-	
+
 	// Use half speed (reduced block sizes) for static encrypted nonces so we can buffer keys
 	bool use_half_speed = (n->attack == static_encrypted);
 	if (use_half_speed)
