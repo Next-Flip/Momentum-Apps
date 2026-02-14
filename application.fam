@@ -1,5 +1,5 @@
 App(
-    appid="ulcbrute",
+    appid="ulc_brute",
     name="UL-C Bruteforce",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="ulc_brute_app",
