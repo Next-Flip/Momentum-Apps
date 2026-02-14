@@ -1,5 +1,5 @@
 App(
-    appid="ulcrelay",
+    appid="ulc_relay",
     name="UL-C Relay",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="ulc_relay_app",
