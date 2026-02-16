@@ -6,11 +6,20 @@
  * Help
  * https://github.com/merbanan/rtl_433/blob/master/src/devices/vauno_en8822c.c
  *
- *  Frame structure (42 bits):
+ * Vauno EN8822C sensor on 433.92MHz.
  *
- *      Byte:      0        1        2        3        4
- *      Nibble:    1   2    3   4    5   6    7   8    9   10   11
- *      Type:      IIIIIIII B?CCTTTT TTTTTTTT HHHHHHHF FFFBXXXX XX
+ * Largely the same as Esperanza EWS, s3318p.
+ * @sa esperanza_ews.c s3318p.c
+
+ * List of known supported devices:
+ * - Vauno EN8822C-1
+ * - FUZHOU ESUN ELECTRONIC outdoor T21 sensor
+ *
+ * Frame structure (42 bits):
+ *
+ *    Byte:      0        1        2        3        4
+ *    Nibble:    1   2    3   4    5   6    7   8    9   10   11
+ *    Type:      IIIIIIII B?CCTTTT TTTTTTTT HHHHHHHF FFFBXXXX XX
  *
  * - I: Random device ID
  * - C: Channel (1-3)
@@ -19,12 +28,27 @@
  * - F: Flags (unknown)
  * - B: Battery (1=low voltage ~<2.5V)
  * - X: Checksum (6 bit nibble sum)
+ * 
+ * Sample Data:
+ * 
+ *     [00] {42} af 0f a2 7c 01 c0 : 10101111 00001111 10100010 01111100 00000001 11
+ * 
+ * - Sensor ID = 175 = 0xaf
+ * - Channel = 0
+ * - temp = -93 = 0x111110100010
+ * - TemperatureC = -9.3
+ * - hum = 62% = 0x0111110
+ *
+ * Copyright (C) 2022 Jamie Barron <gumbald@gmail.com>
+ *
+ * @m7i-org - because the ether is wavy
+ *
  */
 
 static const SubGhzBlockConst ws_protocol_vauno_en8822c_const = {
-    .te_short = 600,
-    .te_long = 2000,
-    .te_delta = 200,
+    .te_short = 500,
+    .te_long = 1940,
+    .te_delta = 150,
     .min_count_bit_for_found = 42,
 };
 
@@ -41,12 +65,6 @@ struct WSProtocolEncoderVaunoEN8822C {
     SubGhzProtocolBlockEncoder encoder;
     WSBlockGeneric generic;
 };
-
-typedef enum {
-    VaunoEN8822CDecoderStepReset = 0,
-    VaunoEN8822CDecoderStepSaveDuration,
-    VaunoEN8822CDecoderStepCheckDuration,
-} VaunoEN8822CDecoderStep;
 
 const SubGhzProtocolDecoder ws_protocol_vauno_en8822c_decoder = {
     .alloc = ws_protocol_decoder_vauno_en8822c_alloc,
@@ -80,6 +98,12 @@ const SubGhzProtocol ws_protocol_vauno_en8822c = {
     .encoder = &ws_protocol_vauno_en8822c_encoder,
 };
 
+typedef enum {
+    VaunoEN8822CDecoderStepReset = 0,
+    VaunoEN8822CDecoderStepSaveDuration,
+    VaunoEN8822CDecoderStepCheckDuration,
+} VaunoEN8822CDecoderStep;
+
 void* ws_protocol_decoder_vauno_en8822c_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     WSProtocolDecoderVaunoEN8822C* instance = malloc(sizeof(WSProtocolDecoderVaunoEN8822C));
@@ -100,47 +124,36 @@ void ws_protocol_decoder_vauno_en8822c_reset(void* context) {
     instance->decoder.parser_step = VaunoEN8822CDecoderStepReset;
 }
 
-static bool ws_protocol_vauno_en8822c_check_crc(WSProtocolDecoderVaunoEN8822C* instance) {
-    uint8_t msg[] = {
-        instance->decoder.decode_data >> 34,
-        instance->decoder.decode_data >> 26,
-        instance->decoder.decode_data >> 18,
-        instance->decoder.decode_data >> 10,
-        instance->decoder.decode_data >> 2};
-    uint8_t tail_bits = instance->decoder.decode_data & 0x03;
+static bool ws_protocol_vauno_en8822c_check(WSProtocolDecoderVaunoEN8822C* instance) {
+    if(!instance->decoder.decode_data) return false;
 
+    // The sum of all nibbles should match the last 6 bits
     uint8_t sum = 0;
-    for(uint8_t i = 0; i < 4; i++) {
-        sum += (msg[i] >> 4) + (msg[i] & 0x0F);
-    }
-    sum += (msg[4] >> 4);
-
-    if(sum == 0) {
-        return false;
+    for(uint8_t i = 6; i <= 38; i += 4) {
+        sum += ((instance->decoder.decode_data >> i) & 0x0f);
     }
 
-    uint8_t crc = ((msg[4] & 0x0F) << 2) | tail_bits;
-    return ((sum & 0x3F) == crc);
+    return sum != 0 && (sum & 0x3f) == (instance->decoder.decode_data & 0x3f);
 }
 
 /**
  * Analysis of received data
  * @param instance Pointer to a WSBlockGeneric* instance
  */
-static void ws_protocol_vauno_en8822c_remote_controller(WSBlockGeneric* instance) {
-    instance->id = instance->data >> 34;
-    if((instance->data >> 6) & 0x1) {
-        instance->battery_low = 1;
-    } else {
-        instance->battery_low = 0;
-    }
-    instance->channel = ((instance->data >> 30) & 0x3) + 1;
-    instance->btn = WS_NO_BTN;
+static void ws_protocol_vauno_en8822c_extract_data(WSBlockGeneric* instance) {
+    instance->id = (instance->data >> 34) & 0xff;
+    instance->battery_low = (instance->data >> 33) & 0x01;
+    instance->channel = ((instance->data >> 30) & 0x03);
 
-    int16_t temp_raw =
-        (int16_t)((((instance->data >> 26) & 0x0F) << 12) | (((instance->data >> 18) & 0xFF) << 4));
-    instance->temp = (float)(temp_raw >> 4) * 0.1f;
-    instance->humidity = ((instance->data >> 11) & 0x7F);
+    int16_t temp = (instance->data >> 18) & 0x0fff;
+    /* Handle signed data */
+    if(temp & 0x0800) {
+        temp |= 0xf000;
+    }
+    instance->temp = (float)temp / 10.0;
+
+    instance->humidity = (instance->data >> 11) & 0x7f;
+    instance->btn = WS_NO_BTN;
 }
 
 void ws_protocol_decoder_vauno_en8822c_feed(void* context, bool level, uint32_t duration) {
@@ -149,8 +162,8 @@ void ws_protocol_decoder_vauno_en8822c_feed(void* context, bool level, uint32_t 
 
     switch(instance->decoder.parser_step) {
     case VaunoEN8822CDecoderStepReset:
-        if((!level) && (DURATION_DIFF(duration, ws_protocol_vauno_en8822c_const.te_long * 4) <
-                        ws_protocol_vauno_en8822c_const.te_delta * 6)) {
+        if((!level) && DURATION_DIFF(duration, ws_protocol_vauno_en8822c_const.te_long * 4) <
+                           ws_protocol_vauno_en8822c_const.te_delta) {
             instance->decoder.parser_step = VaunoEN8822CDecoderStepSaveDuration;
             instance->decoder.decode_data = 0;
             instance->decoder.decode_count_bit = 0;
@@ -171,7 +184,7 @@ void ws_protocol_decoder_vauno_en8822c_feed(void* context, bool level, uint32_t 
             if(DURATION_DIFF(instance->decoder.te_last, ws_protocol_vauno_en8822c_const.te_short) <
                ws_protocol_vauno_en8822c_const.te_delta) {
                 if(DURATION_DIFF(duration, ws_protocol_vauno_en8822c_const.te_long * 2) <
-                   ws_protocol_vauno_en8822c_const.te_delta * 2) {
+                   ws_protocol_vauno_en8822c_const.te_delta) {
                     subghz_protocol_blocks_add_bit(&instance->decoder, 1);
                     instance->decoder.parser_step = VaunoEN8822CDecoderStepSaveDuration;
                 } else if(
@@ -181,31 +194,30 @@ void ws_protocol_decoder_vauno_en8822c_feed(void* context, bool level, uint32_t 
                     instance->decoder.parser_step = VaunoEN8822CDecoderStepSaveDuration;
                 } else if(
                     DURATION_DIFF(duration, ws_protocol_vauno_en8822c_const.te_long * 4) <
-                    ws_protocol_vauno_en8822c_const.te_delta * 6) {
+                    ws_protocol_vauno_en8822c_const.te_delta) {
                     instance->decoder.parser_step = VaunoEN8822CDecoderStepReset;
-                    if((instance->decoder.decode_count_bit ==
-                        ws_protocol_vauno_en8822c_const.min_count_bit_for_found) &&
-                       ws_protocol_vauno_en8822c_check_crc(instance)) {
+                    if(instance->decoder.decode_count_bit ==
+                           ws_protocol_vauno_en8822c_const.min_count_bit_for_found &&
+                       ws_protocol_vauno_en8822c_check(instance)) {
                         instance->generic.data = instance->decoder.decode_data;
                         instance->generic.data_count_bit = instance->decoder.decode_count_bit;
-                        ws_protocol_vauno_en8822c_remote_controller(&instance->generic);
+                        ws_protocol_vauno_en8822c_extract_data(&instance->generic);
+
                         if(instance->base.callback) {
                             instance->base.callback(&instance->base, instance->base.context);
                         }
                     } else if(instance->decoder.decode_count_bit == 1) {
                         instance->decoder.parser_step = VaunoEN8822CDecoderStepSaveDuration;
                     }
+
                     instance->decoder.decode_data = 0;
                     instance->decoder.decode_count_bit = 0;
-                } else {
+                } else
                     instance->decoder.parser_step = VaunoEN8822CDecoderStepReset;
-                }
-            } else {
+            } else
                 instance->decoder.parser_step = VaunoEN8822CDecoderStepReset;
-            }
-        } else {
+        } else
             instance->decoder.parser_step = VaunoEN8822CDecoderStepReset;
-        }
         break;
     }
 }
@@ -231,7 +243,9 @@ SubGhzProtocolStatus
     furi_assert(context);
     WSProtocolDecoderVaunoEN8822C* instance = context;
     return ws_block_generic_deserialize_check_count_bit(
-        &instance->generic, flipper_format, ws_protocol_vauno_en8822c_const.min_count_bit_for_found);
+        &instance->generic,
+        flipper_format,
+        ws_protocol_vauno_en8822c_const.min_count_bit_for_found);
 }
 
 void ws_protocol_decoder_vauno_en8822c_get_string(void* context, FuriString* output) {

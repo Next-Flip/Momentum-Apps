@@ -8,7 +8,7 @@
 #include "ws_generic.h"
 #include <lib/subghz/blocks/math.h>
 
-#define WS_PROTOCOL_VAUNO_EN8822C_NAME "Vauno EN8822C"
+#define WS_PROTOCOL_VAUNO_EN8822C_NAME "Vauno-EN8822C"
 
 typedef struct WSProtocolDecoderVaunoEN8822C WSProtocolDecoderVaunoEN8822C;
 typedef struct WSProtocolEncoderVaunoEN8822C WSProtocolEncoderVaunoEN8822C;

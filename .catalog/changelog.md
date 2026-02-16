@@ -1,3 +1,9 @@
+## 2.0
+ - Add protocol Bresser-3CH
+ - Add protocol BL999
+ - Add protocol Solight TE44
+ - Add support for FM12K modulation
+ - Some changes in Vauno EN8822C
 ## 1.9
  - Add protocol Vauno EN8822C
 ## 1.8
