@@ -8,7 +8,7 @@ static bool nfc_magic_scene_file_select_is_file_suitable(NfcMagicApp* instance) 
 
     bool suitable = false;
     if(instance->protocol == NfcMagicProtocolGen1) {
-        if((uid_len == 4) && (protocol == NfcProtocolMfClassic)) {
+        if((uid_len == 4 || uid_len == 7) && (protocol == NfcProtocolMfClassic)) {
             const MfClassicData* mfc_data =
                 nfc_device_get_data(instance->source_dev, NfcProtocolMfClassic);
             if(mfc_data->type == MfClassicType1k) {
