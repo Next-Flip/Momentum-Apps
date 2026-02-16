@@ -26,3 +26,4 @@ Wendox W6276
 Auriol AHFL
 Kedsum-TH/Conrad-S3318P
 EMOS E601x
+Vauno EN8822C

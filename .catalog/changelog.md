@@ -1,3 +1,5 @@
+## 1.9
+ - Add protocol Vauno EN8822C
 ## 1.8
  - Removed call to legacy SDK API
 ## 1.7
