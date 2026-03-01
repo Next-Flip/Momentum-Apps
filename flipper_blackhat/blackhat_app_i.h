@@ -9,6 +9,7 @@
 #include <gui/modules/text_input.h>
 #include <gui/modules/variable_item_list.h>
 #include <gui/scene_manager.h>
+#include <gui/view.h>
 #include <gui/view_dispatcher.h>
 #include <gui/view_stack.h>
 #include <input/input.h>
@@ -21,7 +22,7 @@
 #include "blackhat_uart.h"
 #include "scenes/blackhat_scene.h"
 
-#define NUM_MENU_ITEMS (19)
+#define NUM_MENU_ITEMS (20)
 
 #define BLACKHAT_TEXT_BOX_STORE_SIZE (4096)
 #define UART_CH FuriHalSerialIdUsart
@@ -46,6 +47,7 @@
 #define TEST_INET "bh test_inet"
 #define GET_CMD "bh get"
 #define REBOOT_CMD "reboot"
+#define BHTUI_CMD "TERM=linux bhtui > /dev/tty1 2>&1"
 
 typedef enum { NO_ARGS = 0, INPUT_ARGS, TOGGLE_ARGS } InputArgs;
 
@@ -88,6 +90,7 @@ struct BlackhatApp {
     VariableItemList* var_item_list;
     BlackhatUart* uart;
     TextInput* text_input;
+    View* tui_view;
     DialogsApp* dialogs;
 
     int selected_menu_index;
@@ -106,4 +109,5 @@ typedef enum {
     BlackhatAppViewConsoleOutput,
     BlackhatAppViewStartPortal,
     BlackhatAppViewTextInput,
+    BlackhatAppViewTui,
 } BlackhatAppView;
