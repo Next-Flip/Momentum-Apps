@@ -1,3 +1,6 @@
+## v1.5
+- H4W9 new features: Added Fahrenheit, current weather, and wind speed/direction.
+
 ## v1.4
 - Merged **FlipTrader**.  
 - Merged **FlipWeather** with added topography data.  

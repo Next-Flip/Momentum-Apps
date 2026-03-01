@@ -6,10 +6,12 @@
 FlipSocialRun::FlipSocialRun(void *appContext) : appContext(appContext), commentsIndex(0), commentIsValid(false), commentItemID(0), commentsStatus(CommentsNotStarted), currentCount(0),
                                                  currentMenuIndex(SocialViewFeed), currentProfileElement(ProfileElementBio), currentView(SocialViewLogin),
                                                  exploreIndex(0), exploreStatus(ExploreKeyboardUsers),
-                                                 feedItemID(0), feedItemIndex(0), feedIteration(1), feedStatus(FeedNotStarted), lastInput(InputKeyMAX),
+                                                 feedItemID(0), feedItemIndex(0), feedIteration(1), feedStatus(FeedNotStarted),
+                                                 friendIndex(0), friendStatus(FriendNotStarted), lastInput(InputKeyMAX),
                                                  loginStatus(LoginNotStarted), messagesStatus(MessagesNotStarted), messageUsersStatus(MessageUsersNotStarted), messageUserIndex(0),
                                                  postStatus(PostChoose), registrationStatus(RegistrationNotStarted),
-                                                 shouldReturnToMenu(false), userInfoStatus(UserInfoNotStarted)
+                                                 shouldReturnToMenu(false), userInfoStatus(UserInfoNotStarted),
+                                                 bioEditStatus(BioEditKeyboard)
 {
     char *loginStatusStr = (char *)malloc(64);
     if (loginStatusStr)
@@ -385,8 +387,6 @@ void FlipSocialRun::drawExploreView(Canvas *canvas)
         break;
     case ExploreSuccess:
     {
-        canvas_draw_str(canvas, 0, 10, "Explore success!");
-        canvas_draw_str(canvas, 0, 20, "Press OK to continue.");
         char *messagesUserList = (char *)malloc(1024);
         if (!messagesUserList)
         {
@@ -522,6 +522,58 @@ void FlipSocialRun::drawExploreView(Canvas *canvas)
             }
         }
         break;
+    case ExploreDeciding:
+        canvas_draw_str(canvas, 0, 10, "What would you like to do?");
+        canvas_draw_str(canvas, 0, 50, "UP: Add friend");
+        canvas_draw_str(canvas, 0, 60, "DOWN: Message");
+        break;
+    case ExploreAddingFriend:
+        if (!loadingStarted)
+        {
+            if (!loading)
+            {
+                loading = std::make_unique<Loading>(canvas);
+            }
+            loadingStarted = true;
+            if (loading)
+            {
+                loading->setText("Adding...");
+            }
+        }
+        if (!this->httpRequestIsFinished())
+        {
+            if (loading)
+            {
+                loading->animate();
+            }
+        }
+        else
+        {
+            if (loading)
+            {
+                loading->stop();
+            }
+            loadingStarted = false;
+            FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+            if (app->getHttpState() == ISSUE)
+            {
+                exploreStatus = ExploreRequestError;
+                return;
+            }
+            char *response = (char *)malloc(64);
+            if (response && app->loadChar("add_friend", response, 64) && strstr(response, "[SUCCESS]") != NULL)
+            {
+                canvas_clear(canvas);
+                canvas_draw_str(canvas, 0, 10, "Friend added!");
+                free(response);
+                return;
+            }
+            else
+            {
+                exploreStatus = ExploreRequestError;
+            }
+        }
+        break;
     default:
         canvas_draw_str(canvas, 0, 10, "Retrieving messages...");
         break;
@@ -531,11 +583,25 @@ void FlipSocialRun::drawExploreView(Canvas *canvas)
 void FlipSocialRun::drawFeedItem(Canvas *canvas, char *username, char *message, char *flipped, char *flips, char *date_created, char *comments, bool isComment)
 {
     bool isFlipped = strcmp(flipped, "true") == 0;
+    bool isAdmin = strcmp(username, "JBlanked") == 0;
     auto flipCount = atoi(flips);
     // auto commentCount = atoi(comments);
     canvas_clear(canvas);
     canvas_set_font_custom(canvas, FONT_SIZE_LARGE);
-    canvas_draw_str(canvas, 0, 7, username);
+
+    if (isAdmin)
+    {
+        // Filled black badge with white username text
+        int user_width = canvas_string_width(canvas, username);
+        canvas_draw_rbox(canvas, 0, 0, user_width + 4, 10, 2);
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_str(canvas, 1, 8, username);
+        canvas_set_color(canvas, ColorBlack);
+    }
+    else
+    {
+        canvas_draw_str(canvas, 0, 7, username);
+    }
 
     if (!isComment)
     {
@@ -911,6 +977,187 @@ void FlipSocialRun::drawFeedView(Canvas *canvas)
         canvas_clear(canvas);
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 0, 10, "Loading feed...");
+        break;
+    }
+}
+
+void FlipSocialRun::drawFriendsView(Canvas *canvas)
+{
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    static bool loadingStarted = false;
+    switch (friendStatus)
+    {
+    case FriendWaiting:
+        if (!loadingStarted)
+        {
+            if (!loading)
+            {
+                loading = std::make_unique<Loading>(canvas);
+            }
+            loadingStarted = true;
+            if (loading)
+            {
+                loading->setText("Fetching...");
+            }
+        }
+        if (!this->httpRequestIsFinished())
+        {
+            if (loading)
+            {
+                loading->animate();
+            }
+        }
+        else
+        {
+            if (loading)
+            {
+                loading->stop();
+            }
+            loadingStarted = false;
+            FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+            if (app->getHttpState() == ISSUE)
+            {
+                friendStatus = FriendRequestError;
+                return;
+            }
+            char *response = (char *)malloc(1024);
+            if (response && app->loadChar("friends", response, 1024) && strstr(response, "friends") != NULL)
+            {
+                friendStatus = FriendSuccess;
+                free(response);
+                return;
+            }
+            else
+            {
+                friendStatus = FriendRequestError;
+                if (response)
+                    free(response);
+            }
+        }
+        break;
+    case FriendSuccess:
+    {
+        char *friendsList = (char *)malloc(1024);
+        if (!friendsList)
+        {
+            FURI_LOG_E(TAG, "drawFriendsView: Failed to allocate memory for friendsList");
+            friendStatus = FriendParseError;
+            return;
+        }
+
+        FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+        if (!app || !app->loadChar("friends", friendsList, 1024))
+        {
+            FURI_LOG_E(TAG, "drawFriendsView: Failed to load friends data from storage");
+            canvas_draw_str(canvas, 0, 30, "Failed to load friends.");
+            free(friendsList);
+            return;
+        }
+
+        // store friends
+        std::vector<std::string> friendList;
+        for (int i = 0; i < MAX_FRIENDS; i++)
+        {
+            char *fr = get_json_array_value("friends", i, friendsList);
+            if (!fr)
+            {
+                break; // No more friends in the list
+            }
+            friendList.push_back(fr);
+            free(fr);
+        }
+
+        if (friendList.empty())
+        {
+            canvas_draw_str(canvas, 0, 30, "No friends found.");
+        }
+        else
+        {
+            // std::vector<std::string> to const char** for drawMenu
+            std::vector<const char *> friendPtrs;
+            friendPtrs.reserve(friendList.size());
+            for (const auto &fr : friendList)
+            {
+                friendPtrs.push_back(fr.c_str());
+            }
+            drawMenu(canvas, friendIndex, friendPtrs.data(), friendPtrs.size());
+        }
+
+        free(friendsList);
+        break;
+    }
+    case FriendConfirmRemove:
+        canvas_draw_str(canvas, 0, 10, "Remove friend?");
+        canvas_draw_str(canvas, 0, 50, "OK: Confirm");
+        canvas_draw_str(canvas, 0, 60, "Back: Cancel");
+        break;
+    case FriendRemove:
+        if (!loadingStarted)
+        {
+            if (!loading)
+            {
+                loading = std::make_unique<Loading>(canvas);
+            }
+            loadingStarted = true;
+            if (loading)
+            {
+                loading->setText("Removing...");
+            }
+        }
+        if (!this->httpRequestIsFinished())
+        {
+            if (loading)
+            {
+                loading->animate();
+            }
+        }
+        else
+        {
+            if (loading)
+            {
+                loading->stop();
+            }
+            loadingStarted = false;
+            FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+            if (app->getHttpState() == ISSUE)
+            {
+                friendStatus = FriendRequestError;
+                return;
+            }
+            char *response = (char *)malloc(64);
+            if (response && app->loadChar("remove_friend", response, 64) && strstr(response, "[SUCCESS]") != NULL)
+            {
+                free(response);
+                // Re-fetch the friends list
+                friendIndex = 0;
+                friendStatus = FriendWaiting;
+                userRequest(RequestTypeFriendFetch);
+                return;
+            }
+            else
+            {
+                friendStatus = FriendRequestError;
+                if (response)
+                    free(response);
+            }
+        }
+        break;
+    case FriendRequestError:
+        canvas_draw_str(canvas, 0, 10, "Friends request failed!");
+        canvas_draw_str(canvas, 0, 20, "Check your network and");
+        canvas_draw_str(canvas, 0, 30, "try again later.");
+        break;
+    case FriendParseError:
+        canvas_draw_str(canvas, 0, 10, "Error parsing friends!");
+        canvas_draw_str(canvas, 0, 20, "Try again...");
+        break;
+    case FriendNotStarted:
+        friendStatus = FriendWaiting;
+        userRequest(RequestTypeFriendFetch);
+        break;
+    default:
+        canvas_draw_str(canvas, 0, 10, "Retrieving friends...");
         break;
     }
 }
@@ -1967,6 +2214,83 @@ void FlipSocialRun::drawWrappedBio(Canvas *canvas, const char *text, uint8_t x, 
     }
 }
 
+void FlipSocialRun::drawBioEditView(Canvas *canvas)
+{
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    static bool loadingStarted = false;
+    switch (bioEditStatus)
+    {
+    case BioEditKeyboard:
+        if (!keyboard)
+        {
+            keyboard = std::make_unique<Keyboard>();
+            this->loadKeyboardSuggestions();
+        }
+        if (keyboard)
+        {
+            keyboard->draw(canvas, "Edit Bio:");
+        }
+        break;
+    case BioEditWaiting:
+        if (!loadingStarted)
+        {
+            if (!loading)
+            {
+                loading = std::make_unique<Loading>(canvas);
+            }
+            loadingStarted = true;
+            if (loading)
+            {
+                loading->setText("Updating bio...");
+            }
+        }
+        if (!this->httpRequestIsFinished())
+        {
+            if (loading)
+            {
+                loading->animate();
+            }
+        }
+        else
+        {
+            if (loading)
+            {
+                loading->stop();
+            }
+            loadingStarted = false;
+            FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+            if (!app || app->getHttpState() == ISSUE)
+            {
+                bioEditStatus = BioEditRequestError;
+                return;
+            }
+            char response[64];
+            if (app->loadChar("update_bio", response, sizeof(response)) && strstr(response, "[SUCCESS]") != NULL)
+            {
+                bioEditStatus = BioEditSuccess;
+            }
+            else
+            {
+                bioEditStatus = BioEditRequestError;
+            }
+        }
+        break;
+    case BioEditSuccess:
+        canvas_draw_str(canvas, 0, 10, "Bio updated!");
+        canvas_draw_str(canvas, 0, 20, "Press OK to view profile.");
+        break;
+    case BioEditRequestError:
+        canvas_draw_str(canvas, 0, 10, "Failed to update bio!");
+        canvas_draw_str(canvas, 0, 20, "Check your network and");
+        canvas_draw_str(canvas, 0, 30, "try again later.");
+        break;
+    default:
+        canvas_draw_str(canvas, 0, 10, "Updating bio...");
+        break;
+    }
+}
+
 void FlipSocialRun::drawRegistrationView(Canvas *canvas)
 {
     canvas_clear(canvas);
@@ -2320,6 +2644,11 @@ void FlipSocialRun::loadKeyboardSuggestions()
     // Standard words for autocomplete
     if (keyboard)
     {
+        if (keyboard->addDictionary(DICTIONARY_PATH))
+        {
+            return;
+        }
+
         keyboard->addSuggestion("the");
         keyboard->addSuggestion("that");
         keyboard->addSuggestion("this is ");
@@ -2480,6 +2809,12 @@ void FlipSocialRun::updateDraw(Canvas *canvas)
         break;
     case SocialViewComments:
         drawCommentsView(canvas);
+        break;
+    case SocialViewFriends:
+        drawFriendsView(canvas);
+        break;
+    case SocialViewBioEdit:
+        drawBioEditView(canvas);
         break;
     default:
         canvas_draw_str(canvas, 0, 10, "View not implemented yet.");
@@ -2930,6 +3265,48 @@ void FlipSocialRun::updateInput(InputEvent *event)
                 }
             }
         }
+        else if (exploreStatus == ExploreDeciding)
+        {
+            switch (lastInput)
+            {
+            case InputKeyBack:
+                exploreStatus = ExploreSuccess;
+                break;
+            case InputKeyDown:
+                exploreStatus = ExploreKeyboardMessage;
+                if (keyboard)
+                {
+                    keyboard->clearText();
+                    keyboard.reset();
+                }
+                break;
+            case InputKeyUp:
+            {
+                exploreStatus = ExploreAddingFriend;
+                FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+                char *messageUser = (char *)malloc(64);
+                if (!messageUser)
+                {
+                    FURI_LOG_E(TAG, "updateInput: Failed to allocate memory for messageUser");
+                    exploreStatus = ExploreRequestError;
+                    return;
+                }
+                if (!this->getMessageUser(messageUser, 64))
+                {
+                    FURI_LOG_E(TAG, "updateInput: Failed to get message user");
+                    free(messageUser);
+                    exploreStatus = ExploreRequestError;
+                    return;
+                }
+                app->saveChar("friend_to_add", messageUser);
+                userRequest(RequestTypeFriendAdd);
+                free(messageUser);
+                break;
+            }
+            default:
+                break;
+            };
+        }
         else
         {
             switch (lastInput)
@@ -2968,14 +3345,90 @@ void FlipSocialRun::updateInput(InputEvent *event)
                 }
                 break;
             case InputKeyOk:
-                exploreStatus = ExploreKeyboardMessage;
-
-                if (keyboard)
+                exploreStatus = ExploreDeciding;
+            default:
+                break;
+            };
+        }
+        break;
+    }
+    case SocialViewFriends:
+    {
+        if (friendStatus == FriendConfirmRemove)
+        {
+            switch (lastInput)
+            {
+            case InputKeyBack:
+                friendStatus = FriendSuccess;
+                break;
+            case InputKeyOk:
+            {
+                char *friendsList = (char *)malloc(1024);
+                FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+                if (friendsList && app && app->loadChar("friends", friendsList, 1024))
                 {
-                    keyboard->clearText();
-                    keyboard.reset();
+                    char *fr = get_json_array_value("friends", friendIndex, friendsList);
+                    if (fr)
+                    {
+                        app->saveChar("friend_to_remove", fr);
+                        free(fr);
+                        friendStatus = FriendRemove;
+                        userRequest(RequestTypeFriendRemove);
+                    }
+                    else
+                    {
+                        friendStatus = FriendRequestError;
+                    }
                 }
-                return;
+                else
+                {
+                    friendStatus = FriendRequestError;
+                }
+                if (friendsList)
+                    free(friendsList);
+                break;
+            }
+            default:
+                break;
+            };
+        }
+        else
+        {
+            switch (lastInput)
+            {
+            case InputKeyBack:
+                currentView = SocialViewMenu;
+                friendStatus = FriendNotStarted;
+                friendIndex = 0;
+                break;
+            case InputKeyLeft:
+            case InputKeyDown:
+                if (friendIndex > 0)
+                {
+                    friendIndex--;
+                }
+                else
+                {
+                    friendIndex = currentCount - 1;
+                }
+                break;
+            case InputKeyRight:
+            case InputKeyUp:
+                if (friendIndex < (currentCount - 1))
+                {
+                    friendIndex++;
+                }
+                else
+                {
+                    friendIndex = 0;
+                }
+                break;
+            case InputKeyOk:
+                if (friendStatus == FriendSuccess)
+                {
+                    friendStatus = FriendConfirmRemove;
+                }
+                break;
             default:
                 break;
             };
@@ -3011,9 +3464,103 @@ void FlipSocialRun::updateInput(InputEvent *event)
                 currentProfileElement = 0;
             }
             break;
+        case InputKeyOk:
+            if (currentProfileElement == ProfileElementFriends)
+            {
+                currentView = SocialViewFriends;
+                friendStatus = FriendNotStarted;
+                friendIndex = 0;
+            }
+            else if (currentProfileElement == ProfileElementBio)
+            {
+                // Start editing bio
+                if (keyboard)
+                {
+                    keyboard->clearText();
+                    keyboard.reset();
+                }
+                keyboard = std::make_unique<Keyboard>();
+                this->loadKeyboardSuggestions();
+                if (keyboard)
+                {
+                    FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+                    char userInfo[256] = {0};
+                    bool didPreload = false;
+                    if (app && app->loadChar("user_info", userInfo, sizeof(userInfo), APP_ID))
+                    {
+                        char *bio = get_json_value("bio", userInfo);
+                        if (bio)
+                        {
+                            keyboard->setText(bio);
+                            free(bio);
+                            didPreload = true;
+                        }
+                    }
+                    if (!didPreload)
+                    {
+                        keyboard->setText("");
+                    }
+                    bioEditStatus = BioEditKeyboard;
+                    currentView = SocialViewBioEdit;
+                }
+            }
+            break;
         default:
             break;
         };
+        break;
+    }
+    case SocialViewBioEdit:
+    {
+        if (bioEditStatus == BioEditKeyboard)
+        {
+            if (keyboard)
+            {
+                if (keyboard->handleInput(event))
+                {
+                    FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+                    app->saveChar("new_bio", keyboard->getText());
+                    bioEditStatus = BioEditWaiting;
+                    userRequest(RequestTypeBioUpdate);
+                    keyboard->clearText();
+                    keyboard.reset();
+                }
+            }
+            if (lastInput == InputKeyBack && event->type == InputTypeLong)
+            {
+                currentView = SocialViewProfile;
+                if (keyboard)
+                {
+                    keyboard->clearText();
+                    keyboard.reset();
+                }
+            }
+        }
+        else
+        {
+            switch (lastInput)
+            {
+            case InputKeyBack:
+                currentView = SocialViewProfile;
+                bioEditStatus = BioEditKeyboard;
+                break;
+            case InputKeyOk:
+                if (bioEditStatus == BioEditSuccess)
+                {
+                    // Reload user info so the profile shows the updated bio
+                    userInfoStatus = UserInfoWaiting;
+                    userRequest(RequestTypeUserInfo);
+                    currentView = SocialViewUserInfo;
+                }
+                else if (bioEditStatus == BioEditRequestError)
+                {
+                    bioEditStatus = BioEditKeyboard;
+                }
+                break;
+            default:
+                break;
+            };
+        }
         break;
     }
     case SocialViewComments:
@@ -3142,6 +3689,14 @@ void FlipSocialRun::userRequest(RequestType requestType)
         case RequestTypeMessagesWithUser:
             messagesStatus = MessagesRequestError;
             break;
+        case RequestTypeFriendFetch:
+        case RequestTypeFriendRemove:
+            friendStatus = FriendRequestError;
+            break;
+        case RequestTypeExplore:
+        case RequestTypeFriendAdd:
+            exploreStatus = ExploreRequestError;
+            break;
         default:
             break;
         }
@@ -3200,6 +3755,14 @@ void FlipSocialRun::userRequest(RequestType requestType)
         case RequestTypeMessagesWithUser:
             messagesStatus = MessagesRequestError;
             break;
+        case RequestTypeFriendFetch:
+        case RequestTypeFriendRemove:
+            friendStatus = FriendRequestError;
+            break;
+        case RequestTypeExplore:
+        case RequestTypeFriendAdd:
+            exploreStatus = ExploreRequestError;
+            break;
         default:
             FURI_LOG_E(TAG, "Unknown request type: %d", requestType);
             loginStatus = LoginRequestError;
@@ -3207,6 +3770,9 @@ void FlipSocialRun::userRequest(RequestType requestType)
             userInfoStatus = UserInfoRequestError;
             feedStatus = FeedRequestError;
             messageUsersStatus = MessageUsersRequestError;
+            messagesStatus = MessagesRequestError;
+            friendStatus = FriendRequestError;
+            exploreStatus = ExploreRequestError;
             break;
         }
         free(username);
@@ -3293,23 +3859,28 @@ void FlipSocialRun::userRequest(RequestType requestType)
     case RequestTypeFlipPost:
     {
         char *feedPostPayload = (char *)malloc(256);
-        if (!feedPostPayload)
+        char *authHeader = (char *)malloc(256);
+        if (!feedPostPayload || !authHeader)
         {
-            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for feedPostPayload");
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for feedPostPayload or authHeader");
             feedStatus = FeedRequestError;
             free(username);
             free(password);
             free(payload);
             if (feedPostPayload)
                 free(feedPostPayload);
+            if (authHeader)
+                free(authHeader);
             return;
         }
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
         snprintf(feedPostPayload, 256, "{\"username\":\"%s\",\"post_id\":\"%u\"}", username, feedItemID);
-        if (!app->httpRequestAsync("flip_post.txt", "https://www.jblanked.com/flipper/api/feed/flip/", POST, "{\"Content-Type\":\"application/json\"}", feedPostPayload))
+        if (!app->httpRequestAsync("flip_post.txt", "https://www.jblanked.com/flipper/api/feed/flip/", POST, authHeader, feedPostPayload))
         {
             feedStatus = FeedRequestError;
         }
         free(feedPostPayload);
+        free(authHeader);
         break;
     }
     case RequestTypeCommentFetch:
@@ -3343,21 +3914,28 @@ void FlipSocialRun::userRequest(RequestType requestType)
     case RequestTypeCommentFlip:
     {
         char *commentFlipPayload = (char *)malloc(256);
-        if (!commentFlipPayload)
+        char *authHeader = (char *)malloc(256);
+        if (!commentFlipPayload || !authHeader)
         {
-            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for commentFlipPayload");
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for commentFlipPayload or authHeader");
             feedStatus = FeedRequestError;
             free(username);
             free(password);
             free(payload);
+            if (commentFlipPayload)
+                free(commentFlipPayload);
+            if (authHeader)
+                free(authHeader);
             return;
         }
         snprintf(commentFlipPayload, 256, "{\"username\":\"%s\",\"post_id\":\"%u\"}", username, commentItemID);
-        if (!app->httpRequestAsync("flip_comment.txt", "https://www.jblanked.com/flipper/api/feed/flip/", POST, "{\"Content-Type\":\"application/json\"}", commentFlipPayload))
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
+        if (!app->httpRequestAsync("flip_comment.txt", "https://www.jblanked.com/flipper/api/feed/flip/", POST, authHeader, commentFlipPayload))
         {
             feedStatus = FeedRequestError;
         }
         free(commentFlipPayload);
+        free(authHeader);
         break;
     }
     case RequestTypeMessagesUserList:
@@ -3630,6 +4208,183 @@ void FlipSocialRun::userRequest(RequestType requestType)
         free(commentPost);
         break;
     }
+    case RequestTypeFriendAdd: // api/user/add-friend/
+    {
+        // payload:  username, password, friend
+        char *url = (char *)malloc(128);
+        char *authHeader = (char *)malloc(256);
+        char *friendUsername = (char *)malloc(MAX_USER_LENGTH);
+        char *friendPayload = (char *)malloc(256);
+        if (!url || !authHeader || !friendUsername || !friendPayload)
+        {
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for url, authHeader, friendUsername or friendPayload");
+            free(username);
+            free(password);
+            if (url)
+                free(url);
+            if (authHeader)
+            {
+                free(authHeader);
+            }
+            if (friendUsername)
+            {
+                free(friendUsername);
+            }
+            if (friendPayload)
+            {
+                free(friendPayload);
+            }
+            return;
+        }
+        if (!app->loadChar("friend_to_add", friendUsername, MAX_USER_LENGTH) || strlen(friendUsername) == 0 || strlen(friendUsername) > MAX_USER_LENGTH)
+        {
+            FURI_LOG_E(TAG, "Failed to load friend username");
+            free(username);
+            free(password);
+            free(url);
+            free(authHeader);
+            free(friendUsername);
+            free(friendPayload);
+            return;
+        }
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
+        snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/add-friend/");
+        snprintf(friendPayload, 256, "{\"username\":\"%s\",\"friend\":\"%s\"}", username, friendUsername);
+        if (!app->httpRequestAsync("add_friend.txt", url, POST, authHeader, friendPayload))
+        {
+            friendStatus = FriendRequestError;
+        }
+        free(url);
+        free(authHeader);
+        free(friendUsername);
+        free(friendPayload);
+        break;
+    }
+    case RequestTypeFriendRemove: // api/user/remove-friend/
+    {
+        // payload:  username, password, friend
+        char *url = (char *)malloc(128);
+        char *authHeader = (char *)malloc(256);
+        char *friendUsername = (char *)malloc(MAX_USER_LENGTH);
+        char *friendRemovePayload = (char *)malloc(256);
+        if (!url || !authHeader || !friendUsername || !friendRemovePayload)
+        {
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for url, authHeader, friendUsername or friendRemovePayload");
+            free(username);
+            free(password);
+            if (url)
+                free(url);
+            if (authHeader)
+            {
+                free(authHeader);
+            }
+            if (friendUsername)
+            {
+                free(friendUsername);
+            }
+            if (friendRemovePayload)
+            {
+                free(friendRemovePayload);
+            }
+            return;
+        }
+        if (!app->loadChar("friend_to_remove", friendUsername, MAX_USER_LENGTH) || strlen(friendUsername) == 0 || strlen(friendUsername) > MAX_USER_LENGTH)
+        {
+            FURI_LOG_E(TAG, "Failed to load friend username");
+            free(username);
+            free(password);
+            free(url);
+            free(authHeader);
+            free(friendUsername);
+            free(friendRemovePayload);
+            return;
+        }
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
+        snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/remove-friend/");
+        snprintf(friendRemovePayload, 256, "{\"username\":\"%s\",\"friend\":\"%s\"}", username, friendUsername);
+        if (!app->httpRequestAsync("remove_friend.txt", url, POST, authHeader, friendRemovePayload))
+        {
+            friendStatus = FriendRequestError;
+        }
+        free(url);
+        free(authHeader);
+        free(friendUsername);
+        free(friendRemovePayload);
+        break;
+    }
+    case RequestTypeFriendFetch: // api/user/friends/<str:username>/<int:max_results>/
+    {
+        char *url = (char *)malloc(128);
+        char *authHeader = (char *)malloc(256);
+        if (!url || !authHeader)
+        {
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for url or authHeader");
+            friendStatus = FriendRequestError;
+            free(username);
+            free(password);
+            if (url)
+                free(url);
+            if (authHeader)
+                free(authHeader);
+            return;
+        }
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
+        snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/friends/%s/%d/", username, MAX_FRIENDS);
+        if (!app->httpRequestAsync("friends.txt", url, GET, authHeader))
+        {
+            friendStatus = FriendRequestError;
+        }
+        free(url);
+        free(authHeader);
+        break;
+    }
+    case RequestTypeBioUpdate:
+    {
+        char *url = (char *)malloc(128);
+        char *authHeader = (char *)malloc(256);
+        char *bio = (char *)malloc(128);
+        char *payload = (char *)malloc(256);
+        if (!url || !authHeader || !bio || !payload)
+        {
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for url, authHeader, bio or payload");
+            bioEditStatus = BioEditRequestError;
+            free(username);
+            free(password);
+            if (url)
+                free(url);
+            if (authHeader)
+                free(authHeader);
+            if (bio)
+                free(bio);
+            if (payload)
+                free(payload);
+            return;
+        }
+        if (!app->loadChar("new_bio", bio, 128) || strlen(bio) == 0 || strlen(bio) > MAX_BIO_LENGTH)
+        {
+            FURI_LOG_E(TAG, "Failed to load new bio");
+            bioEditStatus = BioEditRequestError;
+            free(username);
+            free(password);
+            free(url);
+            free(authHeader);
+            free(bio);
+            free(payload);
+            return;
+        }
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
+        snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/change-bio/");
+        snprintf(payload, 256, "{\"username\":\"%s\",\"bio\":\"%s\"}", username, bio);
+        if (!app->httpRequestAsync("update_bio.txt", url, POST, authHeader, payload))
+        {
+            bioEditStatus = BioEditRequestError;
+        }
+        free(url);
+        free(authHeader);
+        free(bio);
+        free(payload);
+        break;
+    }
     default:
         FURI_LOG_E(TAG, "Unknown request type: %d", requestType);
         loginStatus = LoginRequestError;
@@ -3639,6 +4394,8 @@ void FlipSocialRun::userRequest(RequestType requestType)
         messageUsersStatus = MessageUsersRequestError;
         messagesStatus = MessagesRequestError;
         commentsStatus = CommentsRequestError;
+        friendStatus = FriendRequestError;
+        exploreStatus = ExploreRequestError;
         free(username);
         free(password);
         free(payload);

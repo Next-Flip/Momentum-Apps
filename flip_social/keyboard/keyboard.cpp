@@ -23,6 +23,16 @@ Keyboard::~Keyboard()
     auto_complete_free(&autoComplete);
 }
 
+bool Keyboard::addDictionary(const char *filename)
+{
+    if (!auto_complete_add_dictionary(&autoComplete, filename))
+    {
+        FURI_LOG_E("Keyboard", "Failed to add dictionary: %s", filename);
+        return false;
+    }
+    return true;
+}
+
 bool Keyboard::addSuggestion(const char *word)
 {
     if (!auto_complete_add_word(&autoComplete, word))

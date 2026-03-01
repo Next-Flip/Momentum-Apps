@@ -34,7 +34,5 @@ Application for reading temperature, humidity, and pressure sensors like a DHT11
 ## Need help? Discussions?
 Join the discussion, ask a question, or just send a photo of the flipper with sensors to [Discord](https://discord.com/channels/740930220399525928/1056727938747351060). [Invite link](https://discord.com/invite/flipper)
 
-## Acknowledgement
-
-Thanks to [@Svaarich](https://github.com/Svaarich) for the UI design and to the Unleashed firmware community for sensor testing and feedback.
-Thanks to Victor Nikitchuk [@quen0n](https://github.com/quen0n) for coding and maintenance of the initial version of the unitemp application. 
+##Gratitudes
+Thanks to @Svaarich for the UI design and to the Unleashed firmware community for sensors testing and feedbacks. Many thanks to [xMasterX](https://github.com/xMasterX) for their help and support.

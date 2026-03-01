@@ -23,10 +23,9 @@
 #include <lib/subghz/devices/devices.h>
 #include <lib/subghz/subghz_file_encoder_worker.h>
 #include <dialogs/dialogs.h>
+#include "defines.h"
 
 #define PROTOPIRATE_KEYSTORE_DIR_NAME APP_ASSETS_PATH("encrypted")
-
-//#define ENABLE_EMULATE_FEATURE
 
 typedef struct ProtoPirateApp ProtoPirateApp;
 
@@ -50,10 +49,12 @@ struct ProtoPirateApp {
     ViewDispatcher* view_dispatcher;
     SceneManager* scene_manager;
     NotificationApp* notifications;
+    DialogsApp* dialogs;
     VariableItemList* variable_item_list;
     Submenu* submenu;
     Widget* widget;
     View* view_about;
+    FuriString* file_path;
     ProtoPirateReceiver* protopirate_receiver;
     ProtoPirateReceiverInfo* protopirate_receiver_info;
     ProtoPirateTxRx* txrx;
@@ -61,9 +62,16 @@ struct ProtoPirateApp {
     ProtoPirateLock lock;
     FuriString* loaded_file_path;
     bool auto_save;
+    bool radio_initialized;
     ProtoPirateSettings settings;
-    SubGhzFileEncoderWorker* decode_raw_file_worker_encoder;
+    uint32_t start_tx_time;
+    uint8_t tx_power;
 };
+
+typedef enum {
+    ProtoPirateSetTypeFord_v0,
+    ProtoPirateSetTypeMAX,
+} ProtoPirateSetType;
 
 void protopirate_preset_init(
     void* context,
@@ -72,7 +80,7 @@ void protopirate_preset_init(
     uint8_t* preset_data,
     size_t preset_data_size);
 
-bool protopirate_set_preset(ProtoPirateApp* app, const char* preset);
+const char* preset_name_to_short(const char* preset_name);
 
 void protopirate_get_frequency_modulation(
     ProtoPirateApp* app,
@@ -87,3 +95,20 @@ void protopirate_sleep(ProtoPirateApp* app);
 void protopirate_hopper_update(ProtoPirateApp* app);
 void protopirate_tx(ProtoPirateApp* app, uint32_t frequency);
 void protopirate_tx_stop(ProtoPirateApp* app);
+bool protopirate_radio_init(ProtoPirateApp* app);
+void protopirate_radio_deinit(ProtoPirateApp* app);
+
+void protopirate_app_free(ProtoPirateApp* app);
+
+static const NotificationSequence sequence_tx = {
+    &message_note_c5,
+    &message_vibro_on,
+    &message_red_255,
+    &message_blue_255,
+    &message_blink_start_10,
+    &message_delay_25,
+    &message_vibro_off,
+    &message_delay_25,
+    &message_sound_off,
+    NULL,
+};

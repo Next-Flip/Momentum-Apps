@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -217,9 +217,11 @@ UnitempStatus unitemp_singlewire_update(Sensor* sensor) {
         for(uint8_t b = 7; b != 255; b--) {
             uint16_t hT = 0, lT = 0;
             // While the line is low, increment the lT variable
-            while(!furi_hal_gpio_read(instance->gpio->pin) && lT != 65535) lT++;
+            while(!furi_hal_gpio_read(instance->gpio->pin) && lT != 65535)
+                lT++;
             // While the line is high, increment the hT variable
-            while(furi_hal_gpio_read(instance->gpio->pin) && hT != 65535) hT++;
+            while(furi_hal_gpio_read(instance->gpio->pin) && hT != 65535)
+                hT++;
             // If hT is greater than lT, a one was received
             if(hT > lT) data[a] |= (1 << b);
         }

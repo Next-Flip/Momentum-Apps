@@ -5,6 +5,7 @@ char lon_data[32];
 
 char *total_data = NULL;
 char *weather_data = NULL;
+bool use_fahrenheit = false;
 
 FlipWeatherApp *app_instance = NULL;
 void flip_weather_loader_free_model(View *view);

@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
     Contributed by divinebird (https://github.com/divinebird)
 
     This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,6 @@ typedef union {
     uint8_t array8[4];
     float value;
 } ByteToFl;
-
 
 bool unitemp_SCD30_alloc(Sensor* sensor, char* args);
 bool unitemp_SCD30_init(Sensor* sensor);
@@ -71,7 +70,8 @@ static bool getAutoSelfCalibration(Sensor* sensor) __attribute__((unused));
 
 static bool getFirmwareVersion(Sensor* sensor, uint16_t* val) __attribute__((unused));
 
-static bool setForcedRecalibrationFactor(Sensor* sensor, uint16_t concentration) __attribute__((unused));
+static bool setForcedRecalibrationFactor(Sensor* sensor, uint16_t concentration)
+    __attribute__((unused));
 static uint16_t getAltitudeCompensation(Sensor* sensor) __attribute__((unused));
 static bool setAltitudeCompensation(Sensor* sensor, uint16_t altitude) __attribute__((unused));
 static bool setAmbientPressure(Sensor* sensor, uint16_t pressure_mbar) __attribute__((unused));
@@ -79,7 +79,8 @@ static bool setAmbientPressure(Sensor* sensor, uint16_t pressure_mbar) __attribu
 static float getTemperatureOffset(Sensor* sensor) __attribute__((unused));
 static bool setTemperatureOffset(Sensor* sensor, float tempOffset) __attribute__((unused));
 
-static bool beginMeasuringWithSettings(Sensor* sensor, uint16_t pressureOffset) __attribute__((unused));
+static bool beginMeasuringWithSettings(Sensor* sensor, uint16_t pressureOffset)
+    __attribute__((unused));
 static bool beginMeasuring(Sensor* sensor) __attribute__((unused));
 static bool stopMeasurement(Sensor* sensor) __attribute__((unused));
 
@@ -103,11 +104,10 @@ bool unitemp_SCD30_free(Sensor* sensor) {
 
 bool unitemp_SCD30_init(Sensor* sensor) {
     if(beginMeasuring(sensor) == true) { // Start continuous measurements
-        setMeasurementInterval(sensor, SCD30.pollingInterval/1000);
+        setMeasurementInterval(sensor, SCD30.pollingInterval / 1000);
         setAutoSelfCalibration(sensor, true);
         setAmbientPressure(sensor, 0);
-    }
-    else
+    } else
         return false;
 
     return true;
@@ -124,10 +124,10 @@ UnitempStatus unitemp_SCD30_update(Sensor* sensor) {
 
 static uint8_t computeCRC8(uint8_t* message, uint8_t len) {
     uint8_t crc = 0xFF; // Init with 0xFF
-    for (uint8_t x = 0; x < len; x++) {
+    for(uint8_t x = 0; x < len; x++) {
         crc ^= message[x]; // XOR-in the next input byte
-        for (uint8_t i = 0; i < 8; i++) {
-            if ((crc & 0x80) != 0)
+        for(uint8_t i = 0; i < 8; i++) {
+            if((crc & 0x80) != 0)
                 crc = (uint8_t)((crc << 1) ^ 0x31);
             else
                 crc <<= 1;
@@ -141,10 +141,10 @@ static bool sendCommandWithCRC(Sensor* sensor, uint16_t command, uint16_t argume
     static const uint8_t cmdSize = 5;
 
     uint8_t bytes[cmdSize];
-    uint8_t *pointer = bytes;
+    uint8_t* pointer = bytes;
     store16_be(pointer, command);
     pointer += 2;
-    uint8_t *argPos = pointer;
+    uint8_t* argPos = pointer;
     store16_be(pointer, arguments);
     pointer += 2;
     *pointer = computeCRC8(argPos, pointer - argPos);
@@ -167,15 +167,13 @@ static bool sendCommand(Sensor* sensor, uint16_t command) {
 static uint16_t readRegister(Sensor* sensor, uint16_t registerAddress) {
     static const uint8_t regSize = 2;
 
-    if(!sendCommand(sensor, registerAddress))
-        return 0; // Sensor did not ACK
+    if(!sendCommand(sensor, registerAddress)) return 0; // Sensor did not ACK
 
     furi_delay_ms(3);
 
     uint8_t bytes[regSize];
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    if(!unitemp_i2c_readArray(i2c_sensor, regSize, bytes))
-        return 0;
+    if(!unitemp_i2c_readArray(i2c_sensor, regSize, bytes)) return 0;
 
     return load16_be(bytes);
 }
@@ -183,8 +181,7 @@ static uint16_t readRegister(Sensor* sensor, uint16_t registerAddress) {
 static bool loadWord(uint8_t* buff, uint16_t* val) {
     uint16_t tmp = load16_be(buff);
     uint8_t expectedCRC = computeCRC8(buff, 2);
-    if(buff[2] != expectedCRC)
-        return false;
+    if(buff[2] != expectedCRC) return false;
     *val = tmp;
     return true;
 }
@@ -192,21 +189,19 @@ static bool loadWord(uint8_t* buff, uint16_t* val) {
 static bool getSettingValue(Sensor* sensor, uint16_t registerAddress, uint16_t* val) {
     static const uint8_t respSize = 3;
 
-    if(!sendCommand(sensor, registerAddress))
-        return false; // Sensor did not ACK
+    if(!sendCommand(sensor, registerAddress)) return false; // Sensor did not ACK
 
     furi_delay_ms(3);
 
     uint8_t bytes[respSize];
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    if(!unitemp_i2c_readArray(i2c_sensor, respSize, bytes))
-        return false;
+    if(!unitemp_i2c_readArray(i2c_sensor, respSize, bytes)) return false;
 
     return loadWord(bytes, val);
 }
 
 static bool loadFloat(uint8_t* buff, float* val) {
-//    ByteToFl tmp;
+    //    ByteToFl tmp;
     size_t cntr = 0;
     uint8_t floatBuff[4];
     for(size_t i = 0; i < 2; i++) {
@@ -253,26 +248,23 @@ static bool readMeasurement(Sensor* sensor) {
     bool error = false;
     if(loadFloat(bytes, &tempCO2)) {
         sensor->co2 = tempCO2;
-    }
-    else {
+    } else {
         FURI_LOG_E(APP_NAME, "Error while parsing CO2");
         error = true;
     }
 
     bytes += 6;
     if(loadFloat(bytes, &tempTemperature)) {
-       sensor->temp = tempTemperature;
-    }
-    else {
-       FURI_LOG_E(APP_NAME, "Error while parsing temp");
-       error = true;
+        sensor->temp = tempTemperature;
+    } else {
+        FURI_LOG_E(APP_NAME, "Error while parsing temp");
+        error = true;
     }
 
     bytes += 6;
     if(loadFloat(bytes, &tempHumidity)) {
         sensor->hum = tempHumidity;
-    }
-    else {
+    } else {
         FURI_LOG_E(APP_NAME, "Error while parsing humidity");
         error = true;
     }
@@ -285,7 +277,8 @@ static void reset(Sensor* sensor) {
 }
 
 static bool setAutoSelfCalibration(Sensor* sensor, bool enable) {
-    return sendCommandWithCRC(sensor, COMMAND_AUTOMATIC_SELF_CALIBRATION, enable); // Activate continuous ASC
+    return sendCommandWithCRC(
+        sensor, COMMAND_AUTOMATIC_SELF_CALIBRATION, enable); // Activate continuous ASC
 }
 
 // Get the current ASC setting
@@ -300,7 +293,7 @@ static bool getFirmwareVersion(Sensor* sensor, uint16_t* val) {
 // Set the forced recalibration factor. See 1.3.7.
 // The reference CO2 concentration has to be within the range 400 ppm ≤ cref(CO2) ≤ 2000 ppm.
 static bool setForcedRecalibrationFactor(Sensor* sensor, uint16_t concentration) {
-    if (concentration < 400 || concentration > 2000) {
+    if(concentration < 400 || concentration > 2000) {
         return false; // Error check.
     }
     return sendCommandWithCRC(sensor, COMMAND_SET_FORCED_RECALIBRATION_FACTOR, concentration);
@@ -322,8 +315,7 @@ static bool setTemperatureOffset(Sensor* sensor, float tempOffset) {
     //"The SCD30 offset temperature is obtained by subtracting the reference temperature from the SCD30 output temperature"
     // https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/9.5_CO2/Sensirion_CO2_Sensors_SCD30_Low_Power_Mode.pdf
 
-    if (tempOffset < 0.0)
-        return false;
+    if(tempOffset < 0.0) return false;
 
     uint16_t value = tempOffset * 100;
 
@@ -343,7 +335,7 @@ static bool setAltitudeCompensation(Sensor* sensor, uint16_t altitude) {
 // Set the pressure compenstation. This is passed during measurement startup.
 // mbar can be 700 to 1200
 static bool setAmbientPressure(Sensor* sensor, uint16_t pressure_mbar) {
-    if (pressure_mbar != 0 || pressure_mbar < 700 || pressure_mbar > 1200) {
+    if(pressure_mbar != 0 || pressure_mbar < 700 || pressure_mbar > 1200) {
         return false;
     }
     return sendCommandWithCRC(sensor, COMMAND_CONTINUOUS_MEASUREMENT, pressure_mbar);
@@ -371,10 +363,8 @@ static bool stopMeasurement(Sensor* sensor) {
 // Sets interval between measurements
 // 2 seconds to 1800 seconds (30 minutes)
 static bool setMeasurementInterval(Sensor* sensor, uint16_t interval) {
-    if(interval < 2 || interval > 1800)
-        return false;
-    if(!sendCommandWithCRC(sensor, COMMAND_SET_MEASUREMENT_INTERVAL, interval))
-        return false;
+    if(interval < 2 || interval > 1800) return false;
+    if(!sendCommandWithCRC(sensor, COMMAND_SET_MEASUREMENT_INTERVAL, interval)) return false;
     uint16_t verInterval = readRegister(sensor, COMMAND_SET_MEASUREMENT_INTERVAL);
     if(verInterval != interval) {
         FURI_LOG_E(APP_NAME, "Measure interval wrong! Val: %02x", verInterval);

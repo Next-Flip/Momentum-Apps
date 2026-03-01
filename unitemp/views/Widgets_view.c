@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -164,7 +164,7 @@ void unitemp_widget_help_switch(void) {
     widget_reset(app->widget);
 
     widget_add_icon_element(app->widget, 3, 7, &I_repo_qr_50x50);
-    widget_add_icon_element(app->widget, 82, 20, &I_WarningDolphinFlip_45x42);
+    widget_add_icon_element(app->widget, 77, 18, &I_WarningDolphinFlip_45x42);
 
     widget_add_string_multiline_element(
         app->widget, 55, 5, AlignLeft, AlignTop, FontSecondary, "You can find help\nthere");
@@ -198,7 +198,7 @@ void unitemp_widget_about_switch(void) {
         16,
         121,
         44,
-        "Universal plugin for viewing the values of temperature\nsensors\n\e#Author: Quenon\ngithub.com/quen0n\n\e#Designer: Svaarich\ngithub.com/Svaarich\n\e#Issues & suggestions\ntiny.one/unitemp");
+        "Universal plugin for viewing the values of temperature\nsensors\n\e#Author: Quenon\ngithub.com/quen0n\n\e#Designer: Svaarich\ngithub.com/Svaarich\n\e#Issues & suggestions\ntiny.one/unitemp\n\e#Special thanks\nxMasterX");
 
     view_set_previous_callback(widget_get_view(app->widget), _help_exit_callback);
     view_dispatcher_switch_to_view(app->view_dispatcher, UnitempViewWidget);

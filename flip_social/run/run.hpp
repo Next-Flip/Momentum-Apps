@@ -4,6 +4,7 @@
 #include "keyboard/keyboard.hpp"
 
 #define MAX_PRE_SAVED_MESSAGES 20 // Maximum number of pre-saved messages
+#define MAX_BIO_LENGTH 100        // Maximum length of a user bio
 #define MAX_MESSAGE_LENGTH 100    // Maximum length of a message in the feed
 #define MAX_EXPLORE_USERS 50      // Maximum number of users to explore
 #define MAX_USER_LENGTH 32        // Maximum length of a username
@@ -12,6 +13,7 @@
 #define MAX_MESSAGE_USERS 40      // Maximum number of users to display in the submenu
 #define MAX_MESSAGES 20           // Maximum number of messages between each user
 #define MAX_COMMENTS 20           // Maximum number of comments per feed item
+#define DICTIONARY_PATH STORAGE_EXT_PATH_PREFIX "/apps_data/flip_social/dictionary.txt"
 
 typedef enum
 {
@@ -26,6 +28,8 @@ typedef enum
     SocialViewUserInfo = 7,     // user info view
     SocialViewMessages = 8,     // messages view
     SocialViewComments = 9,     // comments view
+    SocialViewFriends = 10,     // friends view
+    SocialViewBioEdit = 11,     // bio edit view
 } SocialView;
 
 typedef enum
@@ -81,6 +85,10 @@ typedef enum
     RequestTypeMessageSend = 10,     // Request to send a message to the current user
     RequestTypeExplore = 11,         // Request explore (fetch users to explore)
     RequestTypePost = 12,            // Request post (send a post to the feed)
+    RequestTypeFriendAdd = 13,       // Request add friend (add a user as a friend)
+    RequestTypeFriendRemove = 14,    // Request remove friend (remove a user from friends)
+    RequestTypeFriendFetch = 15,     // Request fetch friends (fetch list of friends)
+    RequestTypeBioUpdate = 16,       // Request bio update (update the user's bio)
 } RequestType;
 
 typedef enum
@@ -130,6 +138,8 @@ typedef enum
     ExploreKeyboardUsers = 5,   // Keyboard for explore view (we'll start here)
     ExploreKeyboardMessage = 6, // Keyboard for explore view (sending messages)
     ExploreSending = 7,         // Sending message in explore view
+    ExploreDeciding = 8,        // Deciding what to do after explore (message user or add friend)
+    ExploreAddingFriend = 9,    // Adding clicked on user as a friend in explore view
 } ExploreStatus;
 
 typedef enum
@@ -154,6 +164,25 @@ typedef enum
     CommentsSending = 6,      // Sending comment
 } CommentsStatus;
 
+typedef enum
+{
+    BioEditKeyboard = 0,     // Keyboard open for bio editing
+    BioEditWaiting = 1,      // Waiting for bio update response
+    BioEditSuccess = 2,      // Bio updated successfully
+    BioEditRequestError = 3, // Error in bio update request
+} BioEditStatus;
+
+typedef enum
+{
+    FriendNotStarted = 0,    // Friend status not started (send request to fetch friends list) - start here
+    FriendWaiting = 1,       // Waiting for fetch friends request to finish
+    FriendSuccess = 2,       // Friend list fetched successfully
+    FriendParseError = 3,    // Error parsing friend list
+    FriendRequestError = 4,  // Error in friend request
+    FriendRemove = 5,        // Actively removing a friend (after sending request to remove friend)
+    FriendConfirmRemove = 6, // Asking the user to confirm friend removal
+} FriendStatus;
+
 class FlipSocialApp;
 
 class FlipSocialRun
@@ -175,6 +204,8 @@ class FlipSocialRun
     FeedStatus feedStatus;                           // current feed status
     bool feedItemFlipOverride[MAX_FEED_ITEMS];       // local override for flip status to show immediate feedback
     bool feedItemFlipOverrideActive[MAX_FEED_ITEMS]; // track which items have local overrides
+    uint8_t friendIndex;                             // currently selected friend index
+    FriendStatus friendStatus;                       // current friend status
     InputKey lastInput;                              // last input key pressed
     std::unique_ptr<Keyboard> keyboard;              // keyboard instance for input handling
     std::unique_ptr<Loading> loading;                // loading animation instance
@@ -188,12 +219,14 @@ class FlipSocialRun
     RegistrationStatus registrationStatus;           // current registration status
     bool shouldReturnToMenu;                         // Flag to signal return to menu
     UserInfoStatus userInfoStatus;                   // current user info status
+    BioEditStatus bioEditStatus;                     // current bio edit status
     //
     void drawCommentsView(Canvas *canvas);                                                                                                                    // draw the comments view
     void drawExploreView(Canvas *canvas);                                                                                                                     // draw the explore view
     void drawFeedItem(Canvas *canvas, char *username, char *message, char *flipped, char *flips, char *date_created, char *comments, bool isComment = false); // draw a single feed item
     void drawFeedMessage(Canvas *canvas, const char *user_message, int x, int y);                                                                             // draw the feed message with wrapping
     void drawFeedView(Canvas *canvas);                                                                                                                        // draw the feed view
+    void drawFriendsView(Canvas *canvas);                                                                                                                     // draw the friends view
     void drawLoginView(Canvas *canvas);                                                                                                                       // draw the login view
     void drawMainMenuView(Canvas *canvas);                                                                                                                    // draw the main menu view
     void drawMessagesView(Canvas *canvas);                                                                                                                    // draw the messages view
@@ -202,6 +235,7 @@ class FlipSocialRun
     void drawProfileView(Canvas *canvas);                                                                                                                     // draw the profile view
     void drawRegistrationView(Canvas *canvas);                                                                                                                // draw the registration view
     void drawUserInfoView(Canvas *canvas);                                                                                                                    // draw the user info view
+    void drawBioEditView(Canvas *canvas);                                                                                                                     // draw the bio edit view
     void drawWrappedBio(Canvas *canvas, const char *text, uint8_t x, uint8_t y);                                                                              // draw wrapped text on the canvas
     bool getMessageUser(char *buffer, size_t buffer_size);                                                                                                    // get the message user at the specified messageUserIndex
     bool getSelectedPost(char *buffer, size_t buffer_size);                                                                                                   // get the selected post at the specified postIndex

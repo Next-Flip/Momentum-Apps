@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -53,53 +53,53 @@ const SensorType BME280 = {
 #define BMx280_I2C_ADDR_MIN (0x76 << 1)
 #define BMx280_I2C_ADDR_MAX (0x77 << 1)
 
-#define BMx280_REG_STATUS 0xF3
-#define BMx280_REG_CTRL_MEAS 0xF4
-#define BMx280_REG_CONFIG 0xF5
-#define BME280_REG_CTRL_HUM 0xF2
+#define BMx280_REG_STATUS              0xF3
+#define BMx280_REG_CTRL_MEAS           0xF4
+#define BMx280_REG_CONFIG              0xF5
+#define BME280_REG_CTRL_HUM            0xF2
 //Temperature presampling
-#define BMx280_TEMP_OVERSAMPLING_SKIP 0b00000000
-#define BMx280_TEMP_OVERSAMPLING_1 0b00100000
-#define BMx280_TEMP_OVERSAMPLING_2 0b01000000
-#define BMx280_TEMP_OVERSAMPLING_4 0b01100000
-#define BMx280_TEMP_OVERSAMPLING_8 0b10000000
-#define BMx280_TEMP_OVERSAMPLING_16 0b10100000
+#define BMx280_TEMP_OVERSAMPLING_SKIP  0b00000000
+#define BMx280_TEMP_OVERSAMPLING_1     0b00100000
+#define BMx280_TEMP_OVERSAMPLING_2     0b01000000
+#define BMx280_TEMP_OVERSAMPLING_4     0b01100000
+#define BMx280_TEMP_OVERSAMPLING_8     0b10000000
+#define BMx280_TEMP_OVERSAMPLING_16    0b10100000
 //Pressure presampling
 #define BMx280_PRESS_OVERSAMPLING_SKIP 0b00000000
-#define BMx280_PRESS_OVERSAMPLING_1 0b00000100
-#define BMx280_PRESS_OVERSAMPLING_2 0b00001000
-#define BMx280_PRESS_OVERSAMPLING_4 0b00001100
-#define BMx280_PRESS_OVERSAMPLING_8 0b00010000
-#define BMx280_PRESS_OVERSAMPLING_16 0b00010100
+#define BMx280_PRESS_OVERSAMPLING_1    0b00000100
+#define BMx280_PRESS_OVERSAMPLING_2    0b00001000
+#define BMx280_PRESS_OVERSAMPLING_4    0b00001100
+#define BMx280_PRESS_OVERSAMPLING_8    0b00010000
+#define BMx280_PRESS_OVERSAMPLING_16   0b00010100
 //Humidity presampling
-#define BME280_HUM_OVERSAMPLING_SKIP 0b00000000
-#define BME280_HUM_OVERSAMPLING_1 0b00000001
-#define BME280_HUM_OVERSAMPLING_2 0b00000010
-#define BME280_HUM_OVERSAMPLING_4 0b00000011
-#define BME280_HUM_OVERSAMPLING_8 0b00000100
-#define BME280_HUM_OVERSAMPLING_16 0b00000101u
+#define BME280_HUM_OVERSAMPLING_SKIP   0b00000000
+#define BME280_HUM_OVERSAMPLING_1      0b00000001
+#define BME280_HUM_OVERSAMPLING_2      0b00000010
+#define BME280_HUM_OVERSAMPLING_4      0b00000011
+#define BME280_HUM_OVERSAMPLING_8      0b00000100
+#define BME280_HUM_OVERSAMPLING_16     0b00000101u
 //Sensor operating modes
-#define BMx280_MODE_SLEEP 0b00000000 //He's full and sleeping
-#define BMx280_MODE_FORCED 0b00000001 //Updates values ​​1 time, after which it goes to sleep
-#define BMx280_MODE_NORMAL 0b00000011 //Updates values ​​regularly
+#define BMx280_MODE_SLEEP              0b00000000 //He's full and sleeping
+#define BMx280_MODE_FORCED             0b00000001 //Updates values ​​1 time, after which it goes to sleep
+#define BMx280_MODE_NORMAL             0b00000011 //Updates values ​​regularly
 //Normal update period
-#define BMx280_STANDBY_TIME_0_5 0b00000000
-#define BMx280_STANDBY_TIME_62_5 0b00100000
-#define BMx280_STANDBY_TIME_125 0b01000000
-#define BMx280_STANDBY_TIME_250 0b01100000
-#define BMx280_STANDBY_TIME_500 0b10000000
-#define BMx280_STANDBY_TIME_1000 0b10100000
-#define BMx280_STANDBY_TIME_2000 0b11000000
-#define BMx280_STANDBY_TIME_4000 0b11100000
+#define BMx280_STANDBY_TIME_0_5        0b00000000
+#define BMx280_STANDBY_TIME_62_5       0b00100000
+#define BMx280_STANDBY_TIME_125        0b01000000
+#define BMx280_STANDBY_TIME_250        0b01100000
+#define BMx280_STANDBY_TIME_500        0b10000000
+#define BMx280_STANDBY_TIME_1000       0b10100000
+#define BMx280_STANDBY_TIME_2000       0b11000000
+#define BMx280_STANDBY_TIME_4000       0b11100000
 //Value filter factor
-#define BMx280_FILTER_COEFF_1 0b00000000
-#define BMx280_FILTER_COEFF_2 0b00000100
-#define BMx280_FILTER_COEFF_4 0b00001000
-#define BMx280_FILTER_COEFF_8 0b00001100
-#define BMx280_FILTER_COEFF_16 0b00010000
+#define BMx280_FILTER_COEFF_1          0b00000000
+#define BMx280_FILTER_COEFF_2          0b00000100
+#define BMx280_FILTER_COEFF_4          0b00001000
+#define BMx280_FILTER_COEFF_8          0b00001100
+#define BMx280_FILTER_COEFF_16         0b00010000
 //Allow operation via SPI
-#define BMx280_SPI_3W_ENABLE 0b00000001
-#define BMx280_SPI_3W_DISABLE 0b00000000
+#define BMx280_SPI_3W_ENABLE           0b00000001
+#define BMx280_SPI_3W_DISABLE          0b00000000
 
 static float BMx280_compensate_temperature(I2CSensor* i2c_sensor, int32_t adc_T) {
     BMx280_instance* bmx280_instance = (BMx280_instance*)i2c_sensor->sensorInstance;

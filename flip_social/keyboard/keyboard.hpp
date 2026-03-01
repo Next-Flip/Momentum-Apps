@@ -50,6 +50,7 @@ public:
     static const int KEYBOARD_COLS = 10;
     static const int FUNCTION_ROW = 3;
     //
+    bool addDictionary(const char *filename);                               // load dictionary from file for autocomplete
     bool addSuggestion(const char *word);                                   // add a word to autocomplete suggestions
     void clearText();                                                       // clear text
     void draw(Canvas *canvas, const char *title);                           // draw keyboard with title

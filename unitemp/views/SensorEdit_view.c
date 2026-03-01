@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -233,7 +233,8 @@ static void _name_change_callback(VariableItem* item) {
 
 static void _calibrate_callback(VariableItem* item) {
     variable_item_set_current_value_index(item, 0);
-    const SensorTypeWithCalibration* extSensor = (const SensorTypeWithCalibration*)editable_sensor->type;
+    const SensorTypeWithCalibration* extSensor =
+        (const SensorTypeWithCalibration*)editable_sensor->type;
     extSensor->calibrate(editable_sensor, 450);
 }
 
@@ -380,7 +381,8 @@ void unitemp_SensorEdit_switch(Sensor* sensor) {
 
     // Has calibration
     if((sensor->type->datatype & UT_CALIBRATION) == UT_CALIBRATION) {
-        calibration_item = variable_item_list_add(variable_item_list, "Calibrate", 1, _calibrate_callback, NULL);
+        calibration_item =
+            variable_item_list_add(variable_item_list, "Calibrate", 1, _calibrate_callback, NULL);
     }
 
     variable_item_list_add(variable_item_list, "Save", 1, NULL, NULL);

@@ -1,6 +1,14 @@
 # Picopass
 
-This application allows you to read, write, save, and emulate legacy HID iClass cards and fobs (based on the picopass chipset).  Also supports saving the credential to the Flipper Zero LFRFID data format, changing the keys on the card, performing dictionary attack, and performing the 'online' part of the loclass attack.
+This application allows you to read, write, create, save, and emulate legacy HID iClass cards and fobs (based on the picopass chipset).  Also supports saving the credential to the Flipper Zero LFRFID data format, changing the keys on the card, performing dictionary attack, and performing the 'online' part of the loclass attack.
+
+# Create (manual credential)
+
+Use _Create_ from the main menu when you want to build a credential without first reading a card.
+
+1. Select _Create_ and choose the Wiegand format, facility code, and card number (numeric keypad).
+2. Pick an action: _Emulate_ to start field emulation, _Write_ to program a presented card, or _Save_ to store the file for later.
+3. Defaults target iClass Legacy using standard keys and 3DES; CSN is pre-filled with a typical HID value. Values persist if you back out and return.
 
 # Loclass (HID Only)
 

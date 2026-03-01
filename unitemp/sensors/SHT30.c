@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -88,9 +88,8 @@ static bool unitemp_SHT30_readSerial(I2CSensor* i2c_sensor, uint32_t* serial) {
     if(unitemp_SHT30_crc8(&response[3], 2) != response[5]) return false;
 
     if(serial) {
-        *serial =
-            ((uint32_t)response[0] << 24) | ((uint32_t)response[1] << 16) |
-            ((uint32_t)response[3] << 8) | response[4];
+        *serial = ((uint32_t)response[0] << 24) | ((uint32_t)response[1] << 16) |
+                  ((uint32_t)response[3] << 8) | response[4];
     }
 
     return true;
@@ -123,8 +122,11 @@ bool unitemp_SHT30_init(Sensor* sensor) {
          * surface the serial for troubleshooting, but we cannot algorithmically
          * distinguish SHT30 vs SHT31 vs SHT35 beyond user-provided context.
          */
-        FURI_LOG_I(APP_NAME, "SHT3x detected at 0x%02X (serial 0x%08lX)",
-                   i2c_sensor->currentI2CAdr, (unsigned long)serial);
+        FURI_LOG_I(
+            APP_NAME,
+            "SHT3x detected at 0x%02X (serial 0x%08lX)",
+            i2c_sensor->currentI2CAdr,
+            (unsigned long)serial);
     } else {
         FURI_LOG_W(APP_NAME, "SHT3x serial read failed at 0x%02X", i2c_sensor->currentI2CAdr);
     }
@@ -147,7 +149,8 @@ UnitempStatus unitemp_SHT30_I2C_update(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
     //Receiving data
     uint8_t data[6] = {0xE0, 0x00};
-    if(!unitemp_i2c_writeArray(i2c_sensor, 2, data) || !unitemp_i2c_readArray(i2c_sensor, 6, data)) {
+    if(!unitemp_i2c_writeArray(i2c_sensor, 2, data) ||
+       !unitemp_i2c_readArray(i2c_sensor, 6, data)) {
         /*
          * Reading the "fetch data" command (0xE000) returns a NACK if the sensor was
          * never switched into periodic measurement mode. Trigger periodic

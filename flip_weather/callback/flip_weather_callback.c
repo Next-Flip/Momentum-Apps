@@ -76,6 +76,17 @@ static void flip_weather_weather_switch_to_view(FlipWeatherApp *app)
     flip_weather_generic_switch_to_view(app, "Fetching Weather data..", send_geo_weather_request, process_weather, 1, callback_to_submenu, FlipWeatherViewLoader);
 }
 
+void temperature_unit_change(VariableItem *item)
+{
+    uint8_t index = variable_item_get_current_value_index(item);
+    use_fahrenheit = (index == 1);
+    variable_item_set_current_value_text(item, use_fahrenheit ? "Fahrenheit" : "Celsius");
+    save_settings(
+        app_instance->uart_text_input_buffer_ssid,
+        app_instance->uart_text_input_buffer_password,
+        use_fahrenheit);
+}
+
 void callback_submenu_choices(void *context, uint32_t index)
 {
     FlipWeatherApp *app = (FlipWeatherApp *)context;
@@ -126,7 +137,7 @@ void text_updated_ssid(void *context)
     }
 
     // save settings
-    save_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_password);
+    save_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_password, use_fahrenheit);
 
     // save wifi settings to devboard
     if (strlen(app->uart_text_input_buffer_ssid) > 0 && strlen(app->uart_text_input_buffer_password) > 0)
@@ -163,7 +174,7 @@ void text_updated_password(void *context)
     }
 
     // save settings
-    save_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_password);
+    save_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_password, use_fahrenheit);
 
     // save wifi settings to devboard
     if (strlen(app->uart_text_input_buffer_ssid) > 0 && strlen(app->uart_text_input_buffer_password) > 0)

@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -263,7 +263,8 @@ uint8_t* unitemp_onewire_bus_enum_next(OneWireBus* bus) {
                     next |=
                         0x80; //if at this place last time there was a right conflict with zero, print 1
                 } else {
-                    newfork = p; //to the right - we transmit zero and remember the conflict location
+                    newfork =
+                        p; //to the right - we transmit zero and remember the conflict location
                 }
             } //otherwise we go, choosing zero in the address
         } else {
@@ -456,7 +457,7 @@ UnitempStatus unitemp_onewire_sensor_update(Sensor* sensor) {
         }
         int16_t raw = buff[0] | ((int16_t)buff[1] << 8);
         if(instance->familyCode == FC_DS18S20) {
-            //Pseudo-12-bit. 
+            //Pseudo-12-bit.
             //sensor->temp = ((float)raw / 2.0f) - 0.25f + (16.0f - buff[6]) / 16.0f;
             //Honest 9 bits
             sensor->temp = ((float)raw / 2.0f);

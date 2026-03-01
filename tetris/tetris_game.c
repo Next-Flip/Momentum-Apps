@@ -335,7 +335,7 @@ static void tetris_game_apply_kick(Point points[], Point kick) {
 
 static bool tetris_game_is_valid_pos(TetrisState* tetris_state, Point* shape) {
     for(int i = 0; i < 4; i++) {
-        if(shape[i].x < 0 || shape[i].x > (FIELD_WIDTH - 1) ||
+        if(shape[i].y >= FIELD_HEIGHT || shape[i].x < 0 || shape[i].x > (FIELD_WIDTH - 1) ||
            tetris_state->playField[shape[i].y][shape[i].x] == true) {
             return false;
         }
@@ -410,6 +410,10 @@ static void
 
     tetris_game_remove_curr_piece(tetris_state);
 
+    if(tetris_game_is_valid_pos(tetris_state, newPiece->p)) {
+        memcpy(&tetris_state->currPiece, newPiece, sizeof(tetris_state->currPiece));
+    }
+
     if(wasDownMove) {
         if(tetris_game_piece_at_bottom(tetris_state, newPiece)) {
             furi_timer_stop(tetris_state->timer);
@@ -458,10 +462,6 @@ static void
                 furi_timer_start(tetris_state->timer, tetris_state->fallSpeed);
             }
         }
-    }
-
-    if(tetris_game_is_valid_pos(tetris_state, newPiece->p)) {
-        memcpy(&tetris_state->currPiece, newPiece, sizeof(tetris_state->currPiece));
     }
 
     tetris_game_render_curr_piece(tetris_state);
@@ -513,11 +513,10 @@ int32_t tetris_game_app() {
         memcpy(newPiece, &tetris_state->currPiece, sizeof(tetris_state->currPiece));
         bool wasDownMove = false;
 
+        // TODO: This is inverted.  it returns true when the button is not pressed.
+        // see macro in input.c and do that
         if(!furi_hal_gpio_read(&gpio_button_right)) {
             if(downRepeatCounter > 3) {
-                for(int i = 0; i < 4; i++) {
-                    newPiece->p[i].y += 1;
-                }
                 downRepeatCounter = 0;
                 wasDownMove = true;
             } else {
@@ -526,19 +525,16 @@ int32_t tetris_game_app() {
         }
 
         if(tetris_state->hardDropping) {
-            for(int i = 0; i < 4; i++) {
-                newPiece->p[i].y += 1;
-            }
             wasDownMove = true;
-        }
-
-        if(event_status == FuriStatusOk) {
+        } else if(event_status == FuriStatusOk) {
             if(event.type == EventTypeKey) {
                 if(event.input.type == InputTypePress || event.input.type == InputTypeLong ||
                    event.input.type == InputTypeRepeat) {
                     switch(event.input.key) {
                     case InputKeyUp:
-                        tetris_state->hardDropping = true;
+                        if(tetris_state->gameState == GameStatePlaying) {
+                            tetris_state->hardDropping = true;
+                        }
                         break;
                     case InputKeyDown:
                         break;
@@ -583,14 +579,13 @@ int32_t tetris_game_app() {
                     }
                 }
             } else if(event.type == EventTypeTick) {
-                // TODO: This is inverted.  it returns true when the button is not pressed.
-                // see macro in input.c and do that
-                if(furi_hal_gpio_read(&gpio_button_right)) {
-                    for(int i = 0; i < 4; i++) {
-                        newPiece->p[i].y += 1;
-                    }
-                    wasDownMove = true;
-                }
+                wasDownMove = true;
+            }
+        }
+
+        if(wasDownMove) {
+            for(int i = 0; i < 4; i++) {
+                newPiece->p[i].y += 1;
             }
         }
 

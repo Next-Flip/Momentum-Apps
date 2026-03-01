@@ -77,6 +77,11 @@ BlackhatApp* blackhat_app_alloc()
         text_input_get_view(app->text_input)
     );
 
+    app->tui_view = view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, BlackhatAppViewTui, app->tui_view
+    );
+
     for (int i = 0; i < NUM_MENU_ITEMS; ++i) {
         app->selected_option_index[i] = 0;
     }
@@ -123,6 +128,8 @@ void blackhat_app_free(BlackhatApp* app)
 
     view_dispatcher_remove_view(app->view_dispatcher, BlackhatAppViewTextInput);
     text_input_free(app->text_input);
+    view_dispatcher_remove_view(app->view_dispatcher, BlackhatAppViewTui);
+    view_free(app->tui_view);
     view_dispatcher_remove_view(
         app->view_dispatcher, BlackhatAppViewConsoleOutput
     );
