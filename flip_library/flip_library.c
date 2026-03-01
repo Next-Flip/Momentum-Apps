@@ -1,5 +1,7 @@
 #include "flip_library.h"
 
+bool use_fahrenheit = false;
+
 FlipLibraryApp *app_instance = NULL;
 
 void flip_library_loader_free_model(View *view);
