@@ -1,17 +1,10 @@
-# For details & more options, see documentation/AppManifests.md in firmware repo
-
 App(
-    appid="geometry_flip",  # Must be unique
-    name="Geometry Flip",  # Displayed in menus
-    apptype=FlipperAppType.EXTERNAL,
+    appid="geometry_dash",
+    name="Geometry Dash",
     entry_point="geometry_dash_app",
-    stack_size=2 * 1024,
+    stack_size=2048,
+    icon="images/app_icons/flipper_game_36x36.png",
+    apptype=FlipperAppType.EXTERNAL,
     fap_category="Games",
-    # Optional values
-    # fap_version="0.1",
-    fap_icon="geometry_flip.png",  # 10x10 1-bit PNG
-    # fap_description="A simple app",
-    # fap_author="J. Doe",
-    # fap_weburl="https://github.com/user/template",
-    fap_icon_assets="images",  # Image assets to compile for this application
+    fap_icon="geometry_flip.png",
 )

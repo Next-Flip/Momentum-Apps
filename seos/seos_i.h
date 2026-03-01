@@ -46,9 +46,9 @@ enum SeosCustomEvent {
 
     SeosCustomEventViewExit,
     SeosCustomEventTextInputDone,
-    // Read card events
-    SeosCustomEventReaderError,
-    SeosCustomEventReaderSuccess,
+    // Read/write card events
+    SeosCustomEventPollerError,
+    SeosCustomEventPollerSuccess,
 
     SeosCustomEventHCIInit,
     // Events during emulating or reading
@@ -98,8 +98,8 @@ struct Seos {
     SeosCentral* seos_central;
     FlowMode flow_mode;
 
-    bool keys_loaded;
     uint8_t keys_version;
+    FuriString* active_key_file;
     Bt* bt;
     FuriHalBleProfileBase* ble_profile;
     SeosNativePeripheral* native_peripheral;
@@ -123,5 +123,3 @@ void seos_blink_start(Seos* seos);
 void seos_blink_stop(Seos* seos);
 
 void seos_show_loading_popup(void* context, bool show);
-
-bool seos_migrate_keys(Seos* seos);

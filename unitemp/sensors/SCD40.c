@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
     Contributed by divinebird (https://github.com/divinebird)
 
     This program is free software: you can redistribute it and/or modify
@@ -24,16 +24,27 @@
 #include "../interfaces/endianness.h"
 //#include <3rdparty/everest/include/everest/kremlin/c_endianness.h>
 
-const SensorType SCD40 = {
-    .typename = "SCD40",
-    .interface = &I2C,
-    .datatype = UT_DATA_TYPE_TEMP_HUM_CO2,
-    .pollingInterval = 5000,
-    .allocator = unitemp_SCD40_alloc,
-    .mem_releaser = unitemp_SCD40_free,
-    .initializer = unitemp_SCD40_init,
-    .deinitializer = unitemp_SCD40_deinit,
-    .updater = unitemp_SCD40_update};
+bool unitemp_SCD40_alloc(Sensor* sensor, char* args);
+bool unitemp_SCD40_init(Sensor* sensor);
+bool unitemp_SCD40_deinit(Sensor* sensor);
+UnitempStatus unitemp_SCD40_update(Sensor* sensor);
+bool unitemp_SCD40_free(Sensor* sensor);
+UnitempStatus unitemp_SCD40_calibrate(Sensor* sensor, float value);
+
+const SensorTypeWithCalibration SCD40 = {
+    .super =
+        {
+            .typename = "SCD40",
+            .interface = &I2C,
+            .datatype = UT_DATA_TYPE_TEMP_HUM_CO2 | UT_CALIBRATION,
+            .pollingInterval = 1000,
+            .allocator = unitemp_SCD40_alloc,
+            .mem_releaser = unitemp_SCD40_free,
+            .initializer = unitemp_SCD40_init,
+            .deinitializer = unitemp_SCD40_deinit,
+            .updater = unitemp_SCD40_update,
+        },
+    .calibrate = unitemp_SCD40_calibrate};
 
 #define SCD40_ID 0x62
 
@@ -80,7 +91,7 @@ bool unitemp_SCD40_alloc(Sensor* sensor, char* args) {
 }
 
 bool unitemp_SCD40_free(Sensor* sensor) {
-    //Нечего высвобождать, так как ничего не было выделено
+    //Nothing to release since nothing was allocated
     UNUSED(sensor);
     return true;
 }
@@ -179,7 +190,7 @@ static bool getSettingValue(Sensor* sensor, uint16_t registerAddress, uint16_t* 
     return loadWord(bytes, val);
 }
 
-// Get 18 bytes from SCD40
+// Get 18 bytes from SCD30
 // Updates global variables with floats
 // Returns true if success
 static bool readMeasurement(Sensor* sensor) {
@@ -195,7 +206,7 @@ static bool readMeasurement(Sensor* sensor) {
     uint8_t* bytes = buff;
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
     if(!unitemp_i2c_readArray(i2c_sensor, respSize, bytes)) {
-        FURI_LOG_E(APP_NAME, "Error while read measures");
+        FURI_LOG_E(APP_NAME, "Error while read measures from SCD40");
         return false;
     }
 
@@ -254,7 +265,7 @@ static bool getFirmwareVersion(Sensor* sensor, uint16_t* val) {
     uint8_t* bytes = buff;
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
     if(!unitemp_i2c_readArray(i2c_sensor, respSize, bytes)) {
-        FURI_LOG_E(APP_NAME, "Error while read measures");
+        FURI_LOG_E(APP_NAME, "Error while read firmware version from SCD40");
         return false;
     }
 
@@ -269,7 +280,7 @@ static bool beginMeasuring(Sensor* sensor) {
 
 // Stop continuous measurement
 static bool stopMeasurement(Sensor* sensor) {
-    return sendCommand(sensor, COMMAND_READ_MEASUREMENT);
+    return sendCommand(sensor, COMMAND_STOP_PERIODIC_MEASUREMENT);
 }
 
 static float getTemperatureOffset(Sensor* sensor) {
@@ -282,4 +293,36 @@ static bool setTemperatureOffset(Sensor* sensor, float tempOffset) {
     uint16_t newOffset = tempOffset * 65536.0 / 175.0 + 0.5f;
     return sendCommandWithCRC(
         sensor, COMMAND_SET_TEMPERATURE_OFFSET, newOffset); // Activate continuous ASC
+}
+
+UnitempStatus unitemp_SCD40_calibrate(Sensor* sensor, float value) {
+    stopMeasurement(sensor);
+    furi_delay_ms(500);
+
+    uint16_t curPPM = value;
+    sendCommandWithCRC(
+        sensor, COMMAND_PERFORM_FORCED_RECALIBRATION, curPPM); // Activate continuous ASC
+
+    furi_delay_ms(500);
+
+    static const uint8_t respSize = 3;
+    uint8_t buff[respSize];
+    uint8_t* bytes = buff;
+    I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
+    if(!unitemp_i2c_readArray(i2c_sensor, respSize, bytes)) {
+        FURI_LOG_E(APP_NAME, "Error while read response");
+        return UT_SENSORSTATUS_ERROR;
+    }
+
+    uint16_t tmpValue;
+    if(loadWord(bytes, &tmpValue)) {
+        if(tmpValue == 0xFFFF) return UT_SENSORSTATUS_ERROR;
+        int16_t correction = (int16_t)tmpValue - 0x8000;
+        FURI_LOG_I(APP_NAME, "CO2 correction %d", correction);
+    } else
+        return UT_SENSORSTATUS_ERROR;
+
+    beginMeasuring(sensor);
+
+    return UT_SENSORSTATUS_OK;
 }

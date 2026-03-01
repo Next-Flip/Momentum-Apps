@@ -3,13 +3,15 @@
 #include <vector>
 #include <flip_social_icons.h>
 
-FlipSocialRun::FlipSocialRun(void *appContext) : appContext(appContext), commentsIndex(0), commentIsValid(false), commentItemID(0), commentsStatus(CommentsNotStarted),
+FlipSocialRun::FlipSocialRun(void *appContext) : appContext(appContext), commentsIndex(0), commentIsValid(false), commentItemID(0), commentsStatus(CommentsNotStarted), currentCount(0),
                                                  currentMenuIndex(SocialViewFeed), currentProfileElement(ProfileElementBio), currentView(SocialViewLogin),
                                                  exploreIndex(0), exploreStatus(ExploreKeyboardUsers),
-                                                 feedItemID(0), feedItemIndex(0), feedIteration(1), feedStatus(FeedNotStarted), inputHeld(false), lastInput(InputKeyMAX),
+                                                 feedItemID(0), feedItemIndex(0), feedIteration(1), feedStatus(FeedNotStarted),
+                                                 friendIndex(0), friendStatus(FriendNotStarted), lastInput(InputKeyMAX),
                                                  loginStatus(LoginNotStarted), messagesStatus(MessagesNotStarted), messageUsersStatus(MessageUsersNotStarted), messageUserIndex(0),
                                                  postStatus(PostChoose), registrationStatus(RegistrationNotStarted),
-                                                 shouldDebounce(false), shouldReturnToMenu(false), userInfoStatus(UserInfoNotStarted)
+                                                 shouldReturnToMenu(false), userInfoStatus(UserInfoNotStarted),
+                                                 bioEditStatus(BioEditKeyboard)
 {
     char *loginStatusStr = (char *)malloc(64);
     if (loginStatusStr)
@@ -37,28 +39,15 @@ FlipSocialRun::FlipSocialRun(void *appContext) : appContext(appContext), comment
         feedItemFlipOverride[i] = false;
         feedItemFlipOverrideActive[i] = false;
     }
+
+    // init keyboard so we can add our suggestions
+    keyboard = std::make_unique<Keyboard>();
+    this->loadKeyboardSuggestions();
 }
 
 FlipSocialRun::~FlipSocialRun()
 {
     // nothing to do
-}
-
-void FlipSocialRun::debounceInput()
-{
-    static uint8_t debounceCounter = 0;
-    if (shouldDebounce)
-    {
-        lastInput = InputKeyMAX;
-        debounceCounter++;
-        if (debounceCounter < 2)
-        {
-            return;
-        }
-        debounceCounter = 0;
-        shouldDebounce = false;
-        inputHeld = false;
-    }
 }
 
 void FlipSocialRun::drawCommentsView(Canvas *canvas)
@@ -277,6 +266,7 @@ void FlipSocialRun::drawCommentsView(Canvas *canvas)
         if (!keyboard)
         {
             keyboard = std::make_unique<Keyboard>();
+            this->loadKeyboardSuggestions();
         }
         if (keyboard)
         {
@@ -397,8 +387,6 @@ void FlipSocialRun::drawExploreView(Canvas *canvas)
         break;
     case ExploreSuccess:
     {
-        canvas_draw_str(canvas, 0, 10, "Explore success!");
-        canvas_draw_str(canvas, 0, 20, "Press OK to continue.");
         char *messagesUserList = (char *)malloc(1024);
         if (!messagesUserList)
         {
@@ -466,6 +454,7 @@ void FlipSocialRun::drawExploreView(Canvas *canvas)
         if (!keyboard)
         {
             keyboard = std::make_unique<Keyboard>();
+            this->loadKeyboardSuggestions();
         }
         if (keyboard)
         {
@@ -476,6 +465,7 @@ void FlipSocialRun::drawExploreView(Canvas *canvas)
         if (!keyboard)
         {
             keyboard = std::make_unique<Keyboard>();
+            this->loadKeyboardSuggestions();
         }
         if (keyboard)
         {
@@ -532,6 +522,58 @@ void FlipSocialRun::drawExploreView(Canvas *canvas)
             }
         }
         break;
+    case ExploreDeciding:
+        canvas_draw_str(canvas, 0, 10, "What would you like to do?");
+        canvas_draw_str(canvas, 0, 50, "UP: Add friend");
+        canvas_draw_str(canvas, 0, 60, "DOWN: Message");
+        break;
+    case ExploreAddingFriend:
+        if (!loadingStarted)
+        {
+            if (!loading)
+            {
+                loading = std::make_unique<Loading>(canvas);
+            }
+            loadingStarted = true;
+            if (loading)
+            {
+                loading->setText("Adding...");
+            }
+        }
+        if (!this->httpRequestIsFinished())
+        {
+            if (loading)
+            {
+                loading->animate();
+            }
+        }
+        else
+        {
+            if (loading)
+            {
+                loading->stop();
+            }
+            loadingStarted = false;
+            FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+            if (app->getHttpState() == ISSUE)
+            {
+                exploreStatus = ExploreRequestError;
+                return;
+            }
+            char *response = (char *)malloc(64);
+            if (response && app->loadChar("add_friend", response, 64) && strstr(response, "[SUCCESS]") != NULL)
+            {
+                canvas_clear(canvas);
+                canvas_draw_str(canvas, 0, 10, "Friend added!");
+                free(response);
+                return;
+            }
+            else
+            {
+                exploreStatus = ExploreRequestError;
+            }
+        }
+        break;
     default:
         canvas_draw_str(canvas, 0, 10, "Retrieving messages...");
         break;
@@ -541,11 +583,25 @@ void FlipSocialRun::drawExploreView(Canvas *canvas)
 void FlipSocialRun::drawFeedItem(Canvas *canvas, char *username, char *message, char *flipped, char *flips, char *date_created, char *comments, bool isComment)
 {
     bool isFlipped = strcmp(flipped, "true") == 0;
+    bool isAdmin = strcmp(username, "JBlanked") == 0;
     auto flipCount = atoi(flips);
     // auto commentCount = atoi(comments);
     canvas_clear(canvas);
     canvas_set_font_custom(canvas, FONT_SIZE_LARGE);
-    canvas_draw_str(canvas, 0, 7, username);
+
+    if (isAdmin)
+    {
+        // Filled black badge with white username text
+        int user_width = canvas_string_width(canvas, username);
+        canvas_draw_rbox(canvas, 0, 0, user_width + 4, 10, 2);
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_str(canvas, 1, 8, username);
+        canvas_set_color(canvas, ColorBlack);
+    }
+    else
+    {
+        canvas_draw_str(canvas, 0, 7, username);
+    }
 
     if (!isComment)
     {
@@ -925,6 +981,187 @@ void FlipSocialRun::drawFeedView(Canvas *canvas)
     }
 }
 
+void FlipSocialRun::drawFriendsView(Canvas *canvas)
+{
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    static bool loadingStarted = false;
+    switch (friendStatus)
+    {
+    case FriendWaiting:
+        if (!loadingStarted)
+        {
+            if (!loading)
+            {
+                loading = std::make_unique<Loading>(canvas);
+            }
+            loadingStarted = true;
+            if (loading)
+            {
+                loading->setText("Fetching...");
+            }
+        }
+        if (!this->httpRequestIsFinished())
+        {
+            if (loading)
+            {
+                loading->animate();
+            }
+        }
+        else
+        {
+            if (loading)
+            {
+                loading->stop();
+            }
+            loadingStarted = false;
+            FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+            if (app->getHttpState() == ISSUE)
+            {
+                friendStatus = FriendRequestError;
+                return;
+            }
+            char *response = (char *)malloc(1024);
+            if (response && app->loadChar("friends", response, 1024) && strstr(response, "friends") != NULL)
+            {
+                friendStatus = FriendSuccess;
+                free(response);
+                return;
+            }
+            else
+            {
+                friendStatus = FriendRequestError;
+                if (response)
+                    free(response);
+            }
+        }
+        break;
+    case FriendSuccess:
+    {
+        char *friendsList = (char *)malloc(1024);
+        if (!friendsList)
+        {
+            FURI_LOG_E(TAG, "drawFriendsView: Failed to allocate memory for friendsList");
+            friendStatus = FriendParseError;
+            return;
+        }
+
+        FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+        if (!app || !app->loadChar("friends", friendsList, 1024))
+        {
+            FURI_LOG_E(TAG, "drawFriendsView: Failed to load friends data from storage");
+            canvas_draw_str(canvas, 0, 30, "Failed to load friends.");
+            free(friendsList);
+            return;
+        }
+
+        // store friends
+        std::vector<std::string> friendList;
+        for (int i = 0; i < MAX_FRIENDS; i++)
+        {
+            char *fr = get_json_array_value("friends", i, friendsList);
+            if (!fr)
+            {
+                break; // No more friends in the list
+            }
+            friendList.push_back(fr);
+            free(fr);
+        }
+
+        if (friendList.empty())
+        {
+            canvas_draw_str(canvas, 0, 30, "No friends found.");
+        }
+        else
+        {
+            // std::vector<std::string> to const char** for drawMenu
+            std::vector<const char *> friendPtrs;
+            friendPtrs.reserve(friendList.size());
+            for (const auto &fr : friendList)
+            {
+                friendPtrs.push_back(fr.c_str());
+            }
+            drawMenu(canvas, friendIndex, friendPtrs.data(), friendPtrs.size());
+        }
+
+        free(friendsList);
+        break;
+    }
+    case FriendConfirmRemove:
+        canvas_draw_str(canvas, 0, 10, "Remove friend?");
+        canvas_draw_str(canvas, 0, 50, "OK: Confirm");
+        canvas_draw_str(canvas, 0, 60, "Back: Cancel");
+        break;
+    case FriendRemove:
+        if (!loadingStarted)
+        {
+            if (!loading)
+            {
+                loading = std::make_unique<Loading>(canvas);
+            }
+            loadingStarted = true;
+            if (loading)
+            {
+                loading->setText("Removing...");
+            }
+        }
+        if (!this->httpRequestIsFinished())
+        {
+            if (loading)
+            {
+                loading->animate();
+            }
+        }
+        else
+        {
+            if (loading)
+            {
+                loading->stop();
+            }
+            loadingStarted = false;
+            FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+            if (app->getHttpState() == ISSUE)
+            {
+                friendStatus = FriendRequestError;
+                return;
+            }
+            char *response = (char *)malloc(64);
+            if (response && app->loadChar("remove_friend", response, 64) && strstr(response, "[SUCCESS]") != NULL)
+            {
+                free(response);
+                // Re-fetch the friends list
+                friendIndex = 0;
+                friendStatus = FriendWaiting;
+                userRequest(RequestTypeFriendFetch);
+                return;
+            }
+            else
+            {
+                friendStatus = FriendRequestError;
+                if (response)
+                    free(response);
+            }
+        }
+        break;
+    case FriendRequestError:
+        canvas_draw_str(canvas, 0, 10, "Friends request failed!");
+        canvas_draw_str(canvas, 0, 20, "Check your network and");
+        canvas_draw_str(canvas, 0, 30, "try again later.");
+        break;
+    case FriendParseError:
+        canvas_draw_str(canvas, 0, 10, "Error parsing friends!");
+        canvas_draw_str(canvas, 0, 20, "Try again...");
+        break;
+    case FriendNotStarted:
+        friendStatus = FriendWaiting;
+        userRequest(RequestTypeFriendFetch);
+        break;
+    default:
+        canvas_draw_str(canvas, 0, 10, "Retrieving friends...");
+        break;
+    }
+}
+
 void FlipSocialRun::drawLoginView(Canvas *canvas)
 {
     canvas_clear(canvas);
@@ -1226,6 +1463,8 @@ void FlipSocialRun::drawMenu(Canvas *canvas, uint8_t selectedIndex, const char *
     {
         canvas_draw_dot(canvas, i, 58);
     }
+
+    currentCount = menuCount;
 }
 
 void FlipSocialRun::drawMessagesView(Canvas *canvas)
@@ -1409,6 +1648,7 @@ void FlipSocialRun::drawMessagesView(Canvas *canvas)
         if (!keyboard)
         {
             keyboard = std::make_unique<Keyboard>();
+            this->loadKeyboardSuggestions();
         }
         if (keyboard)
         {
@@ -1671,6 +1911,7 @@ void FlipSocialRun::drawPostView(Canvas *canvas)
         if (!keyboard)
         {
             keyboard = std::make_unique<Keyboard>();
+            this->loadKeyboardSuggestions();
         }
         if (keyboard)
         {
@@ -1970,6 +2211,83 @@ void FlipSocialRun::drawWrappedBio(Canvas *canvas, const char *text, uint8_t x, 
     if (strlen(line2) > 0)
     {
         canvas_draw_str(canvas, x, y + 8, line2);
+    }
+}
+
+void FlipSocialRun::drawBioEditView(Canvas *canvas)
+{
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    static bool loadingStarted = false;
+    switch (bioEditStatus)
+    {
+    case BioEditKeyboard:
+        if (!keyboard)
+        {
+            keyboard = std::make_unique<Keyboard>();
+            this->loadKeyboardSuggestions();
+        }
+        if (keyboard)
+        {
+            keyboard->draw(canvas, "Edit Bio:");
+        }
+        break;
+    case BioEditWaiting:
+        if (!loadingStarted)
+        {
+            if (!loading)
+            {
+                loading = std::make_unique<Loading>(canvas);
+            }
+            loadingStarted = true;
+            if (loading)
+            {
+                loading->setText("Updating bio...");
+            }
+        }
+        if (!this->httpRequestIsFinished())
+        {
+            if (loading)
+            {
+                loading->animate();
+            }
+        }
+        else
+        {
+            if (loading)
+            {
+                loading->stop();
+            }
+            loadingStarted = false;
+            FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+            if (!app || app->getHttpState() == ISSUE)
+            {
+                bioEditStatus = BioEditRequestError;
+                return;
+            }
+            char response[64];
+            if (app->loadChar("update_bio", response, sizeof(response)) && strstr(response, "[SUCCESS]") != NULL)
+            {
+                bioEditStatus = BioEditSuccess;
+            }
+            else
+            {
+                bioEditStatus = BioEditRequestError;
+            }
+        }
+        break;
+    case BioEditSuccess:
+        canvas_draw_str(canvas, 0, 10, "Bio updated!");
+        canvas_draw_str(canvas, 0, 20, "Press OK to view profile.");
+        break;
+    case BioEditRequestError:
+        canvas_draw_str(canvas, 0, 10, "Failed to update bio!");
+        canvas_draw_str(canvas, 0, 20, "Check your network and");
+        canvas_draw_str(canvas, 0, 30, "try again later.");
+        break;
+    default:
+        canvas_draw_str(canvas, 0, 10, "Updating bio...");
+        break;
     }
 }
 
@@ -2321,6 +2639,44 @@ bool FlipSocialRun::httpRequestIsFinished()
     return state == IDLE || state == ISSUE || state == INACTIVE;
 }
 
+void FlipSocialRun::loadKeyboardSuggestions()
+{
+    // Standard words for autocomplete
+    if (keyboard)
+    {
+        if (keyboard->addDictionary(DICTIONARY_PATH))
+        {
+            return;
+        }
+
+        keyboard->addSuggestion("the");
+        keyboard->addSuggestion("that");
+        keyboard->addSuggestion("this is ");
+        keyboard->addSuggestion("hi");
+        keyboard->addSuggestion("hey whats up");
+        keyboard->addSuggestion("help");
+        keyboard->addSuggestion("hello");
+        keyboard->addSuggestion("how are you");
+        keyboard->addSuggestion("hack");
+        keyboard->addSuggestion("what");
+        keyboard->addSuggestion("what's up");
+        keyboard->addSuggestion("JBlanked");
+        keyboard->addSuggestion("flip");
+        keyboard->addSuggestion("flipper");
+        keyboard->addSuggestion("flipper zero");
+        keyboard->addSuggestion("yooo");
+        keyboard->addSuggestion("everyone");
+        keyboard->addSuggestion("anyone");
+        keyboard->addSuggestion("good night from ");
+        keyboard->addSuggestion("great");
+        keyboard->addSuggestion("morning");
+        keyboard->addSuggestion("message");
+        keyboard->addSuggestion("awesome");
+        keyboard->addSuggestion("i am from ");
+        keyboard->addSuggestion("FlipperHTTP");
+    }
+}
+
 void FlipSocialRun::updateFeedItemFlipStatus()
 {
     FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
@@ -2454,6 +2810,12 @@ void FlipSocialRun::updateDraw(Canvas *canvas)
     case SocialViewComments:
         drawCommentsView(canvas);
         break;
+    case SocialViewFriends:
+        drawFriendsView(canvas);
+        break;
+    case SocialViewBioEdit:
+        drawBioEditView(canvas);
+        break;
     default:
         canvas_draw_str(canvas, 0, 10, "View not implemented yet.");
         break;
@@ -2463,7 +2825,6 @@ void FlipSocialRun::updateDraw(Canvas *canvas)
 void FlipSocialRun::updateInput(InputEvent *event)
 {
     lastInput = event->key;
-    debounceInput();
     switch (currentView)
     {
     case SocialViewMenu:
@@ -2483,17 +2844,18 @@ void FlipSocialRun::updateInput(InputEvent *event)
             else if (currentMenuIndex == SocialViewMessageUsers)
             {
                 currentMenuIndex = SocialViewPost;
-                shouldDebounce = true;
             }
             else if (currentMenuIndex == SocialViewExplore)
             {
                 currentMenuIndex = SocialViewMessageUsers;
-                shouldDebounce = true;
             }
             else if (currentMenuIndex == SocialViewProfile)
             {
                 currentMenuIndex = SocialViewExplore;
-                shouldDebounce = true;
+            }
+            else if (currentMenuIndex == SocialViewFeed)
+            {
+                currentMenuIndex = SocialViewProfile;
             }
             break;
         case InputKeyUp:
@@ -2501,21 +2863,22 @@ void FlipSocialRun::updateInput(InputEvent *event)
             if (currentMenuIndex == SocialViewFeed)
             {
                 currentMenuIndex = SocialViewPost;
-                shouldDebounce = true;
             }
             else if (currentMenuIndex == SocialViewPost)
             {
                 currentMenuIndex = SocialViewMessageUsers;
-                shouldDebounce = true;
             }
             else if (currentMenuIndex == SocialViewMessageUsers)
             {
                 currentMenuIndex = SocialViewExplore;
-                shouldDebounce = true;
             }
             else if (currentMenuIndex == SocialViewExplore)
             {
                 currentMenuIndex = SocialViewProfile;
+            }
+            else if (currentMenuIndex == SocialViewProfile)
+            {
+                currentMenuIndex = SocialViewFeed;
             }
             break;
         case InputKeyOk:
@@ -2523,19 +2886,19 @@ void FlipSocialRun::updateInput(InputEvent *event)
             {
             case SocialViewFeed:
                 currentView = SocialViewFeed;
-                shouldDebounce = true;
+
                 break;
             case SocialViewPost:
                 currentView = SocialViewPost;
-                shouldDebounce = true;
+
                 break;
             case SocialViewMessageUsers:
                 currentView = SocialViewMessageUsers;
-                shouldDebounce = true;
+
                 break;
             case SocialViewExplore:
                 currentView = SocialViewExplore;
-                shouldDebounce = true;
+
                 break;
             case SocialViewProfile:
                 if (userInfoStatus == UserInfoNotStarted || userInfoStatus == UserInfoRequestError)
@@ -2548,7 +2911,7 @@ void FlipSocialRun::updateInput(InputEvent *event)
                 {
                     currentView = SocialViewProfile;
                 }
-                shouldDebounce = true;
+
                 break;
             default:
                 break;
@@ -2565,7 +2928,6 @@ void FlipSocialRun::updateInput(InputEvent *event)
         {
         case InputKeyBack:
             currentView = SocialViewMenu;
-            shouldDebounce = true;
             feedItemIndex = 0;
             break;
         case InputKeyDown:
@@ -2573,13 +2935,12 @@ void FlipSocialRun::updateInput(InputEvent *event)
             currentView = SocialViewComments;
             commentsStatus = CommentsNotStarted;
             commentsIndex = 0;
-            shouldDebounce = true;
+
             break;
         case InputKeyLeft:
             if (feedItemIndex > 0)
             {
                 feedItemIndex--;
-                shouldDebounce = true;
             }
             else
             {
@@ -2601,7 +2962,6 @@ void FlipSocialRun::updateInput(InputEvent *event)
             if (feedItemIndex < (MAX_FEED_ITEMS - 1))
             {
                 feedItemIndex++;
-                shouldDebounce = true;
             }
             else
             {
@@ -2624,7 +2984,7 @@ void FlipSocialRun::updateInput(InputEvent *event)
             userRequest(RequestTypeFlipPost);
             // Immediately update the cached feed data to reflect the flip
             updateFeedItemFlipStatus();
-            shouldDebounce = true;
+
             break;
         default:
             break;
@@ -2637,22 +2997,23 @@ void FlipSocialRun::updateInput(InputEvent *event)
         {
             if (keyboard)
             {
-                if (keyboard->handleInput(lastInput))
+                if (keyboard->handleInput(event))
                 {
                     FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
                     app->saveChar("new_feed_post", keyboard->getText());
                     postStatus = PostWaiting;
                     userRequest(RequestTypePost);
+                    keyboard->clearText();
+                    keyboard.reset();
                 }
                 if (lastInput != InputKeyMAX)
                 {
-                    shouldDebounce = true;
                 }
             }
-            if (lastInput == InputKeyBack)
+            if (lastInput == InputKeyBack && event->type == InputTypeLong)
             {
                 postStatus = PostChoose;
-                shouldDebounce = true;
+
                 if (keyboard)
                 {
                     keyboard->clearText();
@@ -2666,29 +3027,34 @@ void FlipSocialRun::updateInput(InputEvent *event)
             {
             case InputKeyBack:
                 currentView = SocialViewMenu;
-                shouldDebounce = true;
                 break;
             case InputKeyLeft:
             case InputKeyDown:
                 if (postIndex > 0)
                 {
                     postIndex--;
-                    shouldDebounce = true;
+                }
+                else
+                {
+                    postIndex = currentCount - 1;
                 }
                 break;
             case InputKeyRight:
             case InputKeyUp:
-                if (postIndex < (MAX_PRE_SAVED_MESSAGES - 1))
+                if (postIndex < (currentCount - 1))
                 {
                     postIndex++;
-                    shouldDebounce = true;
+                }
+                else
+                {
+                    postIndex = 0;
                 }
                 break;
             case InputKeyOk:
                 if (postIndex == 0) // New Post
                 {
                     postStatus = PostKeyboard;
-                    shouldDebounce = true;
+
                     if (keyboard)
                     {
                         keyboard->clearText();
@@ -2702,7 +3068,7 @@ void FlipSocialRun::updateInput(InputEvent *event)
                     {
                         FURI_LOG_E(TAG, "updateInput: Failed to allocate memory for selectedPost");
                         postStatus = PostParseError;
-                        shouldDebounce = true;
+
                         return;
                     }
                     if (getSelectedPost(selectedPost, 128))
@@ -2710,12 +3076,12 @@ void FlipSocialRun::updateInput(InputEvent *event)
                         if (!keyboard)
                         {
                             keyboard = std::make_unique<Keyboard>();
+                            this->loadKeyboardSuggestions();
                         }
                         if (keyboard)
                         {
                             keyboard->setText(selectedPost);
                             postStatus = PostKeyboard;
-                            shouldDebounce = true;
                         }
                     }
                     free(selectedPost);
@@ -2733,27 +3099,32 @@ void FlipSocialRun::updateInput(InputEvent *event)
         {
         case InputKeyBack:
             currentView = SocialViewMenu;
-            shouldDebounce = true;
             break;
         case InputKeyLeft:
         case InputKeyDown:
             if (messageUserIndex > 0)
             {
                 messageUserIndex--;
-                shouldDebounce = true;
+            }
+            else
+            {
+                messageUserIndex = currentCount - 1;
             }
             break;
         case InputKeyRight:
         case InputKeyUp:
-            if (messageUserIndex < (MAX_MESSAGE_USERS - 1))
+            if (messageUserIndex < (currentCount - 1))
             {
                 messageUserIndex++;
-                shouldDebounce = true;
+            }
+            else
+            {
+                messageUserIndex = 0;
             }
             break;
         case InputKeyOk:
             currentView = SocialViewMessages;
-            shouldDebounce = true;
+
             break;
         default:
             break;
@@ -2766,22 +3137,23 @@ void FlipSocialRun::updateInput(InputEvent *event)
         {
             if (keyboard)
             {
-                if (keyboard->handleInput(lastInput))
+                if (keyboard->handleInput(event))
                 {
                     FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
                     app->saveChar("message_to_user", keyboard->getText());
                     messagesStatus = MessagesSending;
                     userRequest(RequestTypeMessageSend);
+                    keyboard->clearText();
+                    keyboard.reset();
                 }
                 if (lastInput != InputKeyMAX)
                 {
-                    shouldDebounce = true;
                 }
             }
-            if (lastInput == InputKeyBack)
+            if (lastInput == InputKeyBack && event->type == InputTypeLong)
             {
                 messagesStatus = MessagesSuccess;
-                shouldDebounce = true;
+
                 if (keyboard)
                 {
                     keyboard->clearText();
@@ -2797,7 +3169,6 @@ void FlipSocialRun::updateInput(InputEvent *event)
                 currentView = SocialViewMessageUsers;
                 messagesStatus = MessagesNotStarted;
                 messagesIndex = 0;
-                shouldDebounce = true;
                 break;
             case InputKeyLeft:
             case InputKeyDown:
@@ -2805,21 +3176,27 @@ void FlipSocialRun::updateInput(InputEvent *event)
                 if (messagesIndex > 0)
                 {
                     messagesIndex--;
-                    shouldDebounce = true;
+                }
+                else
+                {
+                    messagesIndex = currentCount - 1;
                 }
                 break;
             case InputKeyRight:
             case InputKeyUp:
                 // Navigate to next message
-                if (messagesIndex < (MAX_MESSAGES - 1))
+                if (messagesIndex < (currentCount - 1))
                 {
                     messagesIndex++;
-                    shouldDebounce = true;
+                }
+                else
+                {
+                    messagesIndex = 0;
                 }
                 break;
             case InputKeyOk:
                 messagesStatus = MessagesKeyboard;
-                shouldDebounce = true;
+
                 return;
             default:
                 break;
@@ -2833,25 +3210,26 @@ void FlipSocialRun::updateInput(InputEvent *event)
         {
             if (keyboard)
             {
-                if (keyboard->handleInput(lastInput))
+                if (keyboard->handleInput(event))
                 {
                     FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
                     app->saveChar("explore_keyword", keyboard->getText());
                     exploreStatus = ExploreWaiting;
                     exploreIndex = 0;
                     userRequest(RequestTypeExplore);
+                    keyboard->clearText();
+                    keyboard.reset();
                 }
                 if (lastInput != InputKeyMAX)
                 {
-                    shouldDebounce = true;
                 }
             }
-            if (lastInput == InputKeyBack)
+            if (lastInput == InputKeyBack && event->type == InputTypeLong)
             {
                 currentView = SocialViewMenu;
                 exploreStatus = ExploreKeyboardUsers;
                 exploreIndex = 0;
-                shouldDebounce = true;
+
                 if (keyboard)
                 {
                     keyboard->clearText();
@@ -2863,28 +3241,71 @@ void FlipSocialRun::updateInput(InputEvent *event)
         {
             if (keyboard)
             {
-                if (keyboard->handleInput(lastInput))
+                if (keyboard->handleInput(event))
                 {
                     FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
                     app->saveChar("message_to_user", keyboard->getText());
                     exploreStatus = ExploreSending;
                     userRequest(RequestTypeMessageSend);
+                    keyboard->clearText();
+                    keyboard.reset();
                 }
                 if (lastInput != InputKeyMAX)
                 {
-                    shouldDebounce = true;
                 }
             }
-            if (lastInput == InputKeyBack)
+            if (lastInput == InputKeyBack && event->type == InputTypeLong)
             {
                 exploreStatus = ExploreSuccess;
-                shouldDebounce = true;
+
                 if (keyboard)
                 {
                     keyboard->clearText();
                     keyboard.reset();
                 }
             }
+        }
+        else if (exploreStatus == ExploreDeciding)
+        {
+            switch (lastInput)
+            {
+            case InputKeyBack:
+                exploreStatus = ExploreSuccess;
+                break;
+            case InputKeyDown:
+                exploreStatus = ExploreKeyboardMessage;
+                if (keyboard)
+                {
+                    keyboard->clearText();
+                    keyboard.reset();
+                }
+                break;
+            case InputKeyUp:
+            {
+                exploreStatus = ExploreAddingFriend;
+                FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+                char *messageUser = (char *)malloc(64);
+                if (!messageUser)
+                {
+                    FURI_LOG_E(TAG, "updateInput: Failed to allocate memory for messageUser");
+                    exploreStatus = ExploreRequestError;
+                    return;
+                }
+                if (!this->getMessageUser(messageUser, 64))
+                {
+                    FURI_LOG_E(TAG, "updateInput: Failed to get message user");
+                    free(messageUser);
+                    exploreStatus = ExploreRequestError;
+                    return;
+                }
+                app->saveChar("friend_to_add", messageUser);
+                userRequest(RequestTypeFriendAdd);
+                free(messageUser);
+                break;
+            }
+            default:
+                break;
+            };
         }
         else
         {
@@ -2894,7 +3315,7 @@ void FlipSocialRun::updateInput(InputEvent *event)
                 currentView = SocialViewMenu;
                 exploreStatus = ExploreKeyboardUsers;
                 exploreIndex = 0;
-                shouldDebounce = true;
+
                 if (keyboard)
                 {
                     keyboard->clearText();
@@ -2906,26 +3327,108 @@ void FlipSocialRun::updateInput(InputEvent *event)
                 if (exploreIndex > 0)
                 {
                     exploreIndex--;
-                    shouldDebounce = true;
+                }
+                else
+                {
+                    exploreIndex = currentCount - 1;
                 }
                 break;
             case InputKeyRight:
             case InputKeyUp:
-                if (exploreIndex < (MAX_EXPLORE_USERS - 1))
+                if (exploreIndex < (currentCount - 1))
                 {
                     exploreIndex++;
-                    shouldDebounce = true;
+                }
+                else
+                {
+                    exploreIndex = 0;
                 }
                 break;
             case InputKeyOk:
-                exploreStatus = ExploreKeyboardMessage;
-                shouldDebounce = true;
-                if (keyboard)
+                exploreStatus = ExploreDeciding;
+            default:
+                break;
+            };
+        }
+        break;
+    }
+    case SocialViewFriends:
+    {
+        if (friendStatus == FriendConfirmRemove)
+        {
+            switch (lastInput)
+            {
+            case InputKeyBack:
+                friendStatus = FriendSuccess;
+                break;
+            case InputKeyOk:
+            {
+                char *friendsList = (char *)malloc(1024);
+                FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+                if (friendsList && app && app->loadChar("friends", friendsList, 1024))
                 {
-                    keyboard->clearText();
-                    keyboard.reset();
+                    char *fr = get_json_array_value("friends", friendIndex, friendsList);
+                    if (fr)
+                    {
+                        app->saveChar("friend_to_remove", fr);
+                        free(fr);
+                        friendStatus = FriendRemove;
+                        userRequest(RequestTypeFriendRemove);
+                    }
+                    else
+                    {
+                        friendStatus = FriendRequestError;
+                    }
                 }
-                return;
+                else
+                {
+                    friendStatus = FriendRequestError;
+                }
+                if (friendsList)
+                    free(friendsList);
+                break;
+            }
+            default:
+                break;
+            };
+        }
+        else
+        {
+            switch (lastInput)
+            {
+            case InputKeyBack:
+                currentView = SocialViewMenu;
+                friendStatus = FriendNotStarted;
+                friendIndex = 0;
+                break;
+            case InputKeyLeft:
+            case InputKeyDown:
+                if (friendIndex > 0)
+                {
+                    friendIndex--;
+                }
+                else
+                {
+                    friendIndex = currentCount - 1;
+                }
+                break;
+            case InputKeyRight:
+            case InputKeyUp:
+                if (friendIndex < (currentCount - 1))
+                {
+                    friendIndex++;
+                }
+                else
+                {
+                    friendIndex = 0;
+                }
+                break;
+            case InputKeyOk:
+                if (friendStatus == FriendSuccess)
+                {
+                    friendStatus = FriendConfirmRemove;
+                }
+                break;
             default:
                 break;
             };
@@ -2938,14 +3441,16 @@ void FlipSocialRun::updateInput(InputEvent *event)
         {
         case InputKeyBack:
             currentView = SocialViewMenu;
-            shouldDebounce = true;
             break;
         case InputKeyLeft:
         case InputKeyDown:
             if (currentProfileElement > 0)
             {
                 currentProfileElement--;
-                shouldDebounce = true;
+            }
+            else
+            {
+                currentProfileElement = ProfileElementMAX - 1;
             }
             break;
         case InputKeyRight:
@@ -2953,12 +3458,109 @@ void FlipSocialRun::updateInput(InputEvent *event)
             if (currentProfileElement < (ProfileElementMAX - 1))
             {
                 currentProfileElement++;
-                shouldDebounce = true;
+            }
+            else
+            {
+                currentProfileElement = 0;
+            }
+            break;
+        case InputKeyOk:
+            if (currentProfileElement == ProfileElementFriends)
+            {
+                currentView = SocialViewFriends;
+                friendStatus = FriendNotStarted;
+                friendIndex = 0;
+            }
+            else if (currentProfileElement == ProfileElementBio)
+            {
+                // Start editing bio
+                if (keyboard)
+                {
+                    keyboard->clearText();
+                    keyboard.reset();
+                }
+                keyboard = std::make_unique<Keyboard>();
+                this->loadKeyboardSuggestions();
+                if (keyboard)
+                {
+                    FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+                    char userInfo[256] = {0};
+                    bool didPreload = false;
+                    if (app && app->loadChar("user_info", userInfo, sizeof(userInfo), APP_ID))
+                    {
+                        char *bio = get_json_value("bio", userInfo);
+                        if (bio)
+                        {
+                            keyboard->setText(bio);
+                            free(bio);
+                            didPreload = true;
+                        }
+                    }
+                    if (!didPreload)
+                    {
+                        keyboard->setText("");
+                    }
+                    bioEditStatus = BioEditKeyboard;
+                    currentView = SocialViewBioEdit;
+                }
             }
             break;
         default:
             break;
         };
+        break;
+    }
+    case SocialViewBioEdit:
+    {
+        if (bioEditStatus == BioEditKeyboard)
+        {
+            if (keyboard)
+            {
+                if (keyboard->handleInput(event))
+                {
+                    FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
+                    app->saveChar("new_bio", keyboard->getText());
+                    bioEditStatus = BioEditWaiting;
+                    userRequest(RequestTypeBioUpdate);
+                    keyboard->clearText();
+                    keyboard.reset();
+                }
+            }
+            if (lastInput == InputKeyBack && event->type == InputTypeLong)
+            {
+                currentView = SocialViewProfile;
+                if (keyboard)
+                {
+                    keyboard->clearText();
+                    keyboard.reset();
+                }
+            }
+        }
+        else
+        {
+            switch (lastInput)
+            {
+            case InputKeyBack:
+                currentView = SocialViewProfile;
+                bioEditStatus = BioEditKeyboard;
+                break;
+            case InputKeyOk:
+                if (bioEditStatus == BioEditSuccess)
+                {
+                    // Reload user info so the profile shows the updated bio
+                    userInfoStatus = UserInfoWaiting;
+                    userRequest(RequestTypeUserInfo);
+                    currentView = SocialViewUserInfo;
+                }
+                else if (bioEditStatus == BioEditRequestError)
+                {
+                    bioEditStatus = BioEditKeyboard;
+                }
+                break;
+            default:
+                break;
+            };
+        }
         break;
     }
     case SocialViewComments:
@@ -2967,22 +3569,23 @@ void FlipSocialRun::updateInput(InputEvent *event)
         {
             if (keyboard)
             {
-                if (keyboard->handleInput(lastInput))
+                if (keyboard->handleInput(event))
                 {
                     FlipSocialApp *app = static_cast<FlipSocialApp *>(appContext);
                     app->saveChar("new_comment", keyboard->getText());
                     commentsStatus = CommentsSending;
                     userRequest(RequestTypeCommentPost);
+                    keyboard->clearText();
+                    keyboard.reset();
                 }
                 if (lastInput != InputKeyMAX)
                 {
-                    shouldDebounce = true;
                 }
             }
-            if (lastInput == InputKeyBack)
+            if (lastInput == InputKeyBack && event->type == InputTypeLong)
             {
                 commentsStatus = CommentsSuccess;
-                shouldDebounce = true;
+
                 if (keyboard)
                 {
                     keyboard->clearText();
@@ -2997,20 +3600,17 @@ void FlipSocialRun::updateInput(InputEvent *event)
             case InputKeyBack:
                 currentView = SocialViewFeed;
                 commentIsValid = false;
-                shouldDebounce = true;
                 break;
             case InputKeyLeft:
                 if (commentsIndex > 0)
                 {
                     commentsIndex--;
-                    shouldDebounce = true;
                 }
                 break;
             case InputKeyRight:
-                if (commentsIndex < (MAX_COMMENTS - 1))
+                if (commentsIndex < (currentCount - 1))
                 {
                     commentsIndex++;
-                    shouldDebounce = true;
                 }
                 break;
             case InputKeyDown:
@@ -3019,13 +3619,14 @@ void FlipSocialRun::updateInput(InputEvent *event)
                 if (!keyboard)
                 {
                     keyboard = std::make_unique<Keyboard>();
+                    this->loadKeyboardSuggestions();
                 }
                 if (keyboard)
                 {
                     keyboard->clearText();
                     keyboard->setText(""); // Start with empty text for reply
                 }
-                shouldDebounce = true;
+
                 break;
             case InputKeyOk:
                 // Flip the current comment
@@ -3033,7 +3634,7 @@ void FlipSocialRun::updateInput(InputEvent *event)
                 {
                     userRequest(RequestTypeCommentFlip);
                 }
-                shouldDebounce = true;
+
                 break;
             default:
                 break;
@@ -3049,7 +3650,6 @@ void FlipSocialRun::updateInput(InputEvent *event)
         {
             currentView = SocialViewLogin;
             shouldReturnToMenu = true;
-            shouldDebounce = true;
         }
         break;
     }
@@ -3088,6 +3688,14 @@ void FlipSocialRun::userRequest(RequestType requestType)
             break;
         case RequestTypeMessagesWithUser:
             messagesStatus = MessagesRequestError;
+            break;
+        case RequestTypeFriendFetch:
+        case RequestTypeFriendRemove:
+            friendStatus = FriendRequestError;
+            break;
+        case RequestTypeExplore:
+        case RequestTypeFriendAdd:
+            exploreStatus = ExploreRequestError;
             break;
         default:
             break;
@@ -3147,6 +3755,14 @@ void FlipSocialRun::userRequest(RequestType requestType)
         case RequestTypeMessagesWithUser:
             messagesStatus = MessagesRequestError;
             break;
+        case RequestTypeFriendFetch:
+        case RequestTypeFriendRemove:
+            friendStatus = FriendRequestError;
+            break;
+        case RequestTypeExplore:
+        case RequestTypeFriendAdd:
+            exploreStatus = ExploreRequestError;
+            break;
         default:
             FURI_LOG_E(TAG, "Unknown request type: %d", requestType);
             loginStatus = LoginRequestError;
@@ -3154,6 +3770,9 @@ void FlipSocialRun::userRequest(RequestType requestType)
             userInfoStatus = UserInfoRequestError;
             feedStatus = FeedRequestError;
             messageUsersStatus = MessageUsersRequestError;
+            messagesStatus = MessagesRequestError;
+            friendStatus = FriendRequestError;
+            exploreStatus = ExploreRequestError;
             break;
         }
         free(username);
@@ -3240,23 +3859,28 @@ void FlipSocialRun::userRequest(RequestType requestType)
     case RequestTypeFlipPost:
     {
         char *feedPostPayload = (char *)malloc(256);
-        if (!feedPostPayload)
+        char *authHeader = (char *)malloc(256);
+        if (!feedPostPayload || !authHeader)
         {
-            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for feedPostPayload");
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for feedPostPayload or authHeader");
             feedStatus = FeedRequestError;
             free(username);
             free(password);
             free(payload);
             if (feedPostPayload)
                 free(feedPostPayload);
+            if (authHeader)
+                free(authHeader);
             return;
         }
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
         snprintf(feedPostPayload, 256, "{\"username\":\"%s\",\"post_id\":\"%u\"}", username, feedItemID);
-        if (!app->httpRequestAsync("flip_post.txt", "https://www.jblanked.com/flipper/api/feed/flip/", POST, "{\"Content-Type\":\"application/json\"}", feedPostPayload))
+        if (!app->httpRequestAsync("flip_post.txt", "https://www.jblanked.com/flipper/api/feed/flip/", POST, authHeader, feedPostPayload))
         {
             feedStatus = FeedRequestError;
         }
         free(feedPostPayload);
+        free(authHeader);
         break;
     }
     case RequestTypeCommentFetch:
@@ -3290,21 +3914,28 @@ void FlipSocialRun::userRequest(RequestType requestType)
     case RequestTypeCommentFlip:
     {
         char *commentFlipPayload = (char *)malloc(256);
-        if (!commentFlipPayload)
+        char *authHeader = (char *)malloc(256);
+        if (!commentFlipPayload || !authHeader)
         {
-            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for commentFlipPayload");
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for commentFlipPayload or authHeader");
             feedStatus = FeedRequestError;
             free(username);
             free(password);
             free(payload);
+            if (commentFlipPayload)
+                free(commentFlipPayload);
+            if (authHeader)
+                free(authHeader);
             return;
         }
         snprintf(commentFlipPayload, 256, "{\"username\":\"%s\",\"post_id\":\"%u\"}", username, commentItemID);
-        if (!app->httpRequestAsync("flip_comment.txt", "https://www.jblanked.com/flipper/api/feed/flip/", POST, "{\"Content-Type\":\"application/json\"}", commentFlipPayload))
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
+        if (!app->httpRequestAsync("flip_comment.txt", "https://www.jblanked.com/flipper/api/feed/flip/", POST, authHeader, commentFlipPayload))
         {
             feedStatus = FeedRequestError;
         }
         free(commentFlipPayload);
+        free(authHeader);
         break;
     }
     case RequestTypeMessagesUserList:
@@ -3577,6 +4208,183 @@ void FlipSocialRun::userRequest(RequestType requestType)
         free(commentPost);
         break;
     }
+    case RequestTypeFriendAdd: // api/user/add-friend/
+    {
+        // payload:  username, password, friend
+        char *url = (char *)malloc(128);
+        char *authHeader = (char *)malloc(256);
+        char *friendUsername = (char *)malloc(MAX_USER_LENGTH);
+        char *friendPayload = (char *)malloc(256);
+        if (!url || !authHeader || !friendUsername || !friendPayload)
+        {
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for url, authHeader, friendUsername or friendPayload");
+            free(username);
+            free(password);
+            if (url)
+                free(url);
+            if (authHeader)
+            {
+                free(authHeader);
+            }
+            if (friendUsername)
+            {
+                free(friendUsername);
+            }
+            if (friendPayload)
+            {
+                free(friendPayload);
+            }
+            return;
+        }
+        if (!app->loadChar("friend_to_add", friendUsername, MAX_USER_LENGTH) || strlen(friendUsername) == 0 || strlen(friendUsername) > MAX_USER_LENGTH)
+        {
+            FURI_LOG_E(TAG, "Failed to load friend username");
+            free(username);
+            free(password);
+            free(url);
+            free(authHeader);
+            free(friendUsername);
+            free(friendPayload);
+            return;
+        }
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
+        snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/add-friend/");
+        snprintf(friendPayload, 256, "{\"username\":\"%s\",\"friend\":\"%s\"}", username, friendUsername);
+        if (!app->httpRequestAsync("add_friend.txt", url, POST, authHeader, friendPayload))
+        {
+            friendStatus = FriendRequestError;
+        }
+        free(url);
+        free(authHeader);
+        free(friendUsername);
+        free(friendPayload);
+        break;
+    }
+    case RequestTypeFriendRemove: // api/user/remove-friend/
+    {
+        // payload:  username, password, friend
+        char *url = (char *)malloc(128);
+        char *authHeader = (char *)malloc(256);
+        char *friendUsername = (char *)malloc(MAX_USER_LENGTH);
+        char *friendRemovePayload = (char *)malloc(256);
+        if (!url || !authHeader || !friendUsername || !friendRemovePayload)
+        {
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for url, authHeader, friendUsername or friendRemovePayload");
+            free(username);
+            free(password);
+            if (url)
+                free(url);
+            if (authHeader)
+            {
+                free(authHeader);
+            }
+            if (friendUsername)
+            {
+                free(friendUsername);
+            }
+            if (friendRemovePayload)
+            {
+                free(friendRemovePayload);
+            }
+            return;
+        }
+        if (!app->loadChar("friend_to_remove", friendUsername, MAX_USER_LENGTH) || strlen(friendUsername) == 0 || strlen(friendUsername) > MAX_USER_LENGTH)
+        {
+            FURI_LOG_E(TAG, "Failed to load friend username");
+            free(username);
+            free(password);
+            free(url);
+            free(authHeader);
+            free(friendUsername);
+            free(friendRemovePayload);
+            return;
+        }
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
+        snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/remove-friend/");
+        snprintf(friendRemovePayload, 256, "{\"username\":\"%s\",\"friend\":\"%s\"}", username, friendUsername);
+        if (!app->httpRequestAsync("remove_friend.txt", url, POST, authHeader, friendRemovePayload))
+        {
+            friendStatus = FriendRequestError;
+        }
+        free(url);
+        free(authHeader);
+        free(friendUsername);
+        free(friendRemovePayload);
+        break;
+    }
+    case RequestTypeFriendFetch: // api/user/friends/<str:username>/<int:max_results>/
+    {
+        char *url = (char *)malloc(128);
+        char *authHeader = (char *)malloc(256);
+        if (!url || !authHeader)
+        {
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for url or authHeader");
+            friendStatus = FriendRequestError;
+            free(username);
+            free(password);
+            if (url)
+                free(url);
+            if (authHeader)
+                free(authHeader);
+            return;
+        }
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
+        snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/friends/%s/%d/", username, MAX_FRIENDS);
+        if (!app->httpRequestAsync("friends.txt", url, GET, authHeader))
+        {
+            friendStatus = FriendRequestError;
+        }
+        free(url);
+        free(authHeader);
+        break;
+    }
+    case RequestTypeBioUpdate:
+    {
+        char *url = (char *)malloc(128);
+        char *authHeader = (char *)malloc(256);
+        char *bio = (char *)malloc(128);
+        char *payload = (char *)malloc(256);
+        if (!url || !authHeader || !bio || !payload)
+        {
+            FURI_LOG_E(TAG, "userRequest: Failed to allocate memory for url, authHeader, bio or payload");
+            bioEditStatus = BioEditRequestError;
+            free(username);
+            free(password);
+            if (url)
+                free(url);
+            if (authHeader)
+                free(authHeader);
+            if (bio)
+                free(bio);
+            if (payload)
+                free(payload);
+            return;
+        }
+        if (!app->loadChar("new_bio", bio, 128) || strlen(bio) == 0 || strlen(bio) > MAX_BIO_LENGTH)
+        {
+            FURI_LOG_E(TAG, "Failed to load new bio");
+            bioEditStatus = BioEditRequestError;
+            free(username);
+            free(password);
+            free(url);
+            free(authHeader);
+            free(bio);
+            free(payload);
+            return;
+        }
+        snprintf(authHeader, 256, "{\"Content-Type\":\"application/json\",\"Username\":\"%s\",\"Password\":\"%s\"}", username, password);
+        snprintf(url, 128, "https://www.jblanked.com/flipper/api/user/change-bio/");
+        snprintf(payload, 256, "{\"username\":\"%s\",\"bio\":\"%s\"}", username, bio);
+        if (!app->httpRequestAsync("update_bio.txt", url, POST, authHeader, payload))
+        {
+            bioEditStatus = BioEditRequestError;
+        }
+        free(url);
+        free(authHeader);
+        free(bio);
+        free(payload);
+        break;
+    }
     default:
         FURI_LOG_E(TAG, "Unknown request type: %d", requestType);
         loginStatus = LoginRequestError;
@@ -3586,6 +4394,8 @@ void FlipSocialRun::userRequest(RequestType requestType)
         messageUsersStatus = MessageUsersRequestError;
         messagesStatus = MessagesRequestError;
         commentsStatus = CommentsRequestError;
+        friendStatus = FriendRequestError;
+        exploreStatus = ExploreRequestError;
         free(username);
         free(password);
         free(payload);

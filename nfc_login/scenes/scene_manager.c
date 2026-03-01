@@ -10,9 +10,6 @@
 #include "../hid/nfc_login_hid.h"
 #include "../crypto/nfc_login_passcode.h"
 
-#ifndef HAS_BLE_HID_API
-    #define HAS_BLE_HID_API 0
-#endif
 
 static bool app_navigation_callback(void* context);
 static void app_file_browser_callback(void* context);
@@ -104,7 +101,7 @@ static bool app_navigation_callback(void* context) {
         if(app->scanning) {
             app->scanning = false;
             // Wait a bit for scan thread to exit HID operations
-            furi_delay_ms(100);
+            furi_delay_ms(SCENE_DELAY_MS);
             if(app->scan_thread) {
                 furi_thread_join(app->scan_thread);
                 furi_thread_free(app->scan_thread);
@@ -115,6 +112,8 @@ static bool app_navigation_callback(void* context) {
                 app->previous_usb_config = NULL;
             }
         }
+        // Save settings before exiting app
+        app_save_settings(app);
         view_dispatcher_stop(app->view_dispatcher);
         return true;
     } else if(app->current_view == ViewTextInput) {
@@ -170,6 +169,9 @@ static bool app_navigation_callback(void* context) {
                 deinitialize_hid_with_restore_and_mode(app->previous_usb_config, app->hid_mode);
                 app->previous_usb_config = NULL;
             }
+        }
+        if(app->widget_state == 4) {
+            app_save_settings(app);
         }
         app_switch_to_view(app, ViewSubmenu);
         return true;
@@ -317,6 +319,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
             } else if(app->enrollment_state != EnrollmentStateNone) {
                 app->enrollment_state = EnrollmentStateNone;
             } else if(app->widget_state == 4) {
+                app_save_settings(app);
                 app->widget_state = 0;
             }
             app_switch_to_view(app, ViewSubmenu);
@@ -391,9 +394,13 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     notification_message(app->notification, &sequence_success);
                     return true;
                 } else if(app->settings_menu_index == 5) {
-                    app->passcode_disabled = !app->passcode_disabled;
-                    app_save_settings(app);
-                    notification_message(app->notification, &sequence_success);
+                    bool current_state = get_passcode_disabled();
+                    if(set_passcode_disabled(!current_state)) {
+                        app_save_settings(app);
+                        notification_message(app->notification, &sequence_success);
+                    } else {
+                        notification_message(app->notification, &sequence_error);
+                    }
                     app_render_settings(app);
                     return true;
                 } else if(app->settings_menu_index == 6) {
@@ -445,13 +452,19 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     furi_record_close(RECORD_STORAGE);
 
                     if(layout_count < MAX_LAYOUTS) {
+                        // Shift existing layouts down by one
                         for(size_t i = layout_count; i > 0; i--) {
                             STRNCPY_SAFE(layouts[i], layouts[i-1], sizeof(layouts[0]));
                         }
+                        // Insert default layout at position 0
                         STRNCPY_SAFE(layouts[0], "en-US.kl", sizeof(layouts[0]));
                         layout_count++;
-                        if(current_index >= 0) current_index++;
-                        else if(strcmp(current_layout, "en-US.kl") == 0) current_index = 0;
+                        // Adjust current_index if needed
+                        if(current_index >= 0) {
+                            current_index++;
+                        } else if(strcmp(current_layout, "en-US.kl") == 0) {
+                            current_index = 0;
+                        }
                     }
 
                     if(layout_count > 0) {
@@ -485,9 +498,17 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     app_save_settings(app);
                     notification_message(app->notification, &sequence_success);
                 } else if(app->settings_menu_index == 3) {
-                    app->hid_mode = (app->hid_mode == HidModeUsb) ? HidModeBle : HidModeUsb;
+                    app->append_enter = !app->append_enter;
                     app_save_settings(app);
                     notification_message(app->notification, &sequence_success);
+                } else if(app->settings_menu_index == 5) {
+                    bool current_state = get_passcode_disabled();
+                    if(set_passcode_disabled(!current_state)) {
+                        app_save_settings(app);
+                        notification_message(app->notification, &sequence_success);
+                    } else {
+                        notification_message(app->notification, &sequence_error);
+                    }
                 }
             }
             app_render_settings(app);
@@ -731,6 +752,13 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
             }
         }
         if(app->widget_state == 2) {
+            if(event->key == InputKeyRight) {
+                // Allow import even when card list is empty
+                furi_string_set(app->fb_output_path, "/ext/nfc");
+                file_browser_start(app->file_browser, app->fb_output_path);
+                app_switch_to_view(app, ViewFileBrowser);
+                return true;
+            }
             if(app->card_count == 0) {
                 return true;
             }
@@ -738,11 +766,6 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                 app_navigate_card_list_up(app);
             } else if(event->key == InputKeyDown) {
                 app_navigate_card_list_down(app);
-            } else if(event->key == InputKeyRight) {
-                furi_string_set(app->fb_output_path, "/ext/nfc");
-                file_browser_start(app->file_browser, app->fb_output_path);
-                app_switch_to_view(app, ViewFileBrowser);
-                return true;
             } else if(event->key == InputKeyOk) {
                 app->has_active_selection = true;
                 app->active_card_index = app->selected_card;

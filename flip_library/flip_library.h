@@ -78,6 +78,7 @@ typedef struct
     VariableItemList *variable_item_list_wifi; // The variable item list (WiFi settings)
     VariableItem *variable_item_ssid;          // The variable item (SSID)
     VariableItem *variable_item_password;      // The variable item (password)
+    VariableItem *variable_item_temperature_unit; // The variable item for temperature unit
     TextInput *uart_text_input_ssid;      // The text input for the SSID
     TextInput *uart_text_input_password;  // The text input for the password
     TextInput *uart_text_input_query;     // The text input for querying information
@@ -96,6 +97,8 @@ typedef struct
     char *uart_text_input_temp_buffer_query;    // Temporary buffer for the text input (query)
     uint32_t uart_text_input_buffer_size_query; // Size of the text input buffer (query)
 } FlipLibraryApp;
+
+extern bool use_fahrenheit;
 
 // Function to free the resources used by FlipLibraryApp
 void flip_library_app_free(FlipLibraryApp *app);

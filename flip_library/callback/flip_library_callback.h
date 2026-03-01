@@ -61,6 +61,8 @@ void text_updated_ssid(void *context);
 
 void text_updated_password(void *context);
 
+void temperature_unit_change(VariableItem *item);
+
 void text_updated_query(void *context);
 
 uint32_t callback_to_submenu(void *context);

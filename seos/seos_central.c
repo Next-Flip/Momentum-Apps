@@ -56,7 +56,7 @@ void seos_central_stop(SeosCentral* seos_central) {
 void seos_central_notify(void* context, const uint8_t* buffer, size_t buffer_len) {
     SeosCentral* seos_central = (SeosCentral*)context;
     seos_log_buffer(TAG, "notify", (uint8_t*)buffer, buffer_len);
-    
+
     uint8_t flags = buffer[0];
 
     // Check for error flag
@@ -69,27 +69,28 @@ void seos_central_notify(void* context, const uint8_t* buffer, size_t buffer_len
     if((flags & BLE_FLAG_SOM) == BLE_FLAG_SOM) {
         bit_buffer_reset(seos_central->rx_buffer);
     } else {
-        if (bit_buffer_get_size_bytes(seos_central->rx_buffer) == 0) {
+        if(bit_buffer_get_size_bytes(seos_central->rx_buffer) == 0) {
             FURI_LOG_W(TAG, "Expected start of BLE packet");
             return;
         }
     }
 
     bit_buffer_append_bytes(seos_central->rx_buffer, buffer + 1, buffer_len - 1);
-    
+
     // Only parse if end-of-message flag found
     if((flags & BLE_FLAG_EOM) == BLE_FLAG_EOM) return;
 
     BitBuffer* response = bit_buffer_alloc(128);
 
     // Match name to nfc version for easier copying
-    const uint8_t *apdu = bit_buffer_get_data(seos_central->rx_buffer);
+    const uint8_t* apdu = bit_buffer_get_data(seos_central->rx_buffer);
     const size_t apdu_len = bit_buffer_get_size_bytes(seos_central->rx_buffer);
 
     if(memcmp(apdu, select_header, sizeof(select_header)) == 0) {
         if(memcmp(apdu + sizeof(select_header) + 1, standard_seos_aid, sizeof(standard_seos_aid)) ==
            0) {
-            seos_emulator_select_aid(response);
+            seos_emulator_select_aid(
+                response, apdu + sizeof(select_header) + 1, sizeof(standard_seos_aid));
             bit_buffer_append_bytes(response, (uint8_t*)success, sizeof(success));
             seos_central->phase = SELECT_ADF;
         } else {
@@ -178,12 +179,12 @@ void seos_central_notify(void* context, const uint8_t* buffer, size_t buffer_len
         const uint16_t size = bit_buffer_get_size_bytes(response);
 
         uint16_t num_chunks = size / BLE_CHUNK_SIZE;
-        if (size % BLE_CHUNK_SIZE) num_chunks++;
+        if(size % BLE_CHUNK_SIZE) num_chunks++;
 
-        for (uint16_t i=0; i<num_chunks; i++) {
+        for(uint16_t i = 0; i < num_chunks; i++) {
             uint8_t flags = 0;
-            if (i == 0) flags |= BLE_FLAG_SOM;
-            if (i == num_chunks-1) flags |= BLE_FLAG_EOM;
+            if(i == 0) flags |= BLE_FLAG_SOM;
+            if(i == num_chunks - 1) flags |= BLE_FLAG_EOM;
             // Add number of remaining chunks to lower nybble
             flags |= (num_chunks - 1 - i) & 0x0F;
 

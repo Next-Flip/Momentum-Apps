@@ -41,8 +41,9 @@ typedef struct
     Widget *widget_result;                    // The widget that displays the result
     Popup *popup_error;                       // The error popup
     VariableItemList *variable_item_list;     // The variable item list (settngs)
-    VariableItem *variable_item_ssid;         // The variable item
-    VariableItem *variable_item_password;     // The variable item
+    VariableItem *variable_item_ssid;              // The variable item
+    VariableItem *variable_item_password;          // The variable item
+    VariableItem *variable_item_temperature_unit;  // The variable item for temperature unit
     TextInput *uart_text_input_ssid;     // The text input
     TextInput *uart_text_input_password; // The text input
 
@@ -60,6 +61,7 @@ extern char lon_data[32];
 
 extern char *total_data;
 extern char *weather_data;
+extern bool use_fahrenheit;
 
 // Function to free the resources used by FlipWeatherApp
 void flip_weather_app_free(FlipWeatherApp *app);

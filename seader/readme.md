@@ -17,17 +17,19 @@ Or build it yourself from the files in the [NARD repo](https://github.com/killer
 
 Optionally 3d print a [case designed by Antiklesys](https://www.printables.com/model/576735-flipper-zero-samnard-protecting-cover).
 
-### Option 2: Flippermeister
+### Option 2: SAMAdams
+
+Buy it at [Red Team Tools](https://www.redteamtools.com/sam-adams-for-flipper-zero/)
+
+### Option 3: Flippermeister
 
 Buy it at [Red Team Tools](https://www.redteamtools.com/flippermeister/).
 
-### Option 3: Smart Card 2 Click
+### Option 4: Smart Card 2 Click
 
 Buy HID SAM:
  * [USA](https://www.cdw.com/product/hp-sim-for-hid-iclass-for-hip2-reader-security-sim/4854794)
- * [Europe](https://www.rfideas-shop.com/en/kt-sim-se-sim-card-hid-iclass-and-seos-for-sphip-r.html)
  * [Canada](https://www.pc-canada.com/item/hp-sim-for-hid-iclass-se-and-hid-iclass-seos-for-hip2-reader/y7c07a)
- * [eBay](https://www.ebay.com/p/4037642616)
 
 Put SAM into **[adapter](https://a.co/d/1E9Zk1h)** (because of chip on top) and plug into **Smart Card 2 Click** ([Mikroe](https://www.mikroe.com/smart-card-2-click) [digikey](https://www.digikey.com/en/products/detail/mikroelektronika/MIKROE-5492/20840872) with cheaper US shipping). Connect Smart Card 2 Click to Flipper Zero (See `Connections` below).
 

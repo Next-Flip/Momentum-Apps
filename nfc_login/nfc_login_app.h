@@ -23,9 +23,34 @@
 #include <nfc/protocols/iso14443_3a/iso14443_3a.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller_sync.h>
-#include <assets_icons.h>
+#if defined(__has_include)
+    #if __has_include(<nfc_login_icons.h>)
+        // Prefer app-specific icon pack when available (extapps / OFW)
+        #include <nfc_login_icons.h>
+    #elif __has_include(<assets_icons.h>)
+        // Fallback to firmware-wide assets (e.g. Momentum)
+        #include <assets_icons.h>
+    #else
+        #error "Icon assets header not found. Need nfc_login_icons.h (extapps) or assets_icons.h (Momentum)."
+    #endif
+#else
+    // Conservative fallback: expect extapp-generated header
+    #include <nfc_login_icons.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
+
+// Centralized BLE HID API availability check
+#undef HAS_BLE_HID_API
+#ifdef __has_include
+    #if __has_include(<extra_profiles/hid_profile.h>) && __has_include(<bt/bt_service/bt.h>)
+        #define HAS_BLE_HID_API 1
+    #else
+        #define HAS_BLE_HID_API 0
+    #endif
+#else
+    #define HAS_BLE_HID_API 0
+#endif
 
 #if !defined(HAS_MOMENTUM_SUPPORT)
     #ifdef __has_include
@@ -67,6 +92,12 @@
 #define HID_SETTLE_DELAY_MS 100
 #define HID_INIT_DELAY_MS 25
 #define CRYPTO_SETTLE_DELAY_MS 150
+#define BLE_DISCONNECT_DELAY_MS 300
+#define BLE_ADVERTISE_DELAY_MS 150
+#define BLE_DEINIT_DELAY_MS 200
+#define BLE_CONNECTION_RETRY_DELAY_MS 100
+#define PASSCODE_DELAY_MS 50
+#define SCENE_DELAY_MS 100
 #define STORAGE_READ_DELAY_MS 100
 #define HID_POST_CONNECT_DELAY_MS 1000
 #define HID_POST_TYPE_DELAY_MS 1000

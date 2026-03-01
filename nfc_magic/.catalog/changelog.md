@@ -1,3 +1,6 @@
+## 1.15
+- Returned possibility to write 7b MFC to Gen1 tags
+
 ## 1.14
  - Update for new API
 

@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ static uint8_t sensors_count = 0;
 bool unitemp_spi_sensor_alloc(Sensor* sensor, char* args) {
     if(args == NULL) return false;
 
-    //Создание инстанса датчика SPI
+    //Creating an SPI Sensor Instance
     SPISensor* instance = malloc(sizeof(SPISensor));
     if(instance == NULL) {
         FURI_LOG_E(APP_NAME, "Sensor %s instance allocation error", sensor->name);
@@ -33,7 +33,7 @@ bool unitemp_spi_sensor_alloc(Sensor* sensor, char* args) {
     }
     sensor->instance = instance;
 
-    //Определение GPIO chip select
+    //Definition GPIO chip select
     int gpio = 255;
     sscanf(args, "%d", &gpio);
     instance->CS_pin = unitemp_gpio_getFromInt(gpio);
@@ -50,7 +50,7 @@ bool unitemp_spi_sensor_alloc(Sensor* sensor, char* args) {
 
     bool status = sensor->type->allocator(sensor, args);
 
-    //Блокировка портов GPIO
+    //Blocking GPIO ports
     sensors_count++;
     unitemp_gpio_lock(unitemp_gpio_getFromInt(2), &SPI);
     unitemp_gpio_lock(unitemp_gpio_getFromInt(3), &SPI);

@@ -61,6 +61,7 @@ SchedulerApp* scheduler_app_alloc(void) {
         scheduler_run_view_get_view(app->run_view));
 
     app->scheduler = scheduler_alloc();
+    //Scheduler* scheduler = app->scheduler;
 
     scene_manager_next_scene(app->scene_manager, SchedulerSceneStart);
 

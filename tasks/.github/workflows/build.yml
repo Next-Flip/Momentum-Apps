@@ -36,7 +36,7 @@ jobs:
         with:
           sdk-channel: ${{ matrix.sdk-channel }}
       - name: Upload app artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           # See ufbt action docs for other output variables
           name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}

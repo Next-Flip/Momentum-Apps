@@ -45,7 +45,7 @@ void picopass_scene_emulate_update_ui(void* context) {
     Widget* widget = picopass->widget;
     widget_reset(widget);
     widget_add_icon_element(widget, 0, 3, &I_RFIDDolphinSend_97x61);
-    widget_add_string_element(widget, 92, 30, AlignCenter, AlignTop, FontPrimary, "Emulating");
+    widget_add_string_element(widget, 92, 25, AlignCenter, AlignTop, FontPrimary, "Emulating");
 
     // Reload credential data
     picopass_device_parse_credential(dev_data->card_data, pacs);
@@ -71,10 +71,14 @@ void picopass_scene_emulate_update_ui(void* context) {
             widget, 34, 55, AlignLeft, AlignTop, FontSecondary, "Touch flipper to reader");
     } else {
         FuriString* desc = furi_string_alloc();
-        furi_string_printf(desc, "FC:%lu CN:%llu", card.FacilityCode, card.CardNumber);
 
+        furi_string_printf(desc, "FC:%lu", card.FacilityCode);
         widget_add_string_element(
-            widget, 92, 40, AlignCenter, AlignTop, FontSecondary, furi_string_get_cstr(desc));
+            widget, 92, 35, AlignCenter, AlignTop, FontSecondary, furi_string_get_cstr(desc));
+
+        furi_string_printf(desc, "CN:%llu", card.CardNumber);
+        widget_add_string_element(
+            widget, 92, 50, AlignCenter, AlignBottom, FontSecondary, furi_string_get_cstr(desc));
         furi_string_free(desc);
 
         widget_add_button_element(

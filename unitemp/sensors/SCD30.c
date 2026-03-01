@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
     Contributed by divinebird (https://github.com/divinebird)
 
     This program is free software: you can redistribute it and/or modify
@@ -29,6 +29,12 @@ typedef union {
     uint8_t array8[4];
     float value;
 } ByteToFl;
+
+bool unitemp_SCD30_alloc(Sensor* sensor, char* args);
+bool unitemp_SCD30_init(Sensor* sensor);
+bool unitemp_SCD30_deinit(Sensor* sensor);
+UnitempStatus unitemp_SCD30_update(Sensor* sensor);
+bool unitemp_SCD30_free(Sensor* sensor);
 
 const SensorType SCD30 = {
     .typename = "SCD30",
@@ -91,7 +97,7 @@ bool unitemp_SCD30_alloc(Sensor* sensor, char* args) {
 }
 
 bool unitemp_SCD30_free(Sensor* sensor) {
-    //Нечего высвобождать, так как ничего не было выделено
+    //Nothing to release since nothing was allocated
     UNUSED(sensor);
     return true;
 }
@@ -235,7 +241,7 @@ static bool readMeasurement(Sensor* sensor) {
     uint8_t* bytes = buff;
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
     if(!unitemp_i2c_readArray(i2c_sensor, respSize, bytes)) {
-        FURI_LOG_E(APP_NAME, "Error while read measures");
+        FURI_LOG_E(APP_NAME, "Error while read measures from SCD30");
         return false;
     }
 
