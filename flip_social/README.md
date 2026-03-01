@@ -19,6 +19,7 @@ The highlight of this app is customizable pre-saves, which, as explained below, 
 - Feed (with comments, flipping, and posting)
 - Profile
 - Customizable Pre-Saves
+- AutoComplete keyboard
 - Explore 
 - Friends 
 - Direct Messaging 

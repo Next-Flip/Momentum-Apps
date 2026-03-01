@@ -2,11 +2,12 @@
 
 #include <stddef.h>
 #include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <ctype.h>
 #include <stdint.h>
+
+#include "auto_complete_config.h"
 
 #define MAX_WORD_LENGTH 32
 #define MAX_SUGGESTIONS 10
@@ -30,6 +31,11 @@ extern "C"
         char **suggestions;
         uint8_t suggestion_count;
     } AutoComplete;
+
+#if defined(STORAGE_INCLUDE) && defined(STORAGE_READ)
+#include STORAGE_INCLUDE
+    bool auto_complete_add_dictionary(AutoComplete *context, const char *filename);
+#endif
 
     bool auto_complete_add_word(AutoComplete *context, const char *word);
     void auto_complete_free(AutoComplete *context);
