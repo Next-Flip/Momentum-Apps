@@ -20,7 +20,7 @@ typedef enum {
 #define SHOW_STOPSCAN_TIP (true)
 #define NO_TIP            (false)
 
-#define MAX_OPTIONS (15)
+#define MAX_OPTIONS (16)
 typedef struct {
     const char* item_string;
     const char* options_menu[MAX_OPTIONS];
@@ -97,19 +97,21 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
       "funny",
       "badmsg",
       "sleep",
+      "sae flood",
       "sour apple",
       "swiftpair spam",
       "samsung spam",
       "google spam",
       "flipper spam",
       "bt spam all"},
-     12,
+     13,
      {"attack -t deauth",
       "attack -t probe",
       "attack -t rickroll",
       "attack -t funny",
       "attack -t badmsg",
       "attack -t sleep",
+      "attack -t sae",
       "blespam -t apple",
       "blespam -t windows",
       "blespam -t samsung",
@@ -127,9 +129,9 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
      FOCUS_CONSOLE_END,
      NO_TIP},
     {"Wardrive",
-     {"ap", "station", "flock", "bt", "bt cont"},
-     5,
-     {"wardrive", "wardrive -s", "wardrive -f", "btwardrive", "btwardrive -c"},
+     {"ap", "station", "flock", "bt"},
+     4,
+     {"wardrive", "wardrive -s", "wardrive -f", "btwardrive"},
      NO_ARGS,
      FOCUS_CONSOLE_END,
      SHOW_STOPSCAN_TIP},
@@ -184,8 +186,8 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
      FOCUS_CONSOLE_END,
      SHOW_STOPSCAN_TIP},
     {"Sniff",
-     {"beacon", "deauth", "pmkid", "probe", "pwn", "raw", "bt", "skim", "airtag", "flipper", "flock", "mactrack", "packetcount", "pineapple", "multissid"},
-     15,
+     {"beacon", "deauth", "pmkid", "probe", "pwn", "raw", "bt", "skim", "airtag", "flipper", "flock", "mactrack", "packetcount", "pineapple", "multissid", "sae"},
+     16,
      {"sniffbeacon",
       "sniffdeauth",
       "sniffpmkid",
@@ -200,7 +202,8 @@ const WifiMarauderItem items[NUM_MENU_ITEMS] = {
       "mactrack",
       "packetcount",
       "sniffpinescan",
-      "sniffmultissid"},
+      "sniffmultissid",
+      "sniffsae"},
      NO_ARGS,
      FOCUS_CONSOLE_END,
      SHOW_STOPSCAN_TIP},
