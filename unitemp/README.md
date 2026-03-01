@@ -1,9 +1,9 @@
 ![Flipper usage](https://user-images.githubusercontent.com/10090793/211182642-e41919c5-3091-4125-815a-2d6a77a859f6.png)
 
 # Unitemp - Universal temperature sensor reader
-
-[![Build dev](https://github.com/MLAB-project/unitemp-flipperzero/actions/workflows/build_dev.yml/badge.svg)](https://github.com/MLAB-project/unitemp-flipperzero/actions/workflows/build_dev.yml) 
-[![GitHub release](https://img.shields.io/github/release/MLAB-project/unitemp-flipperzero?include_prereleases=&sort=semver&color=blue)](https://github.com/MLAB-project/unitemp-flipperzero/releases)
+[![GitHub release](https://img.shields.io/github/release/quen0n/unitemp-flipperzero?include_prereleases=&sort=semver&color=blue)](https://github.com/quen0n/unitemp-flipperzero/releases/)
+[![GitHub](https://img.shields.io/github/license/quen0n/unitemp-flipperzero)](https://github.com/quen0n/unitemp-flipperzero/blob/dev/LICENSE.md)
+[![Build release](https://github.com/quen0n/unitemp-flipperzero/actions/workflows/build_release.yml/badge.svg?branch=master)](https://github.com/quen0n/unitemp-flipperzero/actions/workflows/build_release.yml)  
 
 [Flipper Zero](https://flipperzero.one/) application for reading temperature, humidity, CO2 and pressure sensors like a DHT11/22, DS18B20, BMP280, HTU21, and more. 
 
@@ -44,11 +44,6 @@
 ## Installation
 
 Download and install from the application catalog https://lab.flipper.net/apps/unitemp or the mobile application  
-...or install the application manually:
-1) Download [latest release](https://github.com/MLAB-project/unitemp-flipperzero/releases)
-2) Copy `unitemp-latest.fap` to `SD card/apps/GPIO` with qFlipper or mobile application
-3) Open the application on your Flipper: `Applications->GPIO->Temp sensors reader`  
-Note: If you get the message "API version mismatch" after updating the firmware, download and install Unitemp again
 
 ### Compilation 
 
@@ -61,6 +56,9 @@ Use the [ufbt](https://github.com/flipperdevices/flipperzero-ufbt) to compile an
 
 Join the discussion, ask a question, or just send a photo of the flipper with sensors to [Discord](https://discord.com/channels/740930220399525928/1056727938747351060). [Invite link](https://discord.com/invite/flipper)
 
+##Gratitudes
+Thanks to @Svaarich for the UI design and to the Unleashed firmware community for sensors testing and feedbacks. Many thanks to [xMasterX](https://github.com/xMasterX) for their help and support.
+
 ## Some community photos
 
 ![image](https://user-images.githubusercontent.com/10090793/210120132-7ddbc937-0a6b-4472-bd1c-7fbc3ecdf2ad.png)
@@ -68,7 +66,3 @@ Join the discussion, ask a question, or just send a photo of the flipper with se
 ![image](https://user-images.githubusercontent.com/10090793/210120143-a2bae3ce-4190-421f-8c4f-c7c744903bd6.png)
 ![image](https://user-images.githubusercontent.com/10090793/215224085-8099408e-b3de-4a0c-854e-fe4e4faa8ea3.png)
 
-## Acknowledgement
-
-Thanks to [@Svaarich](https://github.com/Svaarich) for the UI design and to the Unleashed firmware community for sensor testing and feedback.
-Thanks to Victor Nikitchuk [@quen0n](https://github.com/quen0n) for coding and maintenance of the initial version of the unitemp application. 

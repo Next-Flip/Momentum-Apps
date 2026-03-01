@@ -47,13 +47,13 @@ inline static uint32_t load32(uint8_t *b) {
 # error "What kind of system is this?"
 #endif
 
-#define load16_le(b)     (le16toh(load16(b)))
-#define load32_le(b)     (le32toh(load32(b)))
+#define load16_le(b) (le16toh(load16(b)))
+#define load32_le(b) (le32toh(load32(b)))
 #define store16_le(b, i) (store16(b, htole16(i)))
 #define store32_le(b, i) (store32(b, htole32(i)))
 
-#define load16_be(b)     (be16toh(load16(b)))
-#define load32_be(b)     (be32toh(load32(b)))
+#define load16_be(b) (be16toh(load16(b)))
+#define load32_be(b) (be32toh(load32(b)))
 #define store16_be(b, i) (store16(b, htobe16(i)))
 #define store32_be(b, i) (store32(b, htobe32(i)))
 

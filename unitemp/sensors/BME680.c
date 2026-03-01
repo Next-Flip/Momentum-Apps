@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
     Contributed by g0gg0 (https://github.com/g3gg0)
 
     This program is free software: you can redistribute it and/or modify
@@ -37,43 +37,43 @@ const SensorType BME680 = {
 #define BME680_I2C_ADDR_MIN (0x76 << 1)
 #define BME680_I2C_ADDR_MAX (0x77 << 1)
 
-#define BME680_REG_STATUS 0x1D
-#define BME680_REG_CTRL_MEAS 0x74
-#define BME680_REG_CONFIG 0x75
-#define BME680_REG_CTRL_HUM 0x72
+#define BME680_REG_STATUS              0x1D
+#define BME680_REG_CTRL_MEAS           0x74
+#define BME680_REG_CONFIG              0x75
+#define BME680_REG_CTRL_HUM            0x72
 //Temperature presampling
-#define BME680_TEMP_OVERSAMPLING_SKIP 0b00000000
-#define BME680_TEMP_OVERSAMPLING_1 0b00100000
-#define BME680_TEMP_OVERSAMPLING_2 0b01000000
-#define BME680_TEMP_OVERSAMPLING_4 0b01100000
-#define BME680_TEMP_OVERSAMPLING_8 0b10000000
-#define BME680_TEMP_OVERSAMPLING_16 0b10100000
+#define BME680_TEMP_OVERSAMPLING_SKIP  0b00000000
+#define BME680_TEMP_OVERSAMPLING_1     0b00100000
+#define BME680_TEMP_OVERSAMPLING_2     0b01000000
+#define BME680_TEMP_OVERSAMPLING_4     0b01100000
+#define BME680_TEMP_OVERSAMPLING_8     0b10000000
+#define BME680_TEMP_OVERSAMPLING_16    0b10100000
 //Pressure presampling
 #define BME680_PRESS_OVERSAMPLING_SKIP 0b00000000
-#define BME680_PRESS_OVERSAMPLING_1 0b00000100
-#define BME680_PRESS_OVERSAMPLING_2 0b00001000
-#define BME680_PRESS_OVERSAMPLING_4 0b00001100
-#define BME680_PRESS_OVERSAMPLING_8 0b00010000
-#define BME680_PRESS_OVERSAMPLING_16 0b00010100
+#define BME680_PRESS_OVERSAMPLING_1    0b00000100
+#define BME680_PRESS_OVERSAMPLING_2    0b00001000
+#define BME680_PRESS_OVERSAMPLING_4    0b00001100
+#define BME680_PRESS_OVERSAMPLING_8    0b00010000
+#define BME680_PRESS_OVERSAMPLING_16   0b00010100
 //Humidity presampling
-#define BME680_HUM_OVERSAMPLING_SKIP 0b00000000
-#define BME680_HUM_OVERSAMPLING_1 0b00000001
-#define BME680_HUM_OVERSAMPLING_2 0b00000010
-#define BME680_HUM_OVERSAMPLING_4 0b00000011
-#define BME680_HUM_OVERSAMPLING_8 0b00000100
-#define BME680_HUM_OVERSAMPLING_16 0b00000101
+#define BME680_HUM_OVERSAMPLING_SKIP   0b00000000
+#define BME680_HUM_OVERSAMPLING_1      0b00000001
+#define BME680_HUM_OVERSAMPLING_2      0b00000010
+#define BME680_HUM_OVERSAMPLING_4      0b00000011
+#define BME680_HUM_OVERSAMPLING_8      0b00000100
+#define BME680_HUM_OVERSAMPLING_16     0b00000101
 //Sensor operating modes
-#define BME680_MODE_SLEEP 0b00000000 //He's full and sleeping
-#define BME680_MODE_FORCED 0b00000001 //Updates values ​​1 time, after which it goes to sleep
+#define BME680_MODE_SLEEP              0b00000000 //He's full and sleeping
+#define BME680_MODE_FORCED             0b00000001 //Updates values ​​1 time, after which it goes to sleep
 //Value filter factor
-#define BME680_FILTER_COEFF_1 0b00000000
-#define BME680_FILTER_COEFF_2 0b00000100
-#define BME680_FILTER_COEFF_4 0b00001000
-#define BME680_FILTER_COEFF_8 0b00001100
-#define BME680_FILTER_COEFF_16 0b00010000
+#define BME680_FILTER_COEFF_1          0b00000000
+#define BME680_FILTER_COEFF_2          0b00000100
+#define BME680_FILTER_COEFF_4          0b00001000
+#define BME680_FILTER_COEFF_8          0b00001100
+#define BME680_FILTER_COEFF_16         0b00010000
 //Allow operation via SPI
-#define BME680_SPI_3W_ENABLE 0b00000001
-#define BME680_SPI_3W_DISABLE 0b00000000
+#define BME680_SPI_3W_ENABLE           0b00000001
+#define BME680_SPI_3W_DISABLE          0b00000000
 
 /* https://github.com/boschsensortec/BME680_driver/blob/master/bme680.c or
    https://github.com/boschsensortec/BME68x-Sensor-API */
