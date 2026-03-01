@@ -11,6 +11,7 @@ extern bool got_weather_data;
 
 void flip_weather_view_draw_callback_weather(Canvas *canvas, void *model);
 void flip_weather_view_draw_callback_gps(Canvas *canvas, void *model);
+void temperature_unit_change(VariableItem *item);
 void callback_submenu_choices(void *context, uint32_t index);
 void text_updated_ssid(void *context);
 void text_updated_password(void *context);
