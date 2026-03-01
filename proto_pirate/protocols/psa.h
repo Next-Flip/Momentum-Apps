@@ -10,6 +10,8 @@
 #include <lib/toolbox/manchester_decoder.h>
 #include <flipper_format/flipper_format.h>
 
+#include "../defines.h"
+
 #define PSA_PROTOCOL_NAME "PSA"
 
 typedef struct SubGhzProtocolDecoderPSA SubGhzProtocolDecoderPSA;
@@ -38,4 +40,3 @@ SubGhzProtocolStatus
     subghz_protocol_encoder_psa_deserialize(void* context, FlipperFormat* flipper_format);
 void subghz_protocol_encoder_psa_stop(void* context);
 LevelDuration subghz_protocol_encoder_psa_yield(void* context);
-

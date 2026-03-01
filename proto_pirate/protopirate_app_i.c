@@ -9,7 +9,7 @@ void protopirate_preset_init(
     uint32_t frequency,
     uint8_t* preset_data,
     size_t preset_data_size) {
-    furi_assert(context);
+    furi_check(context);
     ProtoPirateApp* app = context;
     furi_string_set(app->txrx->preset->name, preset_name);
     app->txrx->preset->frequency = frequency;
@@ -17,37 +17,38 @@ void protopirate_preset_init(
     app->txrx->preset->data_size = preset_data_size;
 }
 
-bool protopirate_set_preset(ProtoPirateApp* app, const char* preset) {
-    if(!strcmp(preset, "FuriHalSubGhzPresetOok270Async")) {
-        furi_string_set(app->txrx->preset->name, "AM270");
-    } else if(!strcmp(preset, "FuriHalSubGhzPresetOok650Async")) {
-        furi_string_set(app->txrx->preset->name, "AM650");
-    } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev238Async")) {
-        furi_string_set(app->txrx->preset->name, "FM238");
-    } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev12KAsync")) {
-        furi_string_set(app->txrx->preset->name, "FM12K");
-    } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev476Async")) {
-        furi_string_set(app->txrx->preset->name, "FM476");
-    } else if(!strcmp(preset, "FuriHalSubGhzPresetCustom")) {
-        furi_string_set(app->txrx->preset->name, "CUSTOM");
-    } else {
-        FURI_LOG_E(TAG, "Unknown preset");
-        return false;
-    }
-    return true;
+// Convert full FuriHal preset name to short name used by settings
+const char* preset_name_to_short(const char* preset_name) {
+    if(!preset_name) return "AM650";
+
+    // Check for full FuriHal names
+    if(strstr(preset_name, "Ook650") || strstr(preset_name, "OOK650")) return "AM650";
+    if(strstr(preset_name, "Ook270") || strstr(preset_name, "OOK270")) return "AM270";
+    if(strstr(preset_name, "2FSKDev238") || strstr(preset_name, "Dev238")) return "FM238";
+    if(strstr(preset_name, "2FSKDev12K") || strstr(preset_name, "Dev12K")) return "FM12K";
+    if(strstr(preset_name, "2FSKDev476") || strstr(preset_name, "Dev476")) return "FM476";
+
+    // Check for short names already
+    if(strcmp(preset_name, "AM650") == 0) return "AM650";
+    if(strcmp(preset_name, "AM270") == 0) return "AM270";
+    if(strcmp(preset_name, "FM238") == 0) return "FM238";
+    if(strcmp(preset_name, "FM12K") == 0) return "FM12K";
+    if(strcmp(preset_name, "FM476") == 0) return "FM476";
+    if(strcmp(preset_name, "FuriHalSubGhzPresetCustom") == 0) return "Custom";
+
+    // Default fallback
+    return "AM650";
 }
 
 void protopirate_get_frequency_modulation(
     ProtoPirateApp* app,
     FuriString* frequency,
     FuriString* modulation) {
-    furi_assert(app);
+    furi_check(app);
     if(frequency != NULL) {
-        furi_string_printf(
-            frequency,
-            "%03ld.%02ld",
-            app->txrx->preset->frequency / 1000000 % 1000,
-            app->txrx->preset->frequency / 10000 % 100);
+        unsigned long mhz = (unsigned long)((app->txrx->preset->frequency / 1000000UL) % 1000UL);
+        unsigned long khz = (unsigned long)((app->txrx->preset->frequency / 10000UL) % 100UL);
+        furi_string_printf(frequency, "%03lu.%02lu", mhz, khz);
     }
     if(modulation != NULL) {
         furi_string_printf(modulation, "%.2s", furi_string_get_cstr(app->txrx->preset->name));
@@ -55,7 +56,7 @@ void protopirate_get_frequency_modulation(
 }
 
 void protopirate_begin(ProtoPirateApp* app, uint8_t* preset_data) {
-    furi_assert(app);
+    furi_check(app);
     subghz_devices_reset(app->txrx->radio_device);
     subghz_devices_idle(app->txrx->radio_device);
     subghz_devices_load_preset(app->txrx->radio_device, FuriHalSubGhzPresetCustom, preset_data);
@@ -63,11 +64,16 @@ void protopirate_begin(ProtoPirateApp* app, uint8_t* preset_data) {
 }
 
 uint32_t protopirate_rx(ProtoPirateApp* app, uint32_t frequency) {
-    furi_assert(app);
+    furi_check(app);
+    furi_check(app->txrx);
+    furi_check(app->radio_initialized);
+    furi_check(app->txrx->radio_device);
+    furi_check(app->txrx->worker);
+
     if(!subghz_devices_is_frequency_valid(app->txrx->radio_device, frequency)) {
         furi_crash("ProtoPirate: Incorrect RX frequency.");
     }
-    furi_assert(
+    furi_check(
         app->txrx->txrx_state != ProtoPirateTxRxStateRx &&
         app->txrx->txrx_state != ProtoPirateTxRxStateSleep);
 
@@ -85,15 +91,15 @@ uint32_t protopirate_rx(ProtoPirateApp* app, uint32_t frequency) {
 }
 
 void protopirate_idle(ProtoPirateApp* app) {
-    furi_assert(app);
-    furi_assert(app->txrx->txrx_state != ProtoPirateTxRxStateSleep);
+    furi_check(app);
+    furi_check(app->txrx->txrx_state != ProtoPirateTxRxStateSleep);
     subghz_devices_idle(app->txrx->radio_device);
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
 }
 
 void protopirate_rx_end(ProtoPirateApp* app) {
-    furi_assert(app);
-    furi_assert(app->txrx->txrx_state == ProtoPirateTxRxStateRx);
+    furi_check(app);
+    furi_check(app->txrx->txrx_state == ProtoPirateTxRxStateRx);
     if(subghz_worker_is_running(app->txrx->worker)) {
         subghz_worker_stop(app->txrx->worker);
         subghz_devices_stop_async_rx(app->txrx->radio_device);
@@ -103,13 +109,13 @@ void protopirate_rx_end(ProtoPirateApp* app) {
 }
 
 void protopirate_sleep(ProtoPirateApp* app) {
-    furi_assert(app);
+    furi_check(app);
     subghz_devices_sleep(app->txrx->radio_device);
     app->txrx->txrx_state = ProtoPirateTxRxStateSleep;
 }
 
 void protopirate_hopper_update(ProtoPirateApp* app) {
-    furi_assert(app);
+    furi_check(app);
 
     switch(app->txrx->hopper_state) {
     case ProtoPirateHopperStateOFF:
@@ -156,12 +162,12 @@ void protopirate_hopper_update(ProtoPirateApp* app) {
 }
 
 void protopirate_tx(ProtoPirateApp* app, uint32_t frequency) {
-    furi_assert(app);
+    furi_check(app);
     if(!subghz_devices_is_frequency_valid(app->txrx->radio_device, frequency)) {
         return;
     }
 
-    furi_assert(app->txrx->txrx_state == ProtoPirateTxRxStateIDLE);
+    furi_check(app->txrx->txrx_state == ProtoPirateTxRxStateIDLE);
 
     subghz_devices_idle(app->txrx->radio_device);
     subghz_devices_set_frequency(app->txrx->radio_device, frequency);
@@ -171,8 +177,8 @@ void protopirate_tx(ProtoPirateApp* app, uint32_t frequency) {
 }
 
 void protopirate_tx_stop(ProtoPirateApp* app) {
-    furi_assert(app);
-    furi_assert(app->txrx->txrx_state == ProtoPirateTxRxStateTx);
+    furi_check(app);
+    furi_check(app->txrx->txrx_state == ProtoPirateTxRxStateTx);
 
     subghz_devices_idle(app->txrx->radio_device);
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
