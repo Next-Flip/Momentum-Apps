@@ -17,11 +17,15 @@ Or build it yourself from the files in the [NARD repo](https://github.com/killer
 
 Optionally 3d print a [case designed by Antiklesys](https://www.printables.com/model/576735-flipper-zero-samnard-protecting-cover).
 
-### Option 2: Flippermeister
+### Option 2: SAMAdams
+
+Buy it at [Red Team Tools](https://www.redteamtools.com/sam-adams-for-flipper-zero/)
+
+### Option 3: Flippermeister
 
 Buy it at [Red Team Tools](https://www.redteamtools.com/flippermeister/).
 
-### Option 3: Smart Card 2 Click
+### Option 4: Smart Card 2 Click
 
 Buy HID SAM:
  * [USA](https://www.cdw.com/product/hp-sim-for-hid-iclass-for-hip2-reader-security-sim/4854794)
