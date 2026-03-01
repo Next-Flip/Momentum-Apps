@@ -1,0 +1,41 @@
+# Flipper Application Catalog Manifest
+# This file should be submitted to: https://github.com/flipperdevices/flipper-application-catalog
+# Location in catalog repo: applications/Tools/flipper_wedge/manifest.yml
+
+id: flipper_wedge
+name: "Flipper Wedge"
+version: "1.0"
+category: "Tools"
+
+# Short description (plain text, no markdown)
+short_description: "Read RFID/NFC tags and type UIDs as HID keyboard input via USB or Bluetooth. Supports NDEF text records. Inspired by the Dangerous Things KBR1"
+
+# Full description - references README.md
+description: "@README.md"
+
+# Changelog - references the changelog file
+changelog: "@docs/changelog.md"
+
+# Author information
+author: "Dangerous Things"
+
+# Source code location
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/DangerousThings/flipper-wedge.git
+    commit_sha: 43a75108fd2ad50d6817299a87fc21cee0000e5b
+
+# App icon (10x10px 1-bit PNG)
+icon: "icons/flipper_wedge_10px.png"
+
+# Screenshots (REQUIRED - must be taken with qFlipper)
+# NOTE: You need to create these screenshots before submission!
+# See instructions below.
+screenshots:
+  - './screenshots/01_nfc_scanning.png'
+  - './screenshots/02_rfid_scanning.png'
+  - './screenshots/03_ndef_scanning.png'
+  - './screenshots/04_rfid+nfc.png'
+  - './screenshots/05_nfc+rfid.png'
+  - './screenshots/06_settings.png'
