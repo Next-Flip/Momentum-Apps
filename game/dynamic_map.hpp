@@ -216,6 +216,7 @@ public:
     void render(float view_height, Draw *const canvas, Vector player_pos, Vector player_dir, Vector player_plane) const
     {
         // render walls using existing raycasting
+        Vector _pixel = Vector(0, 0);
         for (uint8_t x = 0; x < 128; x += 2) // SCREEN_WIDTH with RES_DIVIDER
         {
             float camera_x = 2 * (float)x / 128 - 1; // SCREEN_WIDTH
@@ -336,11 +337,14 @@ public:
                     for (int i = 0; i < dots; i++)
                     {
                         // Draw the outline pixels
-                        canvas->drawPixel(Vector(x, start_y + i), ColorBlack);
+                        _pixel.x = x;
+                        _pixel.y = start_y + i;
+                        canvas->drawPixel(_pixel, ColorBlack);
                         // Fill in the wall by drawing additional pixels to the right
                         if (x + 1 < 128) // Make sure we don't go out of bounds
                         {
-                            canvas->drawPixel(Vector(x + 1, start_y + i), ColorBlack);
+                            _pixel.x = x + 1;
+                            canvas->drawPixel(_pixel, ColorBlack);
                         }
                     }
                 }
@@ -349,7 +353,9 @@ public:
                     // draw the outline
                     for (int i = 0; i < dots; i++)
                     {
-                        canvas->drawPixel(Vector(x, start_y + i), ColorBlack);
+                        _pixel.x = x;
+                        _pixel.y = start_y + i;
+                        canvas->drawPixel(_pixel, ColorBlack);
                     }
                 }
             }

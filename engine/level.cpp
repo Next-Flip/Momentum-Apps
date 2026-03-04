@@ -218,9 +218,8 @@ void Level::render(Game *game, CameraPerspective perspective, const CameraParams
             }
             Vector normalized_dir = Vector(player->direction.x / dir_length, player->direction.y / dir_length);
 
-            calculated_camera_params.position = Vector(
-                player->position.x - normalized_dir.x * camera_distance,
-                player->position.y - normalized_dir.y * camera_distance);
+            calculated_camera_params.position.x = player->position.x - normalized_dir.x * camera_distance;
+            calculated_camera_params.position.y = player->position.y - normalized_dir.y * camera_distance;
             calculated_camera_params.direction = normalized_dir;
             calculated_camera_params.plane = player->plane;
             calculated_camera_params.height = 1.6f;

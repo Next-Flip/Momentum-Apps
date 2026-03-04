@@ -50,6 +50,8 @@ void Loading::drawSpinner()
 
     int startAngle = spinnerPosition;
     // draw only along the circle edge as short line‐segments
+    Vector _pos = {0, 0};
+    Vector _size = {0, 0};
     for (int offset = 0; offset < span; offset += step)
     {
         int angle = (startAngle + offset) % 360;
@@ -57,18 +59,20 @@ void Loading::drawSpinner()
         float rad = PI / 180.0f;
 
         // compute two successive points on the circumference
-        int x1 = centerX + int(radius * cos(angle * rad));
-        int y1 = centerY + int(radius * sin(angle * rad));
-        int x2 = centerX + int(radius * cos(nextAngle * rad));
-        int y2 = centerY + int(radius * sin(nextAngle * rad));
+        _pos.x = centerX + int(radius * cos(angle * rad));
+        _pos.y = centerY + int(radius * sin(angle * rad));
+        _size.x = centerX + int(radius * cos(nextAngle * rad));
+        _size.y = centerY + int(radius * sin(nextAngle * rad));
 
         // draw just the edge segment
-        draw->drawLine(Vector(x1, y1), Vector(x2, y2), ColorBlack);
+        draw->drawLine(_pos, _size, ColorBlack);
     }
 
     // draw time elapsed in milliseconds
     draw->setFontCustom(FONT_SIZE_SMALL);
-    draw->text(Vector(0, 60), "Time Elapsed:", ColorBlack);
+    _pos.x = 0;
+    _pos.y = 60;
+    draw->text(_pos, "Time Elapsed:", ColorBlack);
     char timeStr[16];
     int seconds = timeElapsed / 10000;
     if (seconds < 60)
@@ -81,13 +85,17 @@ void Loading::drawSpinner()
         {
             snprintf(timeStr, sizeof(timeStr), "%u seconds", seconds);
         }
-        draw->text(Vector(90, 60), timeStr, ColorBlack);
+        _pos.x = 90;
+        _pos.y = 60;
+        draw->text(_pos, timeStr, ColorBlack);
     }
     else
     {
         uint32_t minutes = seconds / 60;
         uint32_t remainingSeconds = seconds % 60;
         snprintf(timeStr, sizeof(timeStr), "%lu:%02lu", (unsigned long)minutes, (unsigned long)remainingSeconds);
-        draw->text(Vector(105, 60), timeStr, ColorBlack);
+        _pos.x = 105;
+        _pos.y = 60;
+        draw->text(_pos, timeStr, ColorBlack);
     }
 }

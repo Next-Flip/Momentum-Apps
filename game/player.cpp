@@ -436,6 +436,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
 void Player::drawRainEffect(Draw *canvas)
 {
     // rain droplets/star droplets effect
+    Vector _pixel = Vector(0, 0);
     for (int i = 0; i < 8; i++)
     {
         // Use pseudo-random offsets based on frame and droplet index
@@ -444,11 +445,18 @@ void Player::drawRainEffect(Draw *canvas)
         uint8_t y = (rainFrame * 2 + seed * 7 + i * 23) & 0x3F;
 
         // Draw star-like droplet
-        canvas->drawPixel(Vector(x, y), ColorBlack);
-        canvas->drawPixel(Vector(x - 1, y), ColorBlack);
-        canvas->drawPixel(Vector(x + 1, y), ColorBlack);
-        canvas->drawPixel(Vector(x, y - 1), ColorBlack);
-        canvas->drawPixel(Vector(x, y + 1), ColorBlack);
+        _pixel.x = x;
+        _pixel.y = y;
+        canvas->drawPixel(_pixel, ColorBlack);
+        _pixel.x = x - 1;
+        canvas->drawPixel(_pixel, ColorBlack);
+        _pixel.x = x + 1;
+        canvas->drawPixel(_pixel, ColorBlack);
+        _pixel.x = x;
+        _pixel.y = y - 1;
+        canvas->drawPixel(_pixel, ColorBlack);
+        _pixel.y = y + 1;
+        canvas->drawPixel(_pixel, ColorBlack);
     }
 
     rainFrame += 1;
