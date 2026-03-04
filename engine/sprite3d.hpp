@@ -303,8 +303,8 @@ public:
         float leg_height = height * 0.45f;
         float arm_length = height * 0.25f;
 
-        // Head (simplified as a cube) - positioned at top, wider
-        createCube(0, height - head_radius, 0, head_radius * 2, head_radius * 2, head_radius * 1.5f);
+        // Head (sphere) - positioned at top
+        createSphere(0, height - head_radius, 0, head_radius, 4);
 
         // Torso - positioned in middle, wider and deeper
         createCube(0, leg_height + torso_height / 2, 0, torso_width, torso_height, torso_width * 0.8f);
