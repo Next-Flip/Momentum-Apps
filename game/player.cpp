@@ -321,13 +321,36 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         // draw a box around the selected option
         canvas->drawRect(Vector(76, 6), Vector(46, 46), ColorBlack);
         canvas->setFont(FontPrimary);
-        canvas->text(Vector(80, 18), "Profile");
+        canvas->text(Vector(80, 16), "Profile");
         canvas->setFont(FontSecondary);
-        canvas->text(Vector(80, 32), "Settings");
+        canvas->text(Vector(80, 26), "Map");
+        canvas->text(Vector(80, 36), "Settings");
         canvas->text(Vector(80, 46), "About");
     }
     break;
-    case 1: // settings (sound on/off, vibration on/off, and leave game)
+    case 1: // map
+    {
+        if (currentDynamicMap != nullptr)
+        {
+            currentDynamicMap->renderMiniMap(canvas, Vector(3, 3), Vector(70, 57), position, direction);
+        }
+        else
+        {
+            canvas->setFont(FontPrimary);
+            canvas->text(Vector(6, 32), "No map loaded");
+        }
+
+        canvas->drawRect(Vector(76, 6), Vector(46, 46), ColorBlack);
+        canvas->setFont(FontSecondary);
+        canvas->text(Vector(80, 16), "Profile");
+        canvas->setFont(FontPrimary);
+        canvas->text(Vector(80, 26), "Map");
+        canvas->setFont(FontSecondary);
+        canvas->text(Vector(80, 36), "Settings");
+        canvas->text(Vector(80, 46), "About");
+    }
+    break;
+    case 2: // settings (sound on/off, vibration on/off, and leave game)
     {
         char soundStatus[16];
         char vibrationStatus[16];
@@ -377,14 +400,15 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         };
         canvas->drawRect(Vector(76, 6), Vector(46, 46), ColorBlack);
         canvas->setFont(FontSecondary);
-        canvas->text(Vector(80, 18), "Profile");
+        canvas->text(Vector(80, 16), "Profile");
+        canvas->text(Vector(80, 26), "Map");
         canvas->setFont(FontPrimary);
-        canvas->text(Vector(79, 32), "Settings");
+        canvas->text(Vector(79, 36), "Settings");
         canvas->setFont(FontSecondary);
         canvas->text(Vector(80, 46), "About");
     }
     break;
-    case 2: // about
+    case 3: // about
     {
         canvas->setFont(FontPrimary);
         canvas->text(Vector(6, 16), "Free Roam");
@@ -395,8 +419,9 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         // draw a box around the selected option
         canvas->drawRect(Vector(76, 6), Vector(46, 46), ColorBlack);
         canvas->setFont(FontSecondary);
-        canvas->text(Vector(80, 18), "Profile");
-        canvas->text(Vector(80, 32), "Settings");
+        canvas->text(Vector(80, 16), "Profile");
+        canvas->text(Vector(80, 26), "Map");
+        canvas->text(Vector(80, 36), "Settings");
         canvas->setFont(FontPrimary);
         canvas->text(Vector(80, 46), "About");
     }

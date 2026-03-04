@@ -184,6 +184,22 @@ public:
 
     uint8_t getHeight() const { return height; }
 
+    // Fill output[y][x] with tile values for the full 64x64 grid.
+    // Values: 0 = empty, 1 = wall, 2 = door, 3 = teleport, 4 = enemy spawn, 5 = item spawn
+    void getMiniMap(uint8_t output[MAX_MAP_HEIGHT][MAX_MAP_WIDTH]) const
+    {
+        for (uint8_t y = 0; y < MAX_MAP_HEIGHT; y++)
+        {
+            for (uint8_t x = 0; x < MAX_MAP_WIDTH; x++)
+            {
+                if (x < width && y < height)
+                    output[y][x] = (uint8_t)tiles[y][x];
+                else
+                    output[y][x] = 0;
+            }
+        }
+    }
+
     const char *getName() const { return name; }
 
     TileType getTile(uint8_t x, uint8_t y) const
@@ -337,6 +353,89 @@ public:
                     }
                 }
             }
+        }
+    }
+
+    // Draw the minimap onto canvas at pixel position (pos) fitting inside (display_w x display_h) pixels.
+    void renderMiniMap(Draw *const canvas, Vector pos, Vector size,
+                       Vector player_pos, Vector player_dir = Vector(0, 0)) const
+    {
+        if (!canvas || size.x == 0 || size.y == 0)
+            return;
+
+        // Background
+        canvas->fillRect(pos, size, ColorWhite);
+        canvas->drawRect(pos, size, ColorBlack);
+
+        // Scale factors: pixels per map tile
+        float scale_x = (float)size.x / width;
+        float scale_y = (float)size.y / height;
+
+        Vector _pos = Vector(scale_x, scale_y);
+        Vector _size = Vector(scale_x, scale_y);
+        for (uint8_t ty = 0; ty < height; ty++)
+        {
+            for (uint8_t tx = 0; tx < width; tx++)
+            {
+                TileType tile = tiles[ty][tx];
+                if (tile == TILE_EMPTY)
+                    continue;
+
+                _pos.x = (uint8_t)(pos.x + tx * scale_x);
+                _pos.y = (uint8_t)(pos.y + ty * scale_y);
+                _size.x = (uint8_t)(scale_x + 0.5f);
+                _size.y = (uint8_t)(scale_y + 0.5f);
+                if (_size.x < 1)
+                    _size.x = 1;
+                if (_size.y < 1)
+                    _size.y = 1;
+
+                canvas->fillRect(_pos, _size, ColorBlack);
+            }
+        }
+
+        // Draw player dot + direction arrow
+        if (player_pos.x >= 0 && player_pos.y >= 0)
+        {
+            int16_t ppx = (int16_t)(pos.x + player_pos.x * scale_x);
+            int16_t ppy = (int16_t)(pos.y + player_pos.y * scale_y);
+
+            // 3x3 white square so the dot is visible over walls
+            _pos.x = ppx - 1;
+            _pos.y = ppy - 1;
+            _size.x = 3;
+            _size.y = 3;
+            canvas->fillRect(_pos, _size, ColorWhite);
+
+            // Direction arrow: line from centre out 4px in facing direction
+            if (player_dir.x != 0.0f || player_dir.y != 0.0f)
+            {
+                int16_t tip_x = ppx + (int16_t)(player_dir.x * 4.0f);
+                int16_t tip_y = ppy + (int16_t)(player_dir.y * 4.0f);
+                _pos.x = ppx;
+                _pos.y = ppy;
+                _size.x = tip_x;
+                _size.y = tip_y;
+                canvas->drawLine(_pos, _size, ColorBlack);
+                // Arrowhead: two lines from tip back to flanking points
+                int16_t base_x = tip_x - (int16_t)(player_dir.x * 2.0f);
+                int16_t base_y = tip_y - (int16_t)(player_dir.y * 2.0f);
+                int16_t perp_x = (int16_t)(player_dir.y * 2.0f);
+                int16_t perp_y = (int16_t)(-player_dir.x * 2.0f);
+                _pos.x = tip_x;
+                _pos.y = tip_y;
+                _size.x = base_x + perp_x;
+                _size.y = base_y + perp_y;
+                canvas->drawLine(_pos, _size, ColorBlack);
+                _size.x = base_x - perp_x;
+                _size.y = base_y - perp_y;
+                canvas->drawLine(_pos, _size, ColorBlack);
+            }
+
+            // Centre dot on top
+            _pos.x = ppx;
+            _pos.y = ppy;
+            canvas->drawPixel(_pos, ColorBlack);
         }
     }
 
