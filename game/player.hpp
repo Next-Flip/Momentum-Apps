@@ -72,7 +72,10 @@ public:
     //
     bool collisionMapCheck(Vector new_position);
     void drawCurrentView(Draw *canvas);
-    void forceMapReload() { currentDynamicMap.reset(); }
+    void forceMapReload()
+    {
+        currentDynamicMap.reset();
+    }
     uint8_t getCurrentGameState() const noexcept { return gameState; }
     GameMainView getCurrentMainView() const { return currentMainView; }
     HTTPState getHttpState();
@@ -91,7 +94,6 @@ public:
     void setMainView(GameMainView view) { currentMainView = view; }
     void setRainFrame(uint8_t frame) { rainFrame = frame; }
     void setRegistrationStatus(RegistrationStatus status) { registrationStatus = status; }
-    void setShouldDebounce(bool debounce) { shouldDebounce = debounce; }
     void setSoundToggle(ToggleState state) { soundToggle = state; }
     void setTitleIndex(TitleIndex index) { currentTitleIndex = index; }
     void setVibrationToggle(ToggleState state) { vibrationToggle = state; }
@@ -111,7 +113,6 @@ private:
     FreeRoamGame *freeRoamGame = nullptr;                           // Reference to the main game instance
     GameState gameState = GameStatePlaying;                         // current game state
     bool hasBeenPositioned = false;                                 // Track if player has been positioned to prevent repeated resets
-    bool inputHeld = false;                                         // whether input is held
     bool justStarted = true;                                        // whether the player just started the game
     bool justSwitchedLevels = false;                                // whether the player just switched levels
     InputKey lastInput = InputKeyMAX;                               // Last input key
@@ -121,13 +122,11 @@ private:
     LoginStatus loginStatus = LoginNotStarted;                      // Current login status
     uint8_t rainFrame = 0;                                          // frame counter for rain effect
     RegistrationStatus registrationStatus = RegistrationNotStarted; // Current registration status
-    bool shouldDebounce = false;                                    // whether to debounce input
     ToggleState soundToggle = ToggleOn;                             // sound toggle state
     UserInfoStatus userInfoStatus = UserInfoNotStarted;             // Current user info status
     ToggleState vibrationToggle = ToggleOn;                         // vibration toggle state
     uint8_t welcomeFrame = 0;                                       // frame counter for welcome animation
     //
-    void debounceInput(Game *game);
     void drawGameLocalView(Draw *canvas);                                                              // draw the local game view
     void drawGameOnlineView(Draw *canvas);                                                             // draw the online game view
     void drawLobbyMenuView(Draw *canvas);                                                              // draw the lobby menu view
