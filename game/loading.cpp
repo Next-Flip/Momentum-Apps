@@ -18,8 +18,8 @@ void Loading::animate()
         timeStart = millis();
     }
     drawSpinner();
-    draw->setFontCustom(FONT_SIZE_SMALL);
-    draw->text(Vector(44, 5), currentText, ColorBlack);
+    draw->setFont(FONT_SIZE_SMALL);
+    draw->text(Vector(44, 5), currentText, 0x0000);
     uint32_t currentTime = millis();
     if (currentTime >= timeStart)
     {
@@ -65,14 +65,14 @@ void Loading::drawSpinner()
         _size.y = centerY + int(radius * sin(nextAngle * rad));
 
         // draw just the edge segment
-        draw->drawLine(_pos, _size, ColorBlack);
+        draw->line(_pos, _size, 0x0000);
     }
 
     // draw time elapsed in milliseconds
-    draw->setFontCustom(FONT_SIZE_SMALL);
+    draw->setFont(FONT_SIZE_SMALL);
     _pos.x = 0;
     _pos.y = 60;
-    draw->text(_pos, "Time Elapsed:", ColorBlack);
+    draw->text(_pos, "Time Elapsed:", 0x0000);
     char timeStr[16];
     int seconds = timeElapsed / 10000;
     if (seconds < 60)
@@ -87,7 +87,7 @@ void Loading::drawSpinner()
         }
         _pos.x = 90;
         _pos.y = 60;
-        draw->text(_pos, timeStr, ColorBlack);
+        draw->text(_pos, timeStr, 0x0000);
     }
     else
     {
@@ -96,6 +96,6 @@ void Loading::drawSpinner()
         snprintf(timeStr, sizeof(timeStr), "%lu:%02lu", (unsigned long)minutes, (unsigned long)remainingSeconds);
         _pos.x = 105;
         _pos.y = 60;
-        draw->text(_pos, timeStr, ColorBlack);
+        draw->text(_pos, timeStr, 0x0000);
     }
 }
