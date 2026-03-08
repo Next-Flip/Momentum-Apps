@@ -1,6 +1,6 @@
 App(
     appid="can_commander",
-    name="CAN Commander",
+    name="[CAN] CAN Commander",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="cancommander_main",
     requires=["gui"],
