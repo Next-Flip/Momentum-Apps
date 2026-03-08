@@ -1,3 +1,8 @@
+## 1.22
+ - Create credential flow
+ - Improve the look of the info screen, more like the read screen
+ - Support to change FC during emulation for some formats
+ - Add support for emulating NRMAC dumped cards without save
 ## 1.21
  - Removed wiegand plugin
  - Support for changing CN during emulation for some formats

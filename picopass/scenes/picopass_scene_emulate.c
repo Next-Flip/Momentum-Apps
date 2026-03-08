@@ -5,6 +5,13 @@
 
 static WiegandFormat format = WiegandFormat_None;
 
+typedef enum {
+    CardNumber,
+    FacilityCode
+} PACSComponent;
+
+static PACSComponent current_component = CardNumber;
+
 NfcCommand picopass_scene_listener_callback(PicopassListenerEvent event, void* context) {
     UNUSED(event);
     UNUSED(context);
@@ -72,11 +79,22 @@ void picopass_scene_emulate_update_ui(void* context) {
     } else {
         FuriString* desc = furi_string_alloc();
 
-        furi_string_printf(desc, "FC:%lu", card.FacilityCode);
-        widget_add_string_element(
-            widget, 92, 35, AlignCenter, AlignTop, FontSecondary, furi_string_get_cstr(desc));
+        if(current_component == FacilityCode) {
+            furi_string_printf(desc, "*FC:%lu", card.FacilityCode);
+            widget_add_string_element(
+                widget, 92, 35, AlignCenter, AlignTop, FontSecondary, furi_string_get_cstr(desc));
+        } else {
+            furi_string_printf(desc, "FC:%lu", card.FacilityCode);
+            widget_add_string_element(
+                widget, 92, 35, AlignCenter, AlignTop, FontSecondary, furi_string_get_cstr(desc));
+        }
 
-        furi_string_printf(desc, "CN:%llu", card.CardNumber);
+        if(current_component == CardNumber) {
+            furi_string_printf(desc, "*CN:%llu", card.CardNumber);
+        } else {
+            furi_string_printf(desc, "CN:%llu", card.CardNumber);
+        }
+
         widget_add_string_element(
             widget, 92, 50, AlignCenter, AlignBottom, FontSecondary, furi_string_get_cstr(desc));
         furi_string_free(desc);
@@ -86,7 +104,7 @@ void picopass_scene_emulate_update_ui(void* context) {
         widget_add_button_element(
             widget, GuiButtonTypeLeft, "-1", picopass_scene_emulate_widget_callback, context);
         widget_add_button_element(
-            widget, GuiButtonTypeCenter, "0", picopass_scene_emulate_widget_callback, context);
+            widget, GuiButtonTypeCenter, "SWAP *", picopass_scene_emulate_widget_callback, context);
     }
 }
 
@@ -129,13 +147,25 @@ void picopass_scene_emulate_update_pacs(Picopass* picopass, int direction) {
             card.ParityValid);
         switch(direction) {
         case -1: // Decrease
-            card.CardNumber = (card.CardNumber == 0) ? 0 : card.CardNumber - 1;
+            if(current_component == FacilityCode) {
+                card.FacilityCode = (card.FacilityCode == 0) ? 0 : card.FacilityCode - 1;
+            } else {
+                card.CardNumber = (card.CardNumber == 0) ? 0 : card.CardNumber - 1;
+            }
             break;
         case 1: // Increase
-            card.CardNumber = (card.CardNumber == 255) ? 255 : card.CardNumber + 1;
+            if(current_component == FacilityCode) {
+                card.FacilityCode = (card.FacilityCode == 255) ? 255 : card.FacilityCode + 1;
+            } else {
+                card.CardNumber = (card.CardNumber == 255) ? 255 : card.CardNumber + 1;
+            }
             break;
         case 0: // Zero out
-            card.CardNumber = 0;
+            if(current_component == FacilityCode) {
+                card.FacilityCode = 0;
+            } else {
+                card.CardNumber = 0;
+            }
             break;
         default:
             break;
@@ -186,7 +216,12 @@ bool picopass_scene_emulate_on_event(void* context, SceneManagerEvent event) {
             picopass_scene_emulate_update_pacs(picopass, -1);
             consumed = true;
         } else if(event.event == GuiButtonTypeCenter) {
-            picopass_scene_emulate_update_pacs(picopass, 0);
+            if(current_component == FacilityCode) {
+                current_component = CardNumber;
+            } else {
+                current_component = FacilityCode;
+            }
+            picopass_scene_emulate_update_ui(picopass);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
