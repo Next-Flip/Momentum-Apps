@@ -1,5 +1,7 @@
 #include "../flipper_wedge.h"
+#include "../helpers/flipper_wedge_keyboard_layout.h"
 #include <lib/toolbox/value_index.h>
+#include <notification/notification_messages.h>
 
 enum SettingsIndex {
     SettingsIndexHeader,
@@ -11,6 +13,7 @@ enum SettingsIndex {
     SettingsIndexVibration,
     SettingsIndexNdefMaxLen,
     SettingsIndexLogToSd,
+    SettingsIndexKeyboardLayout,
 };
 
 const char* const on_off_text[2] = {
@@ -74,6 +77,20 @@ const char* const delimiter_values[] = {
 };
 
 #define DELIMITER_OPTIONS_COUNT 8
+
+// Keyboard layout storage (built-in + custom layouts from SD)
+#define LAYOUT_BUILTIN_COUNT 2  // Default, NumPad
+#define LAYOUT_MAX_CUSTOM 10    // Max custom layouts to show
+static FuriString* layout_custom_names[LAYOUT_MAX_CUSTOM];
+static FuriString* layout_custom_paths[LAYOUT_MAX_CUSTOM];
+static size_t layout_custom_count = 0;
+static size_t layout_total_count = LAYOUT_BUILTIN_COUNT;
+
+// Built-in layout names
+static const char* layout_builtin_names[LAYOUT_BUILTIN_COUNT] = {
+    "Default (QWERTY)",
+    "NumPad",
+};
 
 // Helper function to find delimiter index
 static uint8_t get_delimiter_index(const char* delimiter) {
@@ -143,6 +160,55 @@ static void flipper_wedge_scene_settings_set_log_to_sd(VariableItem* item) {
     variable_item_set_current_value_text(item, on_off_text[index]);
     app->log_to_sd = (index == 1);
     FURI_LOG_I("Settings", "LogToSD callback: new app value=%d, about to save", app->log_to_sd);
+    flipper_wedge_save_settings(app);  // Save immediately to persist across app restarts
+}
+
+static void flipper_wedge_scene_settings_set_keyboard_layout(VariableItem* item) {
+    FlipperWedge* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+
+    FURI_LOG_I("Settings", "Layout callback: index=%d", index);
+
+    // Get the layout name for display
+    const char* layout_name;
+    if(index < LAYOUT_BUILTIN_COUNT) {
+        layout_name = layout_builtin_names[index];
+    } else {
+        size_t custom_index = index - LAYOUT_BUILTIN_COUNT;
+        if(custom_index < layout_custom_count && layout_custom_names[custom_index]) {
+            layout_name = furi_string_get_cstr(layout_custom_names[custom_index]);
+        } else {
+            layout_name = "???";
+        }
+    }
+    variable_item_set_current_value_text(item, layout_name);
+
+    // Apply the selected layout
+    if(index == 0) {
+        // Default (QWERTY)
+        flipper_wedge_keyboard_layout_set_default(app->keyboard_layout);
+    } else if(index == 1) {
+        // NumPad
+        flipper_wedge_keyboard_layout_set_numpad(app->keyboard_layout);
+    } else {
+        // Custom layout from file
+        size_t custom_index = index - LAYOUT_BUILTIN_COUNT;
+        if(custom_index < layout_custom_count && layout_custom_paths[custom_index]) {
+            const char* path = furi_string_get_cstr(layout_custom_paths[custom_index]);
+            if(!flipper_wedge_keyboard_layout_load(app->keyboard_layout, path)) {
+                FURI_LOG_E("Settings", "Failed to load layout: %s", path);
+                // Notify user of failure with error feedback
+                NotificationApp* notifications = furi_record_open(RECORD_NOTIFICATION);
+                notification_message(notifications, &sequence_error);
+                furi_record_close(RECORD_NOTIFICATION);
+                // Fall back to default and update UI
+                flipper_wedge_keyboard_layout_set_default(app->keyboard_layout);
+                variable_item_set_current_value_index(item, 0);
+                variable_item_set_current_value_text(item, "Default (QWERTY)");
+            }
+        }
+    }
+
     flipper_wedge_save_settings(app);  // Save immediately to persist across app restarts
 }
 
@@ -312,6 +378,71 @@ void flipper_wedge_scene_settings_on_enter(void* context) {
     variable_item_set_current_value_index(item, app->log_to_sd ? 1 : 0);
     variable_item_set_current_value_text(item, on_off_text[app->log_to_sd ? 1 : 0]);
 
+    // Keyboard Layout selector
+    // First, free any previously allocated custom layout strings
+    for(size_t i = 0; i < layout_custom_count; i++) {
+        if(layout_custom_names[i]) {
+            furi_string_free(layout_custom_names[i]);
+            layout_custom_names[i] = NULL;
+        }
+        if(layout_custom_paths[i]) {
+            furi_string_free(layout_custom_paths[i]);
+            layout_custom_paths[i] = NULL;
+        }
+    }
+
+    // Scan for custom layouts on SD card
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    layout_custom_count = flipper_wedge_keyboard_layout_list(
+        storage,
+        layout_custom_names,
+        layout_custom_paths,
+        LAYOUT_MAX_CUSTOM);
+    furi_record_close(RECORD_STORAGE);
+
+    layout_total_count = LAYOUT_BUILTIN_COUNT + layout_custom_count;
+
+    // Determine current layout index
+    uint8_t layout_index = 0;
+    if(app->keyboard_layout) {
+        if(app->keyboard_layout->type == FlipperWedgeLayoutDefault) {
+            layout_index = 0;
+        } else if(app->keyboard_layout->type == FlipperWedgeLayoutNumPad) {
+            layout_index = 1;
+        } else if(app->keyboard_layout->type == FlipperWedgeLayoutCustom) {
+            // Find the matching custom layout by path
+            for(size_t i = 0; i < layout_custom_count; i++) {
+                if(layout_custom_paths[i] &&
+                   strcmp(app->keyboard_layout->file_path, furi_string_get_cstr(layout_custom_paths[i])) == 0) {
+                    layout_index = LAYOUT_BUILTIN_COUNT + i;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Get current layout name for display
+    const char* current_layout_name;
+    if(layout_index < LAYOUT_BUILTIN_COUNT) {
+        current_layout_name = layout_builtin_names[layout_index];
+    } else {
+        size_t custom_idx = layout_index - LAYOUT_BUILTIN_COUNT;
+        if(custom_idx < layout_custom_count && layout_custom_names[custom_idx]) {
+            current_layout_name = furi_string_get_cstr(layout_custom_names[custom_idx]);
+        } else {
+            current_layout_name = "???";
+        }
+    }
+
+    item = variable_item_list_add(
+        app->variable_item_list,
+        "KB Layout:",
+        layout_total_count,
+        flipper_wedge_scene_settings_set_keyboard_layout,
+        app);
+    variable_item_set_current_value_index(item, layout_index);
+    variable_item_set_current_value_text(item, current_layout_name);
+
     // Set callback for when user clicks on an item
     variable_item_list_set_enter_callback(
         app->variable_item_list,
@@ -406,6 +537,20 @@ void flipper_wedge_scene_settings_on_exit(void* context) {
     FlipperWedge* app = context;
     variable_item_list_set_selected_item(app->variable_item_list, 0);
     variable_item_list_reset(app->variable_item_list);
+
+    // Free custom layout strings
+    for(size_t i = 0; i < layout_custom_count; i++) {
+        if(layout_custom_names[i]) {
+            furi_string_free(layout_custom_names[i]);
+            layout_custom_names[i] = NULL;
+        }
+        if(layout_custom_paths[i]) {
+            furi_string_free(layout_custom_paths[i]);
+            layout_custom_paths[i] = NULL;
+        }
+    }
+    layout_custom_count = 0;
+    layout_total_count = LAYOUT_BUILTIN_COUNT;
 
     // Return backlight to auto mode
     notification_message(app->notification, &sequence_display_backlight_enforce_auto);

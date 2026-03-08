@@ -4,7 +4,7 @@
 A Flipper Zero application that transforms your device into a contactless tag-to-keyboard interface. Read RFID and NFC tags, then automatically type their UIDs and NDEF data as HID keyboard input via USB or Bluetooth.
 
 ![Category: Tools](https://img.shields.io/badge/Category-Tools-blue)
-![Version](https://img.shields.io/badge/Version-1.0-green)
+![Version](https://img.shields.io/badge/Version-1.1-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## Features
@@ -33,6 +33,7 @@ A Flipper Zero application that transforms your device into a contactless tag-to
 - **Custom Delimiter**: Choose separator between UID bytes (space, colon, dash, or none)
 - **Enter Key**: Optionally append Enter key after output
 - **Output Mode**: Switch between USB and Bluetooth HID
+- **Keyboard Layout**: Support for international keyboards (AZERTY, QWERTZ, Dvorak, etc.)
 - **NDEF Max Length**: Limit NDEF text output (250/500/1000 chars)
 - **Vibration Level**: Haptic feedback intensity
 - **Scan Logging**: Optional logging to SD card
@@ -91,6 +92,21 @@ Access **Settings** from the main menu to configure:
 - **Vibration Level**: Haptic feedback intensity (Off, Low, Medium, High)
 - **Mode Startup**: Remember last mode or always use a default
 - **Scan Logging**: Enable logging scans to SD card
+
+### Keyboard Layouts
+
+By default, Flipper Wedge sends US QWERTY keycodes. If your computer uses a different keyboard layout (French AZERTY, German QWERTZ, Dvorak, etc.), the typed characters may be wrong.
+
+**Built-in layouts:**
+- **Default (QWERTY)** - Standard US layout
+- **NumPad** - Uses numpad keycodes (layout-independent, requires NumLock)
+
+**Custom layouts:**
+1. Download a layout file from [flipper-wedge-keyboard-layouts](https://github.com/dangerous-tac0s/flipper-wedge-keyboard-layouts)
+2. Copy to your Flipper SD card: `/ext/apps_data/flipper_wedge/layouts/`
+3. Go to **Settings** → **KB Layout** and select your layout
+
+Available layouts include: French AZERTY, German QWERTZ, Hungarian, Czech, Spanish, Italian, Portuguese, Nordic (Swedish, Norwegian, Danish, Finnish), Dvorak, Colemak, and more.
 
 ### Scan Modes Explained
 

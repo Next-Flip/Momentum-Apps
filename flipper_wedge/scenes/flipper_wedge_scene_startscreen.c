@@ -76,6 +76,19 @@ static void flipper_wedge_scene_startscreen_display_timer_callback(void* context
     }
 }
 
+// Timeout callback - used for combo mode timeout when waiting for second tag
+static void flipper_wedge_scene_startscreen_timeout_callback(void* context) {
+    furi_assert(context);
+    FlipperWedge* app = context;
+
+    // Only send timeout event if we're still waiting for second tag
+    if(app->scan_state == FlipperWedgeScanStateWaitingSecond) {
+        view_dispatcher_send_custom_event(
+            app->view_dispatcher,
+            FlipperWedgeCustomEventScanTimeout);
+    }
+}
+
 void flipper_wedge_scene_startscreen_callback(FlipperWedgeCustomEvent event, void* context) {
     furi_assert(context);
     FlipperWedge* app = context;
@@ -217,14 +230,14 @@ static void flipper_wedge_scene_startscreen_output_and_reset(FlipperWedge* app) 
                 memcpy(chunk, app->output_buffer + chunk_start, chunk_len);
                 chunk[chunk_len] = '\0';
 
-                flipper_wedge_hid_type_string(flipper_wedge_get_hid(app), chunk);
+                flipper_wedge_hid_type_string(flipper_wedge_get_hid(app), app->keyboard_layout, chunk);
 
                 // Small delay between chunks (let HID catch up)
                 furi_delay_ms(50);
             }
         } else {
             // Short text, type normally
-            flipper_wedge_hid_type_string(flipper_wedge_get_hid(app), app->output_buffer);
+            flipper_wedge_hid_type_string(flipper_wedge_get_hid(app), app->keyboard_layout, app->output_buffer);
         }
 
         if(app->append_enter) {
@@ -440,9 +453,19 @@ bool flipper_wedge_scene_startscreen_on_event(void* context, SceneManagerEvent e
                 flipper_wedge_rfid_set_callback(app->rfid, flipper_wedge_scene_startscreen_rfid_callback, app);
                 flipper_wedge_rfid_start(app->rfid);
 
-                // TODO: Add timeout timer
+                // Start timeout timer (5 seconds to scan second tag)
+                if(!app->timeout_timer) {
+                    app->timeout_timer = furi_timer_alloc(
+                        flipper_wedge_scene_startscreen_timeout_callback,
+                        FuriTimerTypeOnce,
+                        app);
+                }
+                furi_timer_start(app->timeout_timer, furi_ms_to_ticks(5000));
             } else if(app->mode == FlipperWedgeModeRfidThenNfc && app->scan_state == FlipperWedgeScanStateWaitingSecond) {
-                // Got the second tag in combo mode
+                // Got the second tag in combo mode - stop timeout timer
+                if(app->timeout_timer) {
+                    furi_timer_stop(app->timeout_timer);
+                }
                 flipper_wedge_nfc_stop(app->nfc);
                 flipper_wedge_scene_startscreen_output_and_reset(app);
             }
@@ -468,9 +491,19 @@ bool flipper_wedge_scene_startscreen_on_event(void* context, SceneManagerEvent e
                 flipper_wedge_nfc_set_callback(app->nfc, flipper_wedge_scene_startscreen_nfc_callback, app);
                 flipper_wedge_nfc_start(app->nfc, false);
 
-                // TODO: Add timeout timer
+                // Start timeout timer (5 seconds to scan second tag)
+                if(!app->timeout_timer) {
+                    app->timeout_timer = furi_timer_alloc(
+                        flipper_wedge_scene_startscreen_timeout_callback,
+                        FuriTimerTypeOnce,
+                        app);
+                }
+                furi_timer_start(app->timeout_timer, furi_ms_to_ticks(5000));
             } else if(app->mode == FlipperWedgeModeNfcThenRfid && app->scan_state == FlipperWedgeScanStateWaitingSecond) {
-                // Got the second tag in combo mode
+                // Got the second tag in combo mode - stop timeout timer
+                if(app->timeout_timer) {
+                    furi_timer_stop(app->timeout_timer);
+                }
                 flipper_wedge_rfid_stop(app->rfid);
                 flipper_wedge_scene_startscreen_output_and_reset(app);
             }
@@ -494,6 +527,29 @@ bool flipper_wedge_scene_startscreen_on_event(void* context, SceneManagerEvent e
             // Stop scanning and open Settings
             flipper_wedge_scene_startscreen_stop_scanning(app);
             scene_manager_next_scene(app->scene_manager, FlipperWedgeSceneSettings);
+            consumed = true;
+            break;
+
+        case FlipperWedgeCustomEventScanTimeout:
+            // Combo mode timeout - second tag wasn't scanned in time
+            FURI_LOG_I("FlipperWedgeScene", "Scan timeout - resetting to scan first tag");
+
+            // Stop any running scanners
+            flipper_wedge_nfc_stop(app->nfc);
+            flipper_wedge_rfid_stop(app->rfid);
+
+            // Clear stored data from first tag
+            app->nfc_uid_len = 0;
+            app->rfid_uid_len = 0;
+            app->ndef_text[0] = '\0';
+
+            // Show timeout message briefly
+            flipper_wedge_startscreen_set_status_text(app->flipper_wedge_startscreen, "Scan timed out");
+            flipper_wedge_startscreen_set_display_state(app->flipper_wedge_startscreen, FlipperWedgeDisplayStateIdle);
+
+            // Reset to scanning state and restart for first tag
+            app->scan_state = FlipperWedgeScanStateIdle;
+            // Tick handler will restart scanning automatically
             consumed = true;
             break;
 
@@ -526,6 +582,11 @@ void flipper_wedge_scene_startscreen_on_exit(void* context) {
     // Stop display timer if running
     if(app->display_timer) {
         furi_timer_stop(app->display_timer);
+    }
+
+    // Stop timeout timer if running
+    if(app->timeout_timer) {
+        furi_timer_stop(app->timeout_timer);
     }
 
     // Return backlight to auto mode

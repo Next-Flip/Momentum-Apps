@@ -13,11 +13,10 @@ All screenshots **must** be taken using qFlipper's built-in screenshot feature:
 
 Please capture the following screenshots:
 
-1. **`01_main_menu.png`** - Main mode selection menu showing all 5 scan modes
-2. **`02_nfc_scanning.png`** - NFC scanning screen with connection status
-3. **`03_rfid_scanning.png`** - RFID scanning screen in action
-4. **`04_ndef_mode.png`** - NDEF mode showing text parsing capability
-5. **`05_settings.png`** - Settings configuration screen
+1. **`01_nfc_scanning.png`** - NFC scanning screen with connection status
+2. **`02_rfid_scanning.png`** - RFID scanning screen in action
+3. **`03_ndef_mode.png`** - NDEF mode showing text parsing capability
+5. **`04_settings.png`** - Settings configuration screen
 
 ## How to Capture Screenshots
 

@@ -127,13 +127,40 @@ build_for_firmware() {
     cd "${fw_path}"
     ./fbt fap_${APP_NAME}
 
-    # Copy FAP to dist folder
-    local fap_file=$(find .fap -name "${APP_NAME}.fap" | head -n 1)
-    if [ -f "$fap_file" ]; then
-        cp "$fap_file" "${DIST_DIR}/${APP_NAME}_${fw_name}.fap"
-        echo -e "${GREEN}✅ Built: ${APP_NAME}_${fw_name}.fap${NC}"
+    # Get app version from application.fam
+    local app_version=$(grep 'fap_version=' "${APP_DIR}/application.fam" | sed 's/.*fap_version="\([^"]*\)".*/\1/')
+    if [ -z "$app_version" ]; then
+        app_version="unknown"
+    fi
+
+    # Determine firmware version for filename
+    local fw_version
+    if [ -n "$TAG" ]; then
+        fw_version="$TAG"
+    else
+        fw_version=$(git describe --tags --abbrev=0 2>/dev/null || echo "$BRANCH")
+    fi
+
+    # Find FAP file in build directory (can be f7-firmware-C, f7-firmware-D, etc.)
+    local source_fap=""
+    for build_dir in "${fw_path}/build/f7-firmware-"*; do
+        if [ -d "$build_dir" ]; then
+            local candidate="${build_dir}/.extapps/${APP_NAME}.fap"
+            if [ -f "$candidate" ]; then
+                source_fap="$candidate"
+                break
+            fi
+        fi
+    done
+
+    # Copy FAP to dist folder with versioned name
+    if [ -n "$source_fap" ] && [ -f "$source_fap" ]; then
+        local dest_fap="${DIST_DIR}/flipper-wedge_${app_version}_${fw_name}_${fw_version}.fap"
+        cp "$source_fap" "$dest_fap"
+        echo -e "${GREEN}✅ Built: flipper-wedge_${app_version}_${fw_name}_${fw_version}.fap${NC}"
     else
         echo -e "${RED}❌ Failed to find FAP file for ${fw_name}${NC}"
+        echo "   Searched: ${fw_path}/build/f7-firmware-*/.extapps/${APP_NAME}.fap"
     fi
 
     echo ""
