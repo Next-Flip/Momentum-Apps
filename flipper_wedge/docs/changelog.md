@@ -5,6 +5,21 @@ All notable changes to the Flipper Wedge project will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1] - 2025-02-04
+
+### Added
+- **Keyboard Layout Support** ([#2](https://github.com/DangerousThings/flipper-wedge/issues/2))
+  - Built-in layouts: Default (QWERTY) and NumPad
+  - Custom layout files loaded from SD card (`/ext/apps_data/flipper_wedge/layouts/`)
+  - Support for international keyboards: AZERTY, QWERTZ, Dvorak, Colemak, and more
+  - Companion repository with pre-made layouts: [flipper-wedge-keyboard-layouts](https://github.com/dangerous-tac0s/flipper-wedge-keyboard-layouts)
+
+### Changed
+- Settings file version bumped to 6 (layout settings added)
+- HID typing functions now use configurable keyboard layout
+
+---
+
 ## [1.0] - 2024-11-24
 
 ### Added
@@ -93,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date       | Key Features |
 |---------|------------|--------------|
+| 1.1     | 2025-02-04 | Keyboard layout support for international keyboards |
 | 1.0     | 2024-11-24 | Initial release with full NFC/RFID/NDEF support |
 
 ---

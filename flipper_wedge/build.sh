@@ -184,15 +184,23 @@ echo "🔨 Building ${APP_NAME} for ${FW_NAME} firmware..."
 cd "${FW_PATH}"
 ./fbt fap_${APP_NAME}
 
-# Determine version tag for output directory
+# Get app version from application.fam
+APP_VERSION=$(grep 'fap_version=' "${APP_DIR}/application.fam" | sed 's/.*fap_version="\([^"]*\)".*/\1/')
+if [ -z "$APP_VERSION" ]; then
+    APP_VERSION="unknown"
+fi
+
+# Determine firmware version for filename
 if [ -n "$TAG" ]; then
-    VERSION_DIR="$TAG"
+    FW_VERSION="$TAG"
 else
-    VERSION_DIR="$BRANCH"
+    # Try to get version from git describe or use branch name
+    cd "$FW_PATH"
+    FW_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "$BRANCH")
 fi
 
 # Create output directory structure
-OUTPUT_DIR="${APP_DIR}/dist/${FIRMWARE}/${VERSION_DIR}"
+OUTPUT_DIR="${APP_DIR}/dist"
 mkdir -p "${OUTPUT_DIR}"
 
 # Dynamically find the FAP file in the build directory
@@ -208,7 +216,9 @@ for build_dir in "${FW_PATH}/build/f7-firmware-"*; do
     fi
 done
 
-DEST_FAP="${OUTPUT_DIR}/${APP_NAME}.fap"
+# Filename format: flipper-wedge_appVersion_firmware_firmwareVersion.fap
+FIRMWARE_LOWER=$(echo "$FIRMWARE" | tr '[:upper:]' '[:lower:]')
+DEST_FAP="${OUTPUT_DIR}/flipper-wedge_${APP_VERSION}_${FIRMWARE_LOWER}_${FW_VERSION}.fap"
 
 if [ -n "$SOURCE_FAP" ] && [ -f "$SOURCE_FAP" ]; then
     cp "$SOURCE_FAP" "$DEST_FAP"

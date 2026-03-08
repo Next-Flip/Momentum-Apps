@@ -4,8 +4,7 @@
 Sprite::Sprite(const char *name, Vector position, Sprite3DType spriteType,
                float height, float width, float rotation, Vector endPosition)
     : Entity(name, ENTITY_3D_SPRITE, position, Vector(width, height), nullptr,
-             nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-             spriteType)
+             nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, false, spriteType, 0x0000)
 {
     set3DSpriteRotation(rotation);
     start_position = position;
@@ -59,14 +58,12 @@ void Sprite::update(Game *game)
                 move_y = dy;
             }
 
-            position_set(Vector(position.x + move_x, position.y + move_y));
-            position_changed = true;
+            position_set(position.x + move_x, position.y + move_y);
         }
         else
         {
             // Snap to exact position when close enough
             position_set(end_position);
-            position_changed = true;
             state = ENTITY_MOVING_TO_START;
         }
     }
@@ -89,14 +86,12 @@ void Sprite::update(Game *game)
                 move_y = dy;
             }
 
-            position_set(Vector(position.x + move_x, position.y + move_y));
-            position_changed = true;
+            position_set(position.x + move_x, position.y + move_y);
         }
         else
         {
             // Snap to exact position when close enough
             position_set(start_position);
-            position_changed = true;
             state = ENTITY_MOVING_TO_END;
         }
     }

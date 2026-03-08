@@ -6,6 +6,7 @@
 #include <furi_hal_usb_hid.h>
 #include <bt/bt_service/bt.h>
 #include <extra_profiles/hid_profile.h>
+#include "flipper_wedge_keyboard_layout.h"
 
 #define FLIPPER_WEDGE_BT_KEYS_STORAGE_NAME ".flipper_wedge_bt.keys"
 
@@ -89,16 +90,18 @@ bool flipper_wedge_hid_is_connected(FlipperWedgeHid* instance);
  * Sends to both USB and BT if connected
  *
  * @param instance FlipperWedgeHid instance
+ * @param layout Keyboard layout for character mapping (NULL for firmware default)
  * @param str String to type
  */
-void flipper_wedge_hid_type_string(FlipperWedgeHid* instance, const char* str);
+void flipper_wedge_hid_type_string(FlipperWedgeHid* instance, FlipperWedgeKeyboardLayout* layout, const char* str);
 
 /** Type a single character via HID keyboard
  *
  * @param instance FlipperWedgeHid instance
+ * @param layout Keyboard layout for character mapping (NULL for firmware default)
  * @param c Character to type
  */
-void flipper_wedge_hid_type_char(FlipperWedgeHid* instance, char c);
+void flipper_wedge_hid_type_char(FlipperWedgeHid* instance, FlipperWedgeKeyboardLayout* layout, char c);
 
 /** Press and release Enter key
  *

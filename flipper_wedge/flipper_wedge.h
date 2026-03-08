@@ -19,6 +19,7 @@
 #include "views/flipper_wedge_startscreen.h"
 #include "helpers/flipper_wedge_storage.h"
 #include "helpers/flipper_wedge_hid.h"
+#include "helpers/flipper_wedge_keyboard_layout.h"
 #include "helpers/flipper_wedge_hid_worker.h"
 #include "helpers/flipper_wedge_nfc.h"
 #include "helpers/flipper_wedge_rfid.h"
@@ -28,7 +29,7 @@
 
 #define TAG "FlipperWedge"
 
-#define FLIPPER_WEDGE_VERSION "1.0"
+#define FLIPPER_WEDGE_VERSION "1.1"
 #define FLIPPER_WEDGE_TEXT_STORE_SIZE 128
 #define FLIPPER_WEDGE_TEXT_STORE_COUNT 3
 #define FLIPPER_WEDGE_DELIMITER_MAX_LEN 8
@@ -108,6 +109,9 @@ typedef struct {
     FlipperWedgeHidWorker* hid_worker;
     FlipperWedgeOutput output_mode;
     bool usb_debug_mode;  // Deprecated: kept for backward compatibility reading only
+
+    // Keyboard layout for HID output
+    FlipperWedgeKeyboardLayout* keyboard_layout;
 
     // NFC module
     FlipperWedgeNfc* nfc;

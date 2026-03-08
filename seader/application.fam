@@ -5,13 +5,19 @@ App(
     name="Seader",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="seader_app",
-    cdefines=["APP_SEADER"],
+    cdefines=[
+        "APP_SEADER",
+        "ASN_DISABLE_PER_SUPPORT",
+        "ASN_DISABLE_OER_SUPPORT",
+        "ASN_DISABLE_XER_SUPPORT",
+        "ASN_DISABLE_RANDOM_FILL",
+    ],
     requires=[
         "gui",
         "storage",
         "nfc",
     ],
-    stack_size=5 * 1024,
+    stack_size=3 * 1024,
     order=20,
     sources=[
         "*.c",
@@ -32,7 +38,15 @@ App(
     fap_private_libs=[
         Lib(
             name="asn1",
-            cflags=["-Wno-error", "-DASN_EMIT_DEBUG=0", "-Os", "-DASN_DISABLE_PER_SUPPORT=1"],
+            cflags=[
+                "-Wno-error",
+                "-DASN_EMIT_DEBUG=0",
+                "-DASN_DISABLE_PER_SUPPORT",
+                "-DASN_DISABLE_OER_SUPPORT",
+                "-DASN_DISABLE_XER_SUPPORT",
+                "-DASN_DISABLE_RANDOM_FILL",
+                "-Os",
+            ],
         ),
         Lib(
             name="loclass",

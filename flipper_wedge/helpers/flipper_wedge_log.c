@@ -110,3 +110,12 @@ void flipper_wedge_log_scan(const char* data) {
 
     furi_mutex_release(log_mutex);
 }
+
+void flipper_wedge_log_close(void) {
+    if(!log_mutex) return;
+
+    furi_mutex_acquire(log_mutex, FuriWaitForever);
+    furi_mutex_release(log_mutex);
+    furi_mutex_free(log_mutex);
+    log_mutex = NULL;
+}

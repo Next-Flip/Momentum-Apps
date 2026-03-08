@@ -1,4 +1,5 @@
 #include "flipper_wedge_hid.h"
+#include "flipper_wedge_keyboard_layout.h"
 #include "flipper_wedge_debug.h"
 #include <storage/storage.h>
 
@@ -145,15 +146,9 @@ void flipper_wedge_hid_init_ble(FlipperWedgeHid* instance) {
     furi_delay_ms(200);
     flipper_wedge_debug_log(TAG, "NVM sync complete");
 
-    // Set up key storage
+    // Set up key storage path
     flipper_wedge_debug_log(TAG, "Setting up BT key storage");
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    storage_common_migrate(
-        storage,
-        EXT_PATH("apps/NFC/" FLIPPER_WEDGE_BT_KEYS_STORAGE_NAME),
-        APP_DATA_PATH(FLIPPER_WEDGE_BT_KEYS_STORAGE_NAME));
     bt_keys_storage_set_storage_path(instance->bt, APP_DATA_PATH(FLIPPER_WEDGE_BT_KEYS_STORAGE_NAME));
-    furi_record_close(RECORD_STORAGE);
     flipper_wedge_debug_log(TAG, "BT key storage configured");
 
     // Start BLE HID profile with "HID" prefix (max 8 chars)
@@ -254,10 +249,15 @@ bool flipper_wedge_hid_is_connected(FlipperWedgeHid* instance) {
     return flipper_wedge_hid_is_usb_connected(instance) || flipper_wedge_hid_is_bt_connected(instance);
 }
 
-void flipper_wedge_hid_type_char(FlipperWedgeHid* instance, char c) {
+void flipper_wedge_hid_type_char(FlipperWedgeHid* instance, FlipperWedgeKeyboardLayout* layout, char c) {
     furi_assert(instance);
 
-    uint16_t keycode = HID_ASCII_TO_KEY(c);
+    uint16_t keycode;
+    if(layout) {
+        keycode = flipper_wedge_keyboard_layout_get_keycode(layout, c);
+    } else {
+        keycode = HID_ASCII_TO_KEY(c);
+    }
     if(keycode == HID_KEYBOARD_NONE) return;
 
     // Send to USB HID if initialized
@@ -275,12 +275,12 @@ void flipper_wedge_hid_type_char(FlipperWedgeHid* instance, char c) {
     furi_delay_ms(HID_TYPE_DELAY_MS);
 }
 
-void flipper_wedge_hid_type_string(FlipperWedgeHid* instance, const char* str) {
+void flipper_wedge_hid_type_string(FlipperWedgeHid* instance, FlipperWedgeKeyboardLayout* layout, const char* str) {
     furi_assert(instance);
     furi_assert(str);
 
     while(*str) {
-        flipper_wedge_hid_type_char(instance, *str);
+        flipper_wedge_hid_type_char(instance, layout, *str);
         str++;
     }
 }
