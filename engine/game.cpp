@@ -8,7 +8,8 @@ Game::Game(
     uint16_t bg_color,
     Camera *cameraContext,
     std::function<void()> start,
-    std::function<void()> stop)
+    std::function<void()> stop,
+    std::function<void()> update)
     : name(name),
       levels{nullptr},
       current_level(nullptr),
@@ -22,7 +23,8 @@ Game::Game(
       bg_color(bg_color),
       fg_color(fg_color),
       _start(start),
-      _stop(stop)
+      _stop(stop),
+      _update(update)
 {
     for (int i = 0; i < MAX_LEVELS; i++)
     {
@@ -193,6 +195,10 @@ void Game::update()
     {
         return;
     }
+
+    if (this->_update != nullptr)
+        this->_update();
+
     // Update the level
     this->current_level->update(this);
 }
