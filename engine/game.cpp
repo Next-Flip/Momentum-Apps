@@ -7,8 +7,8 @@ Game::Game(
     uint16_t fg_color,
     uint16_t bg_color,
     Camera *cameraContext,
-    void (*start)(),
-    void (*stop)())
+    std::function<void()> start,
+    std::function<void()> stop)
     : name(name),
       levels{nullptr},
       current_level(nullptr),

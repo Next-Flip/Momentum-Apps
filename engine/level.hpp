@@ -1,6 +1,7 @@
 #pragma once
 #include "vector.hpp"
 #include "camera.hpp"
+#include <functional>
 
 // Forward declarations
 class Game;
@@ -14,8 +15,8 @@ public:
     Level(const char *name,
           const Vector &size,
           Game *game,
-          void (*start)(Level &) = nullptr,
-          void (*stop)(Level &) = nullptr);
+          std::function<void(Level &)> start = nullptr,
+          std::function<void(Level &)> stop = nullptr);
     ~Level();
 
     // Member Functions
@@ -45,6 +46,6 @@ private:
     int entity_count;
     Entity **entities;
     // Callback Functions
-    void (*_start)(Level &);
-    void (*_stop)(Level &);
+    std::function<void(Level &)> _start;
+    std::function<void(Level &)> _stop;
 };

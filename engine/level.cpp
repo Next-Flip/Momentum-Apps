@@ -20,7 +20,7 @@ Level::Level()
 }
 
 // Parameterized Constructor
-Level::Level(const char *name, const Vector &size, Game *game, void (*start)(Level &), void (*stop)(Level &))
+Level::Level(const char *name, const Vector &size, Game *game, std::function<void(Level &)> start, std::function<void(Level &)> stop)
     : name(name),
       size(size),
       clearAllowed(true),

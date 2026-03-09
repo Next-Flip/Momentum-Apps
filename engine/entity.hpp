@@ -3,6 +3,7 @@
 #include "draw.hpp"
 #include "image.hpp"
 #include "sprite3d.hpp"
+#include <functional>
 
 // Forward declarations
 class Game;
@@ -89,21 +90,21 @@ public:
     float elapsed_health_regen; // time elapsed since last health regeneration
 
     Entity(
-        const char *name,                                     // The name of the entity.
-        EntityType type,                                      // The type of the entity.
-        Vector position,                                      // The position of the entity.
-        Vector size,                                          // The size of the entity.
-        Image *sprite_data,                                   // The sprite of the entity.
-        Image *sprite_left_data = NULL,                       // The sprite to switch to when facing left.
-        Image *sprite_right_data = NULL,                      // The sprite to switch to when facing right.
-        void (*start)(Entity *, Game *) = NULL,               // The start function of the entity.
-        void (*stop)(Entity *, Game *) = NULL,                // The stop function of the entity.
-        void (*update)(Entity *, Game *) = NULL,              // The update function of the entity.
-        void (*render)(Entity *, Draw *, Game *) = NULL,      // The render function of the entity.
-        void (*collision)(Entity *, Entity *, Game *) = NULL, // The collision function of the entity.
-        bool is_8bit_sprite = false,                          // Flag to indicate if the entity uses 8-bit graphics
-        Sprite3DType sprite_3d_type = SPRITE_3D_NONE,         // 3D sprite type (optional)
-        uint16_t sprite_3d_color = 0x0000                     // Color to use for the 3D sprite (optional, default is black)
+        const char *name,                                                    // The name of the entity.
+        EntityType type,                                                     // The type of the entity.
+        Vector position,                                                     // The position of the entity.
+        Vector size,                                                         // The size of the entity.
+        Image *sprite_data,                                                  // The sprite of the entity.
+        Image *sprite_left_data = NULL,                                      // The sprite to switch to when facing left.
+        Image *sprite_right_data = NULL,                                     // The sprite to switch to when facing right.
+        std::function<void(Entity *, Game *)> start = nullptr,               // The start function of the entity.
+        std::function<void(Entity *, Game *)> stop = nullptr,                // The stop function of the entity.
+        std::function<void(Entity *, Game *)> update = nullptr,              // The update function of the entity.
+        std::function<void(Entity *, Draw *, Game *)> render = nullptr,      // The render function of the entity.
+        std::function<void(Entity *, Entity *, Game *)> collision = nullptr, // The collision function of the entity.
+        bool is_8bit_sprite = false,                                         // Flag to indicate if the entity uses 8-bit graphics
+        Sprite3DType sprite_3d_type = SPRITE_3D_NONE,                        // 3D sprite type (optional)
+        uint16_t sprite_3d_color = 0x0000                                    // Color to use for the 3D sprite (optional, default is black)
     );
 
     virtual ~Entity(); // Virtual destructor for proper inheritance
@@ -130,9 +131,9 @@ private:
     void create3DSprite(Sprite3DType type, float height = 2.0f, float width = 1.0f, float rotation = 0.0f, uint16_t color = 0x0000);
     void destroy3DSprite();
 
-    void (*_start)(Entity *, Game *);
-    void (*_stop)(Entity *, Game *);
-    void (*_update)(Entity *, Game *);
-    void (*_render)(Entity *, Draw *, Game *);
-    void (*_collision)(Entity *, Entity *, Game *);
+    std::function<void(Entity *, Game *)> _start;
+    std::function<void(Entity *, Game *)> _stop;
+    std::function<void(Entity *, Game *)> _update;
+    std::function<void(Entity *, Draw *, Game *)> _render;
+    std::function<void(Entity *, Entity *, Game *)> _collision;
 };
