@@ -38,7 +38,7 @@ public:
     Level *levels[MAX_LEVELS]; // Array of levels
     Level *current_level;      // Current level
     Draw *draw;                // Draw object for rendering
-    uint8_t input;             // Last input (e.g., one of the BUTTON_ constants)
+    int input;                 // Last input (e.g., one of the BUTTON_ constants)
     Camera *camera;            // Camera context
     Vector pos;                // Player position
     Vector old_pos;            // Previous position
