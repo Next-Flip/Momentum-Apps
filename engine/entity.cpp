@@ -24,7 +24,7 @@ Entity::Entity(
     this->type = type;
     this->position = position;
     this->old_position = position;
-    this->direction = Vector(1, 0);
+    this->direction = Vector(1, 0, 0, true);
     this->plane = Vector(0, 0);
     this->size = size;
     this->sprite = sprite_data;
@@ -169,9 +169,11 @@ void Entity::position_set(Vector value)
     this->old_position.x = this->position.x;
     this->old_position.y = this->position.y;
     this->old_position.z = this->position.z;
+    this->old_position.integer = this->position.integer;
     this->position.x = value.x;
     this->position.y = value.y;
     this->position.z = value.z;
+    this->position.integer = value.integer;
 
     // Automatically update 3D sprite position if it exists
     if (sprite_3d != nullptr)
@@ -180,14 +182,16 @@ void Entity::position_set(Vector value)
     }
 }
 
-void Entity::position_set(float x, float y, float z)
+void Entity::position_set(float x, float y, float z, bool integer)
 {
     this->old_position.x = this->position.x;
     this->old_position.y = this->position.y;
     this->old_position.z = this->position.z;
+    this->old_position.integer = this->position.integer;
     this->position.x = x;
     this->position.y = y;
     this->position.z = z;
+    this->position.integer = integer;
 
     // Automatically update 3D sprite position if it exists
     if (sprite_3d != nullptr)

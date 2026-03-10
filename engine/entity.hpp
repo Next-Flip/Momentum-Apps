@@ -109,14 +109,14 @@ public:
 
     virtual ~Entity(); // Virtual destructor for proper inheritance
 
-    virtual void collision(Entity *other, Game *game);   // Handles the collision with another entity.
-    Vector position_get();                               // Gets the position of the entity.
-    void position_set(Vector value);                     // Sets the position of the entity.
-    void position_set(float x, float y, float z = 0.0f); // Sets the position of the entity using x and y coordinates.
-    virtual void render(Draw *draw, Game *game);         // called every frame to render the entity.
-    virtual void start(Game *game);                      // called when the entity is created.
-    virtual void stop(Game *game);                       // called when the entity is destroyed.
-    virtual void update(Game *game);                     // called every frame to update the entity.
+    virtual void collision(Entity *other, Game *game);                         // Handles the collision with another entity.
+    Vector position_get();                                                     // Gets the position of the entity.
+    void position_set(Vector value);                                           // Sets the position of the entity.
+    void position_set(float x, float y, float z = 0.0f, bool integer = false); // Sets the position of the entity using x and y coordinates.
+    virtual void render(Draw *draw, Game *game);                               // called every frame to render the entity.
+    virtual void start(Game *game);                                            // called when the entity is created.
+    virtual void stop(Game *game);                                             // called when the entity is destroyed.
+    virtual void update(Game *game);                                           // called every frame to update the entity.
 
     // 3D Sprite query and control methods
     bool has3DSprite() const;                 // Check if the entity has an associated 3D sprite
