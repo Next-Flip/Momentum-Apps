@@ -1,7 +1,10 @@
 #include "image.hpp"
 
 #include ENGINE_MEM_INCLUDE
+
+#ifdef ENGINE_STORAGE_INCLUDE
 #include ENGINE_STORAGE_INCLUDE
+#endif
 
 bool Image::getData(void *buffer, size_t buffer_size)
 {
@@ -19,9 +22,12 @@ bool Image::getData(void *buffer, size_t buffer_size)
 
     if (path == nullptr || path[0] == '\0')
         return false;
-
+#ifdef ENGINE_STORAGE_READ
     size_t bytes_read = ENGINE_STORAGE_READ(this->path, buffer, buffer_size);
     return bytes_read > 0;
+#else
+    return false;
+#endif
 }
 
 void Image::render(Draw *draw, const Vector &position)
