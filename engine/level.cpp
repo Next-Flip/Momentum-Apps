@@ -96,7 +96,7 @@ void Level::entity_add(Entity *entity)
     }
 
     // Allocate a new array with size one greater than the current count
-    Entity **newEntities = new Entity *[entity_count + 1];
+    Entity **newEntities = ENGINE_MEM_NEW Entity * [entity_count + 1];
     if (!newEntities)
     {
         return;
