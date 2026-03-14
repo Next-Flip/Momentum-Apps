@@ -11,11 +11,11 @@ Entity::Entity(
     Image *sprite_data,
     Image *sprite_left_data,
     Image *sprite_right_data,
-    std::function<void(Entity *, Game *)> start,
-    std::function<void(Entity *, Game *)> stop,
-    std::function<void(Entity *, Game *)> update,
-    std::function<void(Entity *, Draw *, Game *)> render,
-    std::function<void(Entity *, Entity *, Game *)> collision,
+    CallbackEntityGame start,
+    CallbackEntityGame stop,
+    CallbackEntityGame update,
+    CallbackEntityDrawGame render,
+    CallbackEntityEntityGame collision,
     bool is_8bit_sprite,
     Sprite3DType sprite_3d_type,
     uint16_t sprite_3d_color)
@@ -95,7 +95,7 @@ Entity::~Entity()
 
 void Entity::collision(Entity *other, Game *game)
 {
-    if (this->_collision != NULL)
+    if (this->_collision)
     {
         this->_collision(this, other, game);
     }
@@ -202,7 +202,7 @@ void Entity::position_set(float x, float y, float z, bool integer)
 
 void Entity::render(Draw *draw, Game *game)
 {
-    if (this->_render != NULL)
+    if (this->_render)
     {
         this->_render(this, draw, game);
     }
@@ -233,7 +233,7 @@ void Entity::start(Game *game)
         return;
     }
 
-    if (this->_start != NULL)
+    if (this->_start)
     {
         this->_start(this, game);
     }
@@ -242,7 +242,7 @@ void Entity::start(Game *game)
 
 void Entity::stop(Game *game)
 {
-    if (this->_stop != NULL)
+    if (this->_stop)
     {
         this->_stop(this, game);
     }
@@ -251,7 +251,7 @@ void Entity::stop(Game *game)
 
 void Entity::update(Game *game)
 {
-    if (this->_update != NULL)
+    if (this->_update)
     {
         this->_update(this, game);
     }

@@ -3,7 +3,7 @@
 #include "draw.hpp"
 #include "level.hpp"
 #include "vector.hpp"
-#include <functional>
+#include "callback.hpp"
 
 #define MAX_LEVELS 10
 
@@ -11,15 +11,15 @@ class Game
 {
 public:
     Game(
-        const char *name,                        // Name of the game
-        Vector size,                             // game/world size
-        Draw *draw,                              // drawing object for rendering
-        uint16_t fg_color = 0x0000,              // Foreground color
-        uint16_t bg_color = 0xFFFF,              // Background color
-        Camera *cameraContext = nullptr,         // Camera context for rendering
-        std::function<void()> start = nullptr,   // Callback function for when the game starts
-        std::function<void()> stop = nullptr,    // Callback function for when the game stops
-        std::function<void()> update = nullptr); // Callback function for when the game updates
+        const char *name,                // Name of the game
+        Vector size,                     // game/world size
+        Draw *draw,                      // drawing object for rendering
+        uint16_t fg_color = 0x0000,      // Foreground color
+        uint16_t bg_color = 0xFFFF,      // Background color
+        Camera *cameraContext = nullptr, // Camera context for rendering
+        CallbackVoid start = {},         // Callback function for when the game starts
+        CallbackVoid stop = {},          // Callback function for when the game stops
+        CallbackVoid update = {});       // Callback function for when the game updates
     ~Game();
 
     void clamp(float &value, float min, float max); // Clamp a value between a lower and upper bound.
@@ -46,8 +46,9 @@ public:
     bool is_active;            // Whether the game is active
     uint16_t bg_color;         // Background color
     uint16_t fg_color;         // Foreground color
+    CallbackVoid _start;
+    CallbackVoid _stop;
+    CallbackVoid _update;
+
 private:
-    std::function<void()> _start;
-    std::function<void()> _stop;
-    std::function<void()> _update;
 };

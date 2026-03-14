@@ -14,13 +14,13 @@ Level::Level()
       gameRef(nullptr),
       entity_count(0),
       entities(nullptr),
-      _start(nullptr),
-      _stop(nullptr)
+      _start{},
+      _stop{}
 {
 }
 
 // Parameterized Constructor
-Level::Level(const char *name, const Vector &size, Game *game, std::function<void(Level &)> start, std::function<void(Level &)> stop)
+Level::Level(const char *name, const Vector &size, Game *game, CallbackLevel start, CallbackLevel stop)
     : name(name),
       size(size),
       clearAllowed(true),
@@ -333,9 +333,11 @@ void Level::render3DSprite(const Sprite3D *sprite3d, Draw *draw, Vector player_p
         return;
 
     // Get triangles from the 3D sprite and render them
-    static Vector screen_points[3];
-    static Vector vertex;
-    static Triangle3D triangle;
+    // changed from static because it gave us size issues
+    // with compiling in micropython
+    Vector screen_points[3];
+    Vector vertex;
+    Triangle3D triangle;
     //
     const uint8_t triangle_count = sprite3d->getTriangleCount();
     for (uint8_t i = 0; i < triangle_count; i++)
@@ -401,7 +403,7 @@ void Level::render3DSprite(const Sprite3D *sprite3d, Draw *draw, Vector player_p
 // Start the level
 void Level::start()
 {
-    if (_start != nullptr)
+    if (_start)
     {
         _start(*this);
     }
@@ -410,7 +412,7 @@ void Level::start()
 // Stop the level
 void Level::stop()
 {
-    if (_stop != nullptr)
+    if (_stop)
     {
         _stop(*this);
     }
@@ -427,14 +429,15 @@ void Level::update(Game *game)
         {
             ent->update(game);
 
-            int count = 0;
-            Entity **collisions = collision_list(ent, count);
-
-            for (int j = 0; j < count; j++)
+            for (int j = 0; j < entity_count; j++)
             {
-                ent->collision(collisions[j], game);
+                if (entities[j] != nullptr &&
+                    entities[j] != ent &&
+                    is_collision(ent, entities[j]))
+                {
+                    ent->collision(entities[j], game);
+                }
             }
-            ENGINE_MEM_DELETE[] collisions;
         }
     }
 }

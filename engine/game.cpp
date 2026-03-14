@@ -7,9 +7,9 @@ Game::Game(
     uint16_t fg_color,
     uint16_t bg_color,
     Camera *cameraContext,
-    std::function<void()> start,
-    std::function<void()> stop,
-    std::function<void()> update)
+    CallbackVoid start,
+    CallbackVoid stop,
+    CallbackVoid update)
     : name(name),
       levels{nullptr},
       current_level(nullptr),
@@ -153,7 +153,7 @@ void Game::start()
     this->current_level = this->levels[0];
 
     // Call the game’s start callback (if any)
-    if (this->_start != nullptr)
+    if (this->_start)
     {
         this->_start();
     }
@@ -170,7 +170,7 @@ void Game::stop()
     if (!this->is_active)
         return;
 
-    if (this->_stop != nullptr)
+    if (this->_stop)
         this->_stop();
 
     if (this->current_level != nullptr)
@@ -196,7 +196,7 @@ void Game::update()
         return;
     }
 
-    if (this->_update != nullptr)
+    if (this->_update)
         this->_update();
 
     // Update the level
