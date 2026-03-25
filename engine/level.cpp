@@ -395,6 +395,18 @@ void Level::render3DSprite(const Sprite3D *sprite3d, Draw *draw, Vector player_p
             if (any_visible && !has_behind)
             {
                 draw->fillTriangle(screen_points[0], screen_points[1], screen_points[2], triangle.color);
+                if (triangle.wireframe)
+                {
+                    // Compute a lighter outline color from the fill color
+                    uint8_t r = (uint8_t)((triangle.color >> 11) & 0x1F);
+                    uint8_t g = (uint8_t)((triangle.color >> 5) & 0x3F);
+                    uint8_t b = (uint8_t)(triangle.color & 0x1F);
+                    r = r + ((0x1F - r) >> 1);
+                    g = g + ((0x3F - g) >> 1);
+                    b = b + ((0x1F - b) >> 1);
+                    const uint16_t outline_color = ((uint16_t)r << 11) | ((uint16_t)g << 5) | b;
+                    draw->triangle(screen_points[0], screen_points[1], screen_points[2], outline_color);
+                }
             }
         }
     }
