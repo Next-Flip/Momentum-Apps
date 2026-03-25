@@ -88,6 +88,7 @@ public:
     float xp;                   // Experience points of the entity
     float health_regen;         // player health regeneration rate per second/frame
     float elapsed_health_regen; // time elapsed since last health regeneration
+    void *mp_ctx;               // back-pointer to entity_mp_obj_t wrapper (set by MicroPython bindings)
 
     Entity(
         const char *name,                             // The name of the entity.
