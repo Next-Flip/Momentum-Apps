@@ -45,6 +45,7 @@ private:
     Game *gameRef;
     int entity_count;
     Entity **entities;
+    int *renderOrder;
     // Callback Functions
     CallbackLevel _start;
     CallbackLevel _stop;

@@ -14,6 +14,7 @@ Level::Level()
       gameRef(nullptr),
       entity_count(0),
       entities(nullptr),
+      renderOrder(nullptr),
       _start{},
       _stop{}
 {
@@ -27,6 +28,7 @@ Level::Level(const char *name, const Vector &size, Game *game, CallbackLevel sta
       gameRef(game),
       entity_count(0),
       entities(nullptr),
+      renderOrder(nullptr),
       _start(start),
       _stop(stop)
 {
@@ -58,6 +60,8 @@ void Level::clear()
     ENGINE_MEM_DELETE[] entities;
     entities = nullptr;
     entity_count = 0;
+    ENGINE_MEM_FREE(renderOrder);
+    renderOrder = nullptr;
 }
 
 // Get list of collisions for a given entity
@@ -114,6 +118,10 @@ void Level::entity_add(Entity *entity)
     entities = newEntities;
     entity_count++;
 
+    // Grow the depth-sort scratch buffer to match
+    ENGINE_MEM_FREE(renderOrder);
+    renderOrder = (int *)ENGINE_MEM_MALLOC(entity_count * sizeof(int));
+
     // Start the new entity
     entity->start(this->gameRef);
     entity->is_active = true;
@@ -158,6 +166,10 @@ void Level::entity_remove(Entity *entity)
     ENGINE_MEM_DELETE[] entities;
     entities = newEntities;
     entity_count--;
+
+    // Shrink the depth-sort scratch buffer to match
+    ENGINE_MEM_FREE(renderOrder);
+    renderOrder = entity_count > 0 ? (int *)ENGINE_MEM_MALLOC(entity_count * sizeof(int)) : nullptr;
 }
 
 // Check if any entity has collided with the given entity
@@ -259,9 +271,56 @@ void Level::render(Game *game)
         }
     }
 
+    if (entity_count == 0)
+    {
+        return; // Nothing to render
+    }
+
+    // Painter's algorithm (back-to-front) for third-person
+    const bool use_depth_order = (gameCamera->perspective == CAMERA_THIRD_PERSON && entity_count > 0);
+    if (use_depth_order && renderOrder != nullptr)
+    {
+        for (int i = 0; i < entity_count; i++)
+            renderOrder[i] = i;
+        // Insertion sort: furthest entities first so closer ones overdraw them
+        for (int i = 1; i < entity_count; i++)
+        {
+            int key_idx = renderOrder[i];
+            float key_dist = 0.0f;
+            if (entities[key_idx] != nullptr)
+            {
+                float dx = entities[key_idx]->position.x - gameCamera->position.x;
+                float dy = entities[key_idx]->position.y - gameCamera->position.y;
+                key_dist = dx * dx + dy * dy;
+            }
+            int j = i - 1;
+            while (j >= 0)
+            {
+                int cmp_idx = renderOrder[j];
+                float cmp_dist = 0.0f;
+                if (entities[cmp_idx] != nullptr)
+                {
+                    float dx = entities[cmp_idx]->position.x - gameCamera->position.x;
+                    float dy = entities[cmp_idx]->position.y - gameCamera->position.y;
+                    cmp_dist = dx * dx + dy * dy;
+                }
+                if (cmp_dist < key_dist)
+                {
+                    renderOrder[j + 1] = renderOrder[j];
+                    j--;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            renderOrder[j + 1] = key_idx;
+        }
+    }
+
     for (int i = 0; i < entity_count; i++)
     {
-        Entity *ent = entities[i];
+        Entity *ent = entities[use_depth_order && renderOrder ? renderOrder[i] : i];
 
         if (ent != nullptr && ent->is_active)
         {
