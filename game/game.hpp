@@ -18,7 +18,7 @@ private:
     InputKey lastInput = InputKeyMAX;       // Last input key pressed
     std::unique_ptr<Player> player;         // Player instance
     ToggleState soundToggle = ToggleOn;     // sound toggle state
-    const int totalLevels = 3;              // Total number of levels available
+    const int totalLevels = 4;              // Total number of levels available
     ToggleState vibrationToggle = ToggleOn; // vibration toggle state
     //
     int atoi(const char *nptr) { return (int)strtol(nptr, NULL, 10); } // convert string to integer
@@ -30,19 +30,19 @@ public:
     FreeRoamGame();
     ~FreeRoamGame();
 
-    void *appContext = nullptr;                   // Pointer to the application context for accessing app-specific functionality
-    bool shouldReturnToMenu = false;              // Flag to signal return to menu
-    ViewDispatcher **viewDispatcherRef = nullptr; // Reference to the view dispatcher for navigation
+    void *appContext = nullptr;      // Pointer to the application context for accessing app-specific functionality
+    bool shouldReturnToMenu = false; // Flag to signal return to menu
     //
     void endGame();                                               // end the game and return to the submenu
     InputKey getCurrentInput() const { return lastInput; }        // Get the last input key pressed
     GameEngine *getEngine() const { return engine.get(); }        // Get the game engine instance
     Draw *getDraw() const { return draw.get(); }                  // Get the Draw instance
-    bool init(ViewDispatcher **viewDispatcher, void *appContext); // initialize the game
+    bool init(void *appContext);                                  // initialize the game
     bool isActive() const { return shouldReturnToMenu == false; } // Check if the game is active
     bool isRunning() const { return isGameRunning; }              // Check if the game engine is running
     void resetInput() { lastInput = InputKeyMAX; }                // Reset input after processing
     bool startGame();                                             // start the actual game
+    bool startGameOnline();                                       // start the online multiplayer game
     void updateDraw(Canvas *canvas);                              // update and draw the game
     void updateInput(InputEvent *event);                          // update input for the game
     void updateSoundToggle();                                     // update sound toggle state
