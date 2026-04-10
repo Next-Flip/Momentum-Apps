@@ -5,10 +5,10 @@ App(
     entry_point="mouse_click_recorder_app",
     stack_size=4 * 1024,
     fap_category="USB",
-    fap_version=(1, 0),
+    fap_version=(1, 1),
     fap_description="Record, shuffle, spam mouse clicks or use as a full mouse over USB or BLE HID",
     fap_author="0x78f1935",
-    fap_icon="icon.png",
+    fap_icon="./images/mouse_10x10.png",
     fap_icon_assets="images",
     fap_libs=["ble_profile"],
 )

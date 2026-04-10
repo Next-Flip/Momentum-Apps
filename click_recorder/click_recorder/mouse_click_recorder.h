@@ -166,6 +166,7 @@ typedef struct
 
     // Misc
     bool ble_connected;
+    bool hid_active;
     bool running;
 
     // OS resources
