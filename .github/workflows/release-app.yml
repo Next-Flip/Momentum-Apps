@@ -1,0 +1,115 @@
+name: "Release apps"
+
+on:
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: "Appids to build, comma- or space-separated (e.g. `arkanoid, flashlight, totp`). See .github/valid-appids.txt for the full list."
+        type: string
+        required: true
+      firmware:
+        description: "Firmware to build against"
+        type: choice
+        required: true
+        default: momentum-dev
+        options:
+          - momentum-dev
+          - momentum-release
+          - stock-dev
+          - stock-release
+      tag:
+        description: "Release tag (default: multi-run<run_number>; reuses existing release if tag exists)"
+        type: string
+        required: false
+        default: ""
+
+concurrency:
+  group: release-app-${{ github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FBT_GIT_SUBMODULE_SHALLOW: 1
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Resolve firmware preset"
+        run: |
+          case '${{ inputs.firmware }}' in
+            momentum-dev)     R=Next-Flip/Momentum-Firmware;        F=dev ;;
+            momentum-release) R=Next-Flip/Momentum-Firmware;        F=release ;;
+            stock-dev)        R=flipperdevices/flipperzero-firmware; F=dev ;;
+            stock-release)    R=flipperdevices/flipperzero-firmware; F=release ;;
+            *) echo "Unknown firmware preset: ${{ inputs.firmware }}"; exit 1 ;;
+          esac
+          echo "FW_REPO=$R" >> $GITHUB_ENV
+          echo "FW_REF=$F"  >> $GITHUB_ENV
+
+      - name: "Checkout firmware"
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.FW_REPO }}
+          ref: ${{ env.FW_REF }}
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: "Checkout apps"
+        uses: actions/checkout@v4
+        with:
+          path: applications/external
+          fetch-depth: 1
+
+      - name: "Parse & validate appid list"
+        run: |
+          python3 applications/external/.github/scripts/resolve_appids.py \
+            --input "${{ inputs.apps }}" \
+            --apps-root applications/external \
+            --out-env "$GITHUB_ENV"
+
+      - name: "Resolve tag"
+        run: |
+          TAG='${{ inputs.tag }}'
+          [ -z "$TAG" ] && TAG="multi-run${{ github.run_number }}"
+          echo "RESOLVED_TAG=$TAG" >> $GITHUB_ENV
+
+      - name: "Build selected faps"
+        run: |
+          git add applications/external
+          for APPID in $RESOLVED_APPIDS; do
+            echo "::group::Building $APPID"
+            ./fbt TARGET_HW=7 DEBUG=0 COMPACT=1 fap_${APPID}
+            echo "::endgroup::"
+          done
+
+      - name: "Collect faps"
+        run: |
+          mkdir -p release-faps
+          for APPID in $RESOLVED_APPIDS; do
+            cp "build/f7-firmware-C/.extapps/${APPID}.fap" "release-faps/${APPID}.fap"
+          done
+          ls -la release-faps/
+
+      - name: "Upload as artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: faps-${{ github.run_number }}
+          path: release-faps/*.fap
+          if-no-files-found: error
+
+      - name: "Publish release"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RESOLVED_TAG }}
+          name: "Apps build (run #${{ github.run_number }})"
+          files: release-faps/*.fap
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          body: |
+            Built against `${{ env.FW_REPO }}@${{ env.FW_REF }}`.
+
+            Included apps:
+            ${{ env.RESOLVED_APPIDS_MD }}
