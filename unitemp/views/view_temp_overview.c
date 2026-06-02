@@ -23,9 +23,6 @@
 #include <gui/elements.h>
 #include <locale/locale.h>
 
-extern const Icon I_ButtonRight_4x7;
-extern const Icon I_ButtonLeft_4x7;
-
 struct TempOverview {
     View* view;
     void* context;

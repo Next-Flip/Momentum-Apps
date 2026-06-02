@@ -47,6 +47,8 @@
 
 #include "sensors.h"
 
+#include "unitemp_icons.h"
+
 /* Declaring Macro Substitutions */
 //Application name
 #define APP_NAME        "Unitemp"

@@ -30,9 +30,6 @@
 
 #include "unitemp_icons.h"
 
-extern const Icon I_ButtonRight_4x7;
-extern const Icon I_ButtonLeft_4x7;
-
 #define TEMP_STR_SIZE 32
 static char* temp_str;
 

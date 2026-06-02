@@ -26,9 +26,6 @@
 #include "../interfaces/spi_sensor.h"
 #include "../interfaces/onewire_sensor.h"
 
-extern const Icon I_ButtonRight_4x7;
-extern const Icon I_ButtonLeft_4x7;
-
 struct SensorInfo {
     View* view;
     void* context;

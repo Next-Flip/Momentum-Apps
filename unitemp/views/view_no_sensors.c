@@ -21,7 +21,6 @@
 #include <gui/elements.h>
 
 #include "unitemp_icons.h"
-extern const Icon I_Ok_btn_9x9;
 
 struct NoSensors {
     View* view;

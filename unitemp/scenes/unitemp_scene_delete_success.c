@@ -1,7 +1,5 @@
 #include "unitemp.h"
 
-extern const Icon I_DolphinMafia_119x62;
-
 static void unitemp_scene_delete_success_popup_callback(void* context) {
     UnitempApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, CustomEventBack);

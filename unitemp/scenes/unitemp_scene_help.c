@@ -20,8 +20,6 @@
 
 #include "unitemp_icons.h"
 
-extern const Icon I_WarningDolphinFlip_45x42;
-
 void unitemp_scene_help_on_enter(void* context) {
     UnitempApp* app = context;
 

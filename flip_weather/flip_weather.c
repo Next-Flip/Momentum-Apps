@@ -68,7 +68,7 @@ void flip_weather_app_free(FlipWeatherApp *app)
     if (app->uart_text_input_location)
     {
         view_dispatcher_remove_view(app->view_dispatcher, FlipWeatherViewTextInputLocation);
-        uart_text_input_free(app->uart_text_input_location);
+        text_input_free(app->uart_text_input_location);
     }
 
     // Free the text input buffer
