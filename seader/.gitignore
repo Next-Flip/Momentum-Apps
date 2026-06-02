@@ -1,5 +1,8 @@
 .vscode/
+.idea/
 dist/
-examples/*
-logs
+examples/
+logs/
 credential/
+build/
+debug/
