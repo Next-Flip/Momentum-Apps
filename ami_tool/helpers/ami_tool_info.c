@@ -1,4 +1,4 @@
-#include "ami_tool_i.h"
+#include "../ami_tool_i.h"
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,6 +39,7 @@ static bool ami_tool_usage_is_true(const char* text);
 static bool ami_tool_info_write_password_pages(
     AmiToolApp* app,
     const MfUltralightAuthPassword* password);
+static bool ami_tool_info_target_tag_is_blank(const MfUltralightData* tag_data, const char** reason);
 static int32_t ami_tool_info_write_worker(void* context);
 static void ami_tool_info_write_send_event(
     AmiToolApp* app,
@@ -137,6 +138,103 @@ static const char* ami_tool_info_error_to_string(MfUltralightError error) {
     default:
         return "Unknown error";
     }
+}
+
+static bool ami_tool_info_target_tag_is_blank(const MfUltralightData* tag_data, const char** reason) {
+    static const uint8_t capability_defaults[4] = {0xE1, 0x10, 0x3E, 0x00};
+    static const uint8_t otp_defaults[4] = {0x03, 0x00, 0xFE, 0x00};
+    static const uint8_t dynamic_lock_defaults[4] = {0x00, 0x00, 0x00, 0xBD};
+    static const uint8_t cfg0_defaults[4] = {0x04, 0x00, 0x00, 0xFF};
+    static const uint8_t cfg1_defaults[4] = {0x00, 0x05, 0x00, 0x00};
+    static const uint8_t pwd_defaults[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+    static const uint8_t pack_defaults[4] = {0x00, 0x00, 0x00, 0x00};
+    static const uint8_t unreadable_defaults[4] = {0x00, 0x00, 0x00, 0x00};
+
+    if(reason) {
+        *reason = "Detected tag is not blank.";
+    }
+    if(!tag_data || tag_data->type != MfUltralightTypeNTAG215 || tag_data->pages_total < 135) {
+        if(reason) {
+            *reason = "Detected tag does not have enough pages.";
+        }
+        return false;
+    }
+
+    if(tag_data->page[2].data[1] != 0x48) {
+        if(reason) {
+            *reason = "Detected tag has unexpected internal bytes.";
+        }
+        return false;
+    }
+
+    if((tag_data->page[2].data[2] != 0x00) || (tag_data->page[2].data[3] != 0x00)) {
+        if(reason) {
+            *reason = "Detected tag has static lock bits set.";
+        }
+        return false;
+    }
+
+    if(memcmp(tag_data->page[3].data, capability_defaults, sizeof(capability_defaults)) != 0) {
+        if(reason) {
+            *reason = "Detected tag has unexpected capability container bytes.";
+        }
+        return false;
+    }
+
+    if(memcmp(tag_data->page[4].data, otp_defaults, sizeof(otp_defaults)) != 0) {
+        if(reason) {
+            *reason = "Detected tag OTP page is not blank.";
+        }
+        return false;
+    }
+
+    for(uint16_t page = 5; page <= 129; page++) {
+        if(memcmp(tag_data->page[page].data, pack_defaults, MF_ULTRALIGHT_PAGE_SIZE) != 0) {
+            if(reason) {
+                *reason = "Detected tag already contains user data.";
+            }
+            return false;
+        }
+    }
+
+    if(memcmp(tag_data->page[130].data, dynamic_lock_defaults, sizeof(dynamic_lock_defaults)) != 0) {
+        if(reason) {
+            *reason = "Detected tag has dynamic lock bits set.";
+        }
+        return false;
+    }
+
+    if(memcmp(tag_data->page[131].data, cfg0_defaults, sizeof(cfg0_defaults)) != 0) {
+        if(reason) {
+            *reason = "Detected tag has non-default RF config.";
+        }
+        return false;
+    }
+
+    if(memcmp(tag_data->page[132].data, cfg1_defaults, sizeof(cfg1_defaults)) != 0) {
+        if(reason) {
+            *reason = "Detected tag has non-default access config.";
+        }
+        return false;
+    }
+
+    if(memcmp(tag_data->page[133].data, pwd_defaults, sizeof(pwd_defaults)) != 0 &&
+       memcmp(tag_data->page[133].data, unreadable_defaults, sizeof(unreadable_defaults)) != 0) {
+        if(reason) {
+            *reason = "Detected tag password is not blank.";
+        }
+        return false;
+    }
+
+    if(memcmp(tag_data->page[134].data, pack_defaults, sizeof(pack_defaults)) != 0 &&
+       memcmp(tag_data->page[134].data, unreadable_defaults, sizeof(unreadable_defaults)) != 0) {
+        if(reason) {
+            *reason = "Detected tag PACK bytes are not blank.";
+        }
+        return false;
+    }
+
+    return true;
 }
 
 static bool ami_tool_info_lookup_entry(
@@ -1066,6 +1164,11 @@ bool ami_tool_info_change_uid(AmiToolApp* app) {
 
 static int32_t ami_tool_info_write_worker(void* context) {
     AmiToolApp* app = context;
+    if(app->write_cancel_requested) {
+        ami_tool_info_write_send_event(app, AmiToolEventInfoWriteCancelled, "Write cancelled.");
+        return 0;
+    }
+
     MfUltralightData* target = mf_ultralight_alloc();
     if(!target) {
         ami_tool_info_write_send_event(
@@ -1099,11 +1202,6 @@ static int32_t ami_tool_info_write_worker(void* context) {
         goto cleanup;
     }
 
-    if(app->write_cancel_requested) {
-        ami_tool_info_write_send_event(app, AmiToolEventInfoWriteCancelled, "Write cancelled.");
-        goto cleanup;
-    }
-
     if(target->type != MfUltralightTypeNTAG215) {
         ami_tool_info_write_send_event(
             app, AmiToolEventInfoWriteFailed, "Detected tag is not an NTAG215.");
@@ -1118,77 +1216,59 @@ static int32_t ami_tool_info_write_worker(void* context) {
         goto cleanup;
     }
 
-    if(!ami_tool_info_rebuild_dump_for_uid(app, target_uid, target_uid_len)) {
+    const char* blank_reason = NULL;
+    if(!ami_tool_info_target_tag_is_blank(target, &blank_reason)) {
         ami_tool_info_write_send_event(
             app,
             AmiToolEventInfoWriteFailed,
-            "Failed to prepare Amiibo data. Install key_retail.bin and try again.");
+            blank_reason ? blank_reason : "Detected tag is not blank.");
         goto cleanup;
     }
 
-    app->write_waiting_for_tag = false;
-    ami_tool_info_write_send_event(app, AmiToolEventInfoWriteStarted, NULL);
-
-    size_t total_pages = app->tag_data->pages_total;
-    if(target->pages_total < total_pages) {
-        total_pages = target->pages_total;
+    bool uid_matches = app->last_uid_valid && (app->last_uid_len >= 7) &&
+                       (memcmp(app->last_uid, target_uid, 7) == 0);
+    if(!uid_matches) {
+        if(!ami_tool_info_rebuild_dump_for_uid(app, target_uid, target_uid_len)) {
+            ami_tool_info_write_send_event(
+                app,
+                AmiToolEventInfoWriteFailed,
+                "Failed to prepare Amiibo data. Install key_retail.bin and try again.");
+            goto cleanup;
+        }
     }
-    if(total_pages <= 4) {
-        ami_tool_info_write_send_event(
-            app, AmiToolEventInfoWriteFailed, "Detected tag does not have enough pages.");
+
+    MfUltralightError io_error = MfUltralightErrorNone;
+    uint16_t failed_page = UINT16_MAX;
+    AmiToolWriteStatus status = ami_tool_write_custom_sequence(app, &io_error, &failed_page);
+
+    if(app->write_cancel_requested) {
+        ami_tool_info_write_send_event(app, AmiToolEventInfoWriteCancelled, "Write cancelled.");
         goto cleanup;
     }
 
-    const uint16_t first_data_page = 4;
-    const uint16_t tail_start_page = (total_pages > 5) ? (total_pages - 5) : total_pages;
-    MfUltralightError write_error = MfUltralightErrorNone;
-
-    for(uint16_t page = first_data_page; page < tail_start_page; page++) {
-        write_error =
-            mf_ultralight_poller_sync_write_page(app->nfc, page, &app->tag_data->page[page]);
-        if(write_error != MfUltralightErrorNone) {
-            char message[96];
+    if(status != AmiToolWriteStatusOk) {
+        char message[96];
+        if((status == AmiToolWriteStatusIoError) && (failed_page != UINT16_MAX)) {
             snprintf(
                 message,
                 sizeof(message),
                 "Write failed at page %u: %s",
-                page,
-                ami_tool_info_error_to_string(write_error));
-            ami_tool_info_write_send_event(app, AmiToolEventInfoWriteFailed, message);
-            goto cleanup;
-        }
-    }
-
-    for(uint16_t page = tail_start_page; page < total_pages; page++) {
-        write_error =
-            mf_ultralight_poller_sync_write_page(app->nfc, page, &app->tag_data->page[page]);
-        if(write_error != MfUltralightErrorNone) {
-            char message[96];
+                failed_page,
+                ami_tool_info_error_to_string(io_error));
+        } else if(status == AmiToolWriteStatusIoError) {
             snprintf(
                 message,
                 sizeof(message),
-                "Config write failed (%u): %s",
-                page,
-                ami_tool_info_error_to_string(write_error));
-            ami_tool_info_write_send_event(app, AmiToolEventInfoWriteFailed, message);
-            goto cleanup;
+                "Write failed: %s",
+                ami_tool_info_error_to_string(io_error));
+        } else {
+            snprintf(message, sizeof(message), "%s", ami_tool_write_status_to_string(status));
         }
-    }
-
-    write_error = mf_ultralight_poller_sync_write_page(app->nfc, 3, &app->tag_data->page[3]);
-    if(write_error != MfUltralightErrorNone) {
-        char message[96];
-        snprintf(
-            message,
-            sizeof(message),
-            "Lock bits write failed: %s",
-            ami_tool_info_error_to_string(write_error));
         ami_tool_info_write_send_event(app, AmiToolEventInfoWriteFailed, message);
         goto cleanup;
     }
 
     ami_tool_info_write_send_event(app, AmiToolEventInfoWriteSuccess, NULL);
-
 cleanup:
     mf_ultralight_free(target);
     return 0;
