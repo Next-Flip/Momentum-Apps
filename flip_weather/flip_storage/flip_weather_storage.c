@@ -4,6 +4,7 @@
 void save_settings(
     const char *ssid,
     const char *password,
+    const char *custom_location,
     bool use_fahrenheit)
 {
     // Create the directory for saving settings
@@ -47,6 +48,14 @@ void save_settings(
         FURI_LOG_E(TAG, "Failed to write temperature unit");
     }
 
+    // Save the custom location length and data
+    size_t custom_location_length = strlen(custom_location) + 1; // Include null terminator
+    if (storage_file_write(file, &custom_location_length, sizeof(size_t)) != sizeof(size_t) ||
+        storage_file_write(file, custom_location, custom_location_length) != custom_location_length)
+    {
+        FURI_LOG_E(TAG, "Failed to write custom location");
+    }
+
     storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
@@ -57,6 +66,8 @@ bool load_settings(
     size_t ssid_size,
     char *password,
     size_t password_size,
+    char *custom_location,
+    size_t custom_location_size,
     bool *use_fahrenheit)
 {
     Storage *storage = furi_record_open(RECORD_STORAGE);
@@ -102,6 +113,16 @@ bool load_settings(
     if (storage_file_read(file, &temp_unit, sizeof(uint8_t)) == sizeof(uint8_t))
     {
         *use_fahrenheit = (temp_unit == 1);
+    }
+
+    // Load the custom location (optional — may not exist in older settings files)
+    custom_location[0] = '\0';
+    size_t custom_location_length;
+    if (storage_file_read(file, &custom_location_length, sizeof(size_t)) == sizeof(size_t) &&
+        custom_location_length <= custom_location_size &&
+        storage_file_read(file, custom_location, custom_location_length) == custom_location_length)
+    {
+        custom_location[custom_location_length - 1] = '\0'; // Ensure null-termination
     }
 
     storage_file_close(file);
