@@ -31,7 +31,7 @@ public:
     DynamicMap(const char *name, uint8_t w, uint8_t h, bool addBorder = true);
     ~DynamicMap();
 
-    void addBorderWalls();                                                                                                         // Add walls around the entire map border
+    void addBorderWalls(float height = 5.0f, float depth = 0.2f);                                                                  // Add walls around the entire map border
     void addCorridor(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);                                                              // Add a simple L-shaped corridor between two points
     void addDoor(uint8_t x, uint8_t y);                                                                                            // Add a door tile at the specified coordinates
     void addHorizontalWall(uint8_t x1, uint8_t x2, uint8_t y, float height = 5.0f, float depth = 0.2f, TileType type = TILE_WALL); // Add a horizontal wall and create a corresponding Sprite3D for rendering if it's a solid wall

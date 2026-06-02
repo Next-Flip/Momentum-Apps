@@ -11,11 +11,11 @@ Entity::Entity(
     Image *sprite_data,
     Image *sprite_left_data,
     Image *sprite_right_data,
-    void (*start)(Entity *, Game *),
-    void (*stop)(Entity *, Game *),
-    void (*update)(Entity *, Game *),
-    void (*render)(Entity *, Draw *, Game *),
-    void (*collision)(Entity *, Entity *, Game *),
+    CallbackEntityGame start,
+    CallbackEntityGame stop,
+    CallbackEntityGame update,
+    CallbackEntityDrawGame render,
+    CallbackEntityEntityGame collision,
     bool is_8bit_sprite,
     Sprite3DType sprite_3d_type,
     uint16_t sprite_3d_color)
@@ -24,7 +24,7 @@ Entity::Entity(
     this->type = type;
     this->position = position;
     this->old_position = position;
-    this->direction = Vector(1, 0);
+    this->direction = Vector(1, 0, 0, true);
     this->plane = Vector(0, 0);
     this->size = size;
     this->sprite = sprite_data;
@@ -95,7 +95,7 @@ Entity::~Entity()
 
 void Entity::collision(Entity *other, Game *game)
 {
-    if (this->_collision != NULL)
+    if (this->_collision)
     {
         this->_collision(this, other, game);
     }
@@ -169,9 +169,11 @@ void Entity::position_set(Vector value)
     this->old_position.x = this->position.x;
     this->old_position.y = this->position.y;
     this->old_position.z = this->position.z;
+    this->old_position.integer = this->position.integer;
     this->position.x = value.x;
     this->position.y = value.y;
     this->position.z = value.z;
+    this->position.integer = value.integer;
 
     // Automatically update 3D sprite position if it exists
     if (sprite_3d != nullptr)
@@ -180,14 +182,16 @@ void Entity::position_set(Vector value)
     }
 }
 
-void Entity::position_set(float x, float y, float z)
+void Entity::position_set(float x, float y, float z, bool integer)
 {
     this->old_position.x = this->position.x;
     this->old_position.y = this->position.y;
     this->old_position.z = this->position.z;
+    this->old_position.integer = this->position.integer;
     this->position.x = x;
     this->position.y = y;
     this->position.z = z;
+    this->position.integer = integer;
 
     // Automatically update 3D sprite position if it exists
     if (sprite_3d != nullptr)
@@ -198,7 +202,7 @@ void Entity::position_set(float x, float y, float z)
 
 void Entity::render(Draw *draw, Game *game)
 {
-    if (this->_render != NULL)
+    if (this->_render)
     {
         this->_render(this, draw, game);
     }
@@ -229,7 +233,7 @@ void Entity::start(Game *game)
         return;
     }
 
-    if (this->_start != NULL)
+    if (this->_start)
     {
         this->_start(this, game);
     }
@@ -238,7 +242,7 @@ void Entity::start(Game *game)
 
 void Entity::stop(Game *game)
 {
-    if (this->_stop != NULL)
+    if (this->_stop)
     {
         this->_stop(this, game);
     }
@@ -247,7 +251,7 @@ void Entity::stop(Game *game)
 
 void Entity::update(Game *game)
 {
-    if (this->_update != NULL)
+    if (this->_update)
     {
         this->_update(this, game);
     }
