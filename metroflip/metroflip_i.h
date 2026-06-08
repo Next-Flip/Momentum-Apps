@@ -95,6 +95,7 @@ typedef struct {
     char currency[4];
     const char* card_type;
     bool auto_mode;
+    bool ultralight_data_ready;
     CardType mfc_card_type;
     NfcProtocol protocol;
     char file_path[256];

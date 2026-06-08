@@ -90,6 +90,7 @@ void metroflip_scene_parse_on_exit(void* context) {
         composite_api_resolver_free(app->resolver);
         app->is_desfire = false;
     }
-    
+
     app->data_loaded = false;
+    app->ultralight_data_ready = false;
 }
