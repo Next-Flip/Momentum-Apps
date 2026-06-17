@@ -17,6 +17,7 @@ FlipWeatherApp *flip_weather_app_alloc()
     // Allocate the text input buffer
     app->uart_text_input_buffer_size_ssid = 64;
     app->uart_text_input_buffer_size_password = 64;
+    app->uart_text_input_buffer_size_location = 64;
     if (!easy_flipper_set_buffer(&app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_size_ssid))
     {
         return NULL;
@@ -30,6 +31,14 @@ FlipWeatherApp *flip_weather_app_alloc()
         return NULL;
     }
     if (!easy_flipper_set_buffer(&app->uart_text_input_temp_buffer_password, app->uart_text_input_buffer_size_password))
+    {
+        return NULL;
+    }
+    if (!easy_flipper_set_buffer(&app->uart_text_input_buffer_location, app->uart_text_input_buffer_size_location))
+    {
+        return NULL;
+    }
+    if (!easy_flipper_set_buffer(&app->uart_text_input_temp_buffer_location, app->uart_text_input_buffer_size_location))
     {
         return NULL;
     }
@@ -48,7 +57,7 @@ FlipWeatherApp *flip_weather_app_alloc()
     flip_weather_loader_init(app->view_loader);
 
     // Widget
-    if (!easy_flipper_set_widget(&app->widget, FlipWeatherViewAbout, "FlipWeather v1.3\n-----\nUse WiFi to get GPS and \nWeather information.\n-----\nwww.github.com/jblanked", callback_to_submenu, &app->view_dispatcher))
+    if (!easy_flipper_set_widget(&app->widget, FlipWeatherViewAbout, "FlipWeather v1.4\n-----\nUse WiFi to get GPS and \nWeather information.\n-----\nwww.github.com/jblanked", callback_to_submenu, &app->view_dispatcher))
     {
         return NULL;
     }
@@ -66,6 +75,11 @@ FlipWeatherApp *flip_weather_app_alloc()
     {
         return NULL;
     }
+    if (!easy_flipper_set_uart_text_input(&app->uart_text_input_location, FlipWeatherViewTextInputLocation, "Enter Location", app->uart_text_input_temp_buffer_location, app->uart_text_input_buffer_size_location, text_updated_location, callback_to_wifi_settings, &app->view_dispatcher, app))
+    {
+        return NULL;
+    }
+    text_input_set_minimum_length(app->uart_text_input_location, 0);
 
     // Variable Item List
     if (!easy_flipper_set_variable_item_list(&app->variable_item_list, FlipWeatherViewSettings, settings_item_selected, callback_to_submenu, &app->view_dispatcher, app))
@@ -74,14 +88,16 @@ FlipWeatherApp *flip_weather_app_alloc()
     }
     app->variable_item_ssid = variable_item_list_add(app->variable_item_list, "SSID", 0, NULL, NULL);
     app->variable_item_password = variable_item_list_add(app->variable_item_list, "Password", 0, NULL, NULL);
+    app->variable_item_location = variable_item_list_add(app->variable_item_list, "Location", 0, NULL, NULL);
     app->variable_item_temperature_unit = variable_item_list_add(app->variable_item_list, "Temperature", 2, temperature_unit_change, app);
     variable_item_set_current_value_text(app->variable_item_ssid, "");
     variable_item_set_current_value_text(app->variable_item_password, "");
+    variable_item_set_current_value_text(app->variable_item_location, "");
     variable_item_set_current_value_index(app->variable_item_temperature_unit, 0);
     variable_item_set_current_value_text(app->variable_item_temperature_unit, "Celsius");
 
     // Submenu
-    if (!easy_flipper_set_submenu(&app->submenu, FlipWeatherViewSubmenu, "FlipWeather v1.3", callback_exit_app, &app->view_dispatcher))
+    if (!easy_flipper_set_submenu(&app->submenu, FlipWeatherViewSubmenu, "FlipWeather v1.4", callback_exit_app, &app->view_dispatcher))
     {
         return NULL;
     }
@@ -91,7 +107,7 @@ FlipWeatherApp *flip_weather_app_alloc()
     submenu_add_item(app->submenu, "Settings", FlipWeatherSubmenuIndexSettings, callback_submenu_choices, app);
 
     // load settings
-    if (load_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_size_ssid, app->uart_text_input_buffer_password, app->uart_text_input_buffer_size_password, &use_fahrenheit))
+    if (load_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_size_ssid, app->uart_text_input_buffer_password, app->uart_text_input_buffer_size_password, app->uart_text_input_buffer_location, app->uart_text_input_buffer_size_location, &use_fahrenheit))
     {
         // Update variable items
         if (app->variable_item_ssid)
@@ -108,6 +124,16 @@ FlipWeatherApp *flip_weather_app_alloc()
         {
             strncpy(app->uart_text_input_temp_buffer_password, app->uart_text_input_buffer_password, app->uart_text_input_buffer_size_password - 1);
             app->uart_text_input_temp_buffer_password[app->uart_text_input_buffer_size_password - 1] = '\0';
+        }
+        if (app->uart_text_input_buffer_location && app->uart_text_input_temp_buffer_location)
+        {
+            strncpy(app->uart_text_input_temp_buffer_location, app->uart_text_input_buffer_location, app->uart_text_input_buffer_size_location - 1);
+            app->uart_text_input_temp_buffer_location[app->uart_text_input_buffer_size_location - 1] = '\0';
+            // Sync to global custom_location
+            strncpy(custom_location, app->uart_text_input_buffer_location, sizeof(custom_location) - 1);
+            custom_location[sizeof(custom_location) - 1] = '\0';
+            if (app->variable_item_location)
+                variable_item_set_current_value_text(app->variable_item_location, app->uart_text_input_buffer_location);
         }
 
         // Apply loaded temperature unit

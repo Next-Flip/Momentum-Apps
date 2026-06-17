@@ -37,6 +37,8 @@ This process is assisted by `.subtrees/add.py`, if the specified subtree path al
 - remove the previous subtree with a commit
 - add the subtree from the new remote
 - restore the previous subtree and merge the remotes
+
 After this, you will just need to resolve the conflicts (content differences between remotes) manually to keep the best of both, and commit.
+
 If you're an app developer wanting to add your app, or a third party who wants to include something they find useful, you don't need to bother with this process.
 We will do it for you, just add from a single remote URL, or simply make an issue requesting an app to be added!

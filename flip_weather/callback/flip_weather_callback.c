@@ -50,6 +50,13 @@ static void flip_weather_request_error_draw(Canvas *canvas)
             canvas_clear(canvas);
             canvas_draw_str(canvas, 0, 10, "[STATUS]Connecting to AP...");
         }
+        else if (strstr(fhttp.last_response, "generationtime_ms") != NULL)
+        {
+            canvas_clear(canvas);
+            canvas_draw_str(canvas, 0, 10, "[ERROR] Location not found.");
+            canvas_draw_str(canvas, 0, 50, "Check your location setting.");
+            canvas_draw_str(canvas, 0, 60, "Press BACK to return.");
+        }
         else
         {
             canvas_clear(canvas);
@@ -84,6 +91,7 @@ void temperature_unit_change(VariableItem *item)
     save_settings(
         app_instance->uart_text_input_buffer_ssid,
         app_instance->uart_text_input_buffer_password,
+        app_instance->uart_text_input_buffer_location,
         use_fahrenheit);
 }
 
@@ -137,7 +145,7 @@ void text_updated_ssid(void *context)
     }
 
     // save settings
-    save_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_password, use_fahrenheit);
+    save_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_password, app->uart_text_input_buffer_location, use_fahrenheit);
 
     // save wifi settings to devboard
     if (strlen(app->uart_text_input_buffer_ssid) > 0 && strlen(app->uart_text_input_buffer_password) > 0)
@@ -174,7 +182,7 @@ void text_updated_password(void *context)
     }
 
     // save settings
-    save_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_password, use_fahrenheit);
+    save_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_password, app->uart_text_input_buffer_location, use_fahrenheit);
 
     // save wifi settings to devboard
     if (strlen(app->uart_text_input_buffer_ssid) > 0 && strlen(app->uart_text_input_buffer_password) > 0)
@@ -184,6 +192,38 @@ void text_updated_password(void *context)
             FURI_LOG_E(TAG, "Failed to save wifi settings");
         }
     }
+
+    // switch to the settings view
+    view_dispatcher_switch_to_view(app->view_dispatcher, FlipWeatherViewSettings);
+}
+
+void text_updated_location(void *context)
+{
+    FlipWeatherApp *app = (FlipWeatherApp *)context;
+    if (!app)
+    {
+        FURI_LOG_E(TAG, "FlipWeatherApp is NULL");
+        return;
+    }
+
+    // store the entered text
+    strncpy(app->uart_text_input_buffer_location, app->uart_text_input_temp_buffer_location, app->uart_text_input_buffer_size_location);
+
+    // Ensure null-termination
+    app->uart_text_input_buffer_location[app->uart_text_input_buffer_size_location - 1] = '\0';
+
+    // update the global custom_location
+    strncpy(custom_location, app->uart_text_input_buffer_location, sizeof(custom_location) - 1);
+    custom_location[sizeof(custom_location) - 1] = '\0';
+
+    // update the variable item text
+    if (app->variable_item_location)
+    {
+        variable_item_set_current_value_text(app->variable_item_location, app->uart_text_input_buffer_location);
+    }
+
+    // save settings
+    save_settings(app->uart_text_input_buffer_ssid, app->uart_text_input_buffer_password, app->uart_text_input_buffer_location, use_fahrenheit);
 
     // switch to the settings view
     view_dispatcher_switch_to_view(app->view_dispatcher, FlipWeatherViewSettings);
@@ -233,6 +273,9 @@ void settings_item_selected(void *context, uint32_t index)
         break;
     case 1: // Input Password
         view_dispatcher_switch_to_view(app->view_dispatcher, FlipWeatherViewTextInputPassword);
+        break;
+    case 2: // Input Location
+        view_dispatcher_switch_to_view(app->view_dispatcher, FlipWeatherViewTextInputLocation);
         break;
     default:
         FURI_LOG_E(TAG, "Unknown configuration item index");

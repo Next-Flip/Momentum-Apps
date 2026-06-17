@@ -3,6 +3,7 @@
 #include "draw.hpp"
 #include "level.hpp"
 #include "vector.hpp"
+#include "callback.hpp"
 
 #define MAX_LEVELS 10
 
@@ -16,8 +17,9 @@ public:
         uint16_t fg_color = 0x0000,      // Foreground color
         uint16_t bg_color = 0xFFFF,      // Background color
         Camera *cameraContext = nullptr, // Camera context for rendering
-        void (*start)() = NULL,          // Callback function for when the game starts
-        void (*stop)() = NULL);          // Callback function for when the game stops
+        CallbackVoid start = {},         // Callback function for when the game starts
+        CallbackVoid stop = {},          // Callback function for when the game stops
+        CallbackVoid update = {});       // Callback function for when the game updates
     ~Game();
 
     void clamp(float &value, float min, float max); // Clamp a value between a lower and upper bound.
@@ -36,7 +38,7 @@ public:
     Level *levels[MAX_LEVELS]; // Array of levels
     Level *current_level;      // Current level
     Draw *draw;                // Draw object for rendering
-    uint8_t input;             // Last input (e.g., one of the BUTTON_ constants)
+    int input;                 // Last input (e.g., one of the BUTTON_ constants)
     Camera *camera;            // Camera context
     Vector pos;                // Player position
     Vector old_pos;            // Previous position
@@ -44,7 +46,9 @@ public:
     bool is_active;            // Whether the game is active
     uint16_t bg_color;         // Background color
     uint16_t fg_color;         // Foreground color
+    CallbackVoid _start;
+    CallbackVoid _stop;
+    CallbackVoid _update;
+
 private:
-    void (*_start)();
-    void (*_stop)();
 };

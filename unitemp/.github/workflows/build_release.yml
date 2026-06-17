@@ -1,9 +1,9 @@
-name: "FAP: Build"
+name: "FAP: Build Unitemp release"
 on: [push, pull_request]
 jobs:
   ufbt-build-action:
     runs-on: ubuntu-latest
-    name: 'ufbt: Build for release branch'
+    name: 'ufbt: Build for master branch'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

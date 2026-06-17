@@ -1,7 +1,10 @@
 #include "image.hpp"
 
 #include ENGINE_MEM_INCLUDE
+
+#ifdef ENGINE_STORAGE_INCLUDE
 #include ENGINE_STORAGE_INCLUDE
+#endif
 
 bool Image::getData(void *buffer, size_t buffer_size)
 {
@@ -19,9 +22,12 @@ bool Image::getData(void *buffer, size_t buffer_size)
 
     if (path == nullptr || path[0] == '\0')
         return false;
-
+#ifdef ENGINE_STORAGE_READ
     size_t bytes_read = ENGINE_STORAGE_READ(this->path, buffer, buffer_size);
     return bytes_read > 0;
+#else
+    return false;
+#endif
 }
 
 void Image::render(Draw *draw, const Vector &position)
@@ -33,12 +39,10 @@ void Image::render(Draw *draw, const Vector &position)
             uint8_t *data_buffer = (uint8_t *)ENGINE_MEM_MALLOC(size.x * size.y);
             if (!data_buffer)
             {
-                FURI_LOG_E("Image", "Failed to allocate memory for image data buffer");
                 return;
             }
             if (!getData(data_buffer, size.x * size.y))
             {
-                FURI_LOG_E("Image", "Failed to get image data");
                 ENGINE_MEM_FREE(data_buffer);
                 return;
             }
@@ -50,12 +54,10 @@ void Image::render(Draw *draw, const Vector &position)
             uint16_t *data_buffer = (uint16_t *)ENGINE_MEM_MALLOC(size.x * size.y * 2);
             if (!data_buffer)
             {
-                FURI_LOG_E("Image", "Failed to allocate memory for image data buffer");
                 return;
             }
             if (!getData(data_buffer, size.x * size.y * 2))
             {
-                FURI_LOG_E("Image", "Failed to get image data");
                 ENGINE_MEM_FREE(data_buffer);
                 return;
             }
@@ -74,12 +76,10 @@ void Image::render(Draw *draw, int16_t x, int16_t y)
             uint8_t *data_buffer = (uint8_t *)ENGINE_MEM_MALLOC(size.x * size.y);
             if (!data_buffer)
             {
-                FURI_LOG_E("Image", "Failed to allocate memory for image data buffer");
                 return;
             }
             if (!getData(data_buffer, size.x * size.y))
             {
-                FURI_LOG_E("Image", "Failed to get image data");
                 ENGINE_MEM_FREE(data_buffer);
                 return;
             }
@@ -91,12 +91,10 @@ void Image::render(Draw *draw, int16_t x, int16_t y)
             uint16_t *data_buffer = (uint16_t *)ENGINE_MEM_MALLOC(size.x * size.y * 2);
             if (!data_buffer)
             {
-                FURI_LOG_E("Image", "Failed to allocate memory for image data buffer");
                 return;
             }
             if (!getData(data_buffer, size.x * size.y * 2))
             {
-                FURI_LOG_E("Image", "Failed to get image data");
                 ENGINE_MEM_FREE(data_buffer);
                 return;
             }
