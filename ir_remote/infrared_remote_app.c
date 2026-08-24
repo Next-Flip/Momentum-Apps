@@ -1,4 +1,5 @@
 #include <furi.h>
+#include <string.h>
 #include <furi_hal.h>
 
 #include <infrared_worker.h>
@@ -38,6 +39,46 @@ typedef struct {
     InfraredWorker* infrared_worker;
 } IRApp;
 
+// Row styles: icon, x offset, and y offset relative to the label centre line.
+// Values reproduce the original fixed-position layout exactly.
+typedef enum {
+    IRRowUp,
+    IRRowDown,
+    IRRowLeft,
+    IRRowRight,
+    IRRowOk,
+    IRRowBack,
+} IRRowStyle;
+
+// Draws one "icon + label" row at y, and returns the y for the next row.
+// Unbound buttons (label "N/A") are skipped entirely so the list compacts up.
+static uint8_t ir_draw_row(Canvas* canvas, uint8_t y, IRRowStyle style, const char* label) {
+    if(label == NULL || strcmp(label, "N/A") == 0) return y;
+
+    switch(style) {
+    case IRRowUp:
+        canvas_draw_icon(canvas, 1, y - 3, &I_ButtonUp_7x4);
+        break;
+    case IRRowDown:
+        canvas_draw_icon(canvas, 1, y - 3, &I_ButtonDown_7x4);
+        break;
+    case IRRowLeft:
+        canvas_draw_icon(canvas, 2, y - 5, &I_ButtonLeft_4x7);
+        break;
+    case IRRowRight:
+        canvas_draw_icon(canvas, 2, y - 5, &I_ButtonRight_4x7);
+        break;
+    case IRRowOk:
+        canvas_draw_icon(canvas, 0, y - 6, &I_Ok_btn_9x9);
+        break;
+    case IRRowBack:
+        canvas_draw_icon(canvas, 0, y - 5, &I_back_10px);
+        break;
+    }
+    canvas_draw_str_aligned(canvas, 32, y, AlignCenter, AlignCenter, label);
+    return y + 10;
+}
+
 // Screen is 128x64 px
 static void app_draw_callback(Canvas* canvas, void* ctx) {
     // Show config is incorrect when cannot read the remote file
@@ -54,54 +95,26 @@ static void app_draw_callback(Canvas* canvas, void* ctx) {
     } else {
         canvas_clear(canvas);
         view_port_set_orientation(app->view_port, ViewPortOrientationVertical);
-        canvas_draw_icon(canvas, 1, 5, &I_ButtonUp_7x4);
-        canvas_draw_icon(canvas, 1, 15, &I_ButtonDown_7x4);
-        canvas_draw_icon(canvas, 2, 23, &I_ButtonLeft_4x7);
-        canvas_draw_icon(canvas, 2, 33, &I_ButtonRight_4x7);
-        canvas_draw_icon(canvas, 0, 42, &I_Ok_btn_9x9);
-        canvas_draw_icon(canvas, 0, 53, &I_back_10px);
+        uint8_t y = 8;
 
-        //Labels
-        canvas_set_font(canvas, FontSecondary);
+        // Short press section
+        y = ir_draw_row(canvas, y, IRRowUp, furi_string_get_cstr(app->up_button));
+        y = ir_draw_row(canvas, y, IRRowDown, furi_string_get_cstr(app->down_button));
+        y = ir_draw_row(canvas, y, IRRowLeft, furi_string_get_cstr(app->left_button));
+        y = ir_draw_row(canvas, y, IRRowRight, furi_string_get_cstr(app->right_button));
+        y = ir_draw_row(canvas, y, IRRowOk, furi_string_get_cstr(app->ok_button));
+        y = ir_draw_row(canvas, y, IRRowBack, furi_string_get_cstr(app->back_button));
 
-        canvas_draw_str_aligned(
-            canvas, 32, 8, AlignCenter, AlignCenter, furi_string_get_cstr(app->up_button));
-        canvas_draw_str_aligned(
-            canvas, 32, 18, AlignCenter, AlignCenter, furi_string_get_cstr(app->down_button));
-        canvas_draw_str_aligned(
-            canvas, 32, 28, AlignCenter, AlignCenter, furi_string_get_cstr(app->left_button));
-        canvas_draw_str_aligned(
-            canvas, 32, 38, AlignCenter, AlignCenter, furi_string_get_cstr(app->right_button));
-        canvas_draw_str_aligned(
-            canvas, 32, 48, AlignCenter, AlignCenter, furi_string_get_cstr(app->ok_button));
-        canvas_draw_str_aligned(
-            canvas, 32, 58, AlignCenter, AlignCenter, furi_string_get_cstr(app->back_button));
+        canvas_draw_line(canvas, 0, y - 3, 64, y - 3);
+        y += 5;
 
-        canvas_draw_line(canvas, 0, 65, 64, 65);
-
-        canvas_draw_icon(canvas, 1, 70, &I_ButtonUp_7x4);
-        canvas_draw_icon(canvas, 1, 80, &I_ButtonDown_7x4);
-        canvas_draw_icon(canvas, 2, 88, &I_ButtonLeft_4x7);
-        canvas_draw_icon(canvas, 2, 98, &I_ButtonRight_4x7);
-        canvas_draw_icon(canvas, 0, 107, &I_Ok_btn_9x9);
-        canvas_draw_icon(canvas, 0, 118, &I_back_10px);
-
-        canvas_draw_str_aligned(
-            canvas, 32, 73, AlignCenter, AlignCenter, furi_string_get_cstr(app->up_hold_button));
-        canvas_draw_str_aligned(
-            canvas, 32, 83, AlignCenter, AlignCenter, furi_string_get_cstr(app->down_hold_button));
-        canvas_draw_str_aligned(
-            canvas, 32, 93, AlignCenter, AlignCenter, furi_string_get_cstr(app->left_hold_button));
-        canvas_draw_str_aligned(
-            canvas,
-            32,
-            103,
-            AlignCenter,
-            AlignCenter,
-            furi_string_get_cstr(app->right_hold_button));
-        canvas_draw_str_aligned(
-            canvas, 32, 113, AlignCenter, AlignCenter, furi_string_get_cstr(app->ok_hold_button));
-        canvas_draw_str_aligned(canvas, 32, 123, AlignCenter, AlignCenter, "Exit App");
+        // Long press section
+        y = ir_draw_row(canvas, y, IRRowUp, furi_string_get_cstr(app->up_hold_button));
+        y = ir_draw_row(canvas, y, IRRowDown, furi_string_get_cstr(app->down_hold_button));
+        y = ir_draw_row(canvas, y, IRRowLeft, furi_string_get_cstr(app->left_hold_button));
+        y = ir_draw_row(canvas, y, IRRowRight, furi_string_get_cstr(app->right_hold_button));
+        y = ir_draw_row(canvas, y, IRRowOk, furi_string_get_cstr(app->ok_hold_button));
+        ir_draw_row(canvas, y, IRRowBack, "Exit App");
     }
 }
 
