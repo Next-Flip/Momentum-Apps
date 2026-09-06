@@ -15,7 +15,7 @@ Make sure you have **Python 3.8 or newer** installed on your system and install 
 1. Connect your Flipper Zero to your PC via USB (and close `qFlipper` if it is running).
 2. Clone this repository and open a terminal inside the project directory:
    ```bash
-   git clone https://github.com
+   git clone https://github.com/Phaskich/Flipper-Zero-IR-Jammer.git
    cd Flipper-Zero-IR-Jammer
    ```
 3. (Optional) Force uFBT to sync with your Flipper's current SDK version:
