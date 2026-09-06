@@ -27,8 +27,6 @@ Make sure you have **Python 3.8 or newer** installed on your system and install 
    ufbt launch
    ```
 
-*Note: After the build finishes, you can also find the compiled `.fap` file inside the `dist/` directory if you want to copy it manually.*
-
 ## ⚠️ Hardware Safety Advice
 * When **EXTERNAL** mode is active, the app pushes massive current to Pin A7 and enables 5V OTG power. 
 * High-power 6W IR Blasters will heat up rapidly. To protect your IR LEDs from thermal degradation, **do not run active jamming for more than 10-15 seconds continuously**.
