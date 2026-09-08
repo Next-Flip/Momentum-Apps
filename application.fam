@@ -6,7 +6,6 @@ App(
     stack_size=2 * 1024,
     fap_category="Infrared",
     fap_version="1.0",
-    fap_icon="jamico.png",
-    fap_author="Phaskich",
+    fap_icon="ico.png",
     fap_description="Advanced Infrared Jammer optimized for high-power external 6W IR Blasters.",
 )
