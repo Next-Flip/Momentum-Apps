@@ -1,0 +1,167 @@
+#pragma once
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+
+#define CHIP_MAX_ADDRS  4
+#define CHIP_MAX_CHECKS 4
+
+typedef struct {
+    uint16_t reg; // register index, 8-bit unless reg16 is set
+    uint16_t expected;
+    uint16_t mask; // 0 means 0xFF/0xFFFF depending on width
+    bool wide; // true = 16-bit big-endian value
+    bool reg16; // true = the index itself is 16-bit big-endian (ST ToF, Goodix)
+} IdCheck;
+
+typedef struct {
+    const char* name;
+    // What the part does, in plain words. Two constraints, because the one
+    // string is used two ways.
+    //
+    // It has to survive being dropped into a sentence: the report writes "That
+    // part is %s." around it. "Press/temp/humidity" came out as "That part is a
+    // press/temp/humidity." -- a sentence that stops halfway. Give it a head
+    // noun, even when the label would read fine without one.
+    //
+    // And it has to fit the narrowest screen that draws it, which is NOT YOURS:
+    // article and kind together start at x=28, so 100px of the 128 are left.
+    // The longest one here is "a magnetic angle sensor" at 98px. Counting
+    // characters does not predict this -- "Temp/humidity sensor" is 20 of them
+    // and overflows by a pixel, "Magnetic angle sensor" is 21 and fits -- so a
+    // long new kind wants measuring against FontSecondary, not estimating:
+    // tools/screen_width.py does it exactly, off the device.
+    const char* kind;
+    uint8_t addrs[CHIP_MAX_ADDRS]; // 0xFF = end of list
+    uint8_t range_lo; // inclusive contiguous address range, 0 = unused
+    uint8_t range_hi;
+    const IdCheck* checks; // NULL = chip has no ID register
+    uint8_t check_count;
+    const char* note; // short caveat shown on the detail screen, or NULL
+} ChipEntry;
+
+typedef enum {
+    // Nothing has been decided yet, and it is first so that zero means this.
+    // GENUINE used to be the zero value, which made "this chip is real" the
+    // answer any uninitialised or partly filled ChipIdentification gave --
+    // including the one chip_db_identify memsets before it starts work. Every
+    // path through that function does assign a verdict today, so nothing shows
+    // it; the point is that the app's worst possible output should never be one
+    // missing return statement away.
+    VerdictNotChecked,
+    VerdictGenuine, // all ID registers match
+    VerdictWrongChip, // some IDs of a known chip match and others do not
+    VerdictNoMatch, // answers, but nothing matched any candidate here
+    VerdictDetectedNoId, // address belongs to a chip without an ID register
+    VerdictUnknown, // address not in the database
+    VerdictNoAnswer, // device stopped answering register reads
+    // Several parts fit what was read and nothing on the bus separates them:
+    // two chips with no ID register sharing an address, or two whose ID checks
+    // both passed with equal weight. New values go at the end -- every switch
+    // over this enum has a default:, so the compiler will not point at the ones
+    // that need a case, and a value inserted in the middle would silently
+    // renumber the rest.
+    VerdictAmbiguous,
+} ChipVerdict;
+
+typedef struct {
+    uint16_t reg;
+    uint16_t expected;
+    uint16_t actual;
+    bool wide;
+    bool reg16;
+    bool has_expected; // false for raw probe reads of unknown devices
+    bool read_ok; // distinguishes "read 0x00" from "could not read"
+    bool match;
+} IdReadResult;
+
+typedef struct {
+    const ChipEntry* chip; // best match, NULL for unknown
+    ChipVerdict verdict;
+    IdReadResult reads[CHIP_MAX_CHECKS];
+    uint8_t read_count;
+    // How many parts fit, for VerdictAmbiguous and nothing else. Counted where
+    // the decision is made rather than recovered afterwards, because the two
+    // ways a result can be ambiguous -- several parts with no ID register, or
+    // several whose ID checks passed equally -- would need counting differently
+    // and the verdict does not record which one happened.
+    uint8_t candidates;
+} ChipIdentification;
+
+// Probes the device at addr7 and fills out the identification result.
+void chip_db_identify(uint8_t addr7, ChipIdentification* out);
+
+const char* chip_verdict_str(ChipVerdict verdict);
+const char* chip_verdict_short_str(ChipVerdict verdict);
+
+// One-word headline for the summary screen.
+const char* chip_verdict_headline(ChipVerdict verdict);
+
+// Two short lines of plain language saying what the verdict actually means,
+// so the user is never left holding a word they have to interpret.
+void chip_verdict_explain(ChipVerdict verdict, const char** line1, const char** line2);
+
+// True when the verdict means "nothing is wrong here".
+bool chip_verdict_is_good(ChipVerdict verdict);
+
+// A pin that can take a part off the I2C bus entirely while leaving it in
+// perfect health. Two flavours: a protocol select that hands the part to SPI
+// or UART, and an enable pin that holds it in reset. Either way an I2C sweep
+// finds nothing, which is indistinguishable from a dead chip unless the app
+// says otherwise -- and someone has already returned a working BNO055 over
+// exactly this.
+typedef enum {
+    ModePinProtocol, // picks which bus the part speaks
+    ModePinEnable, // holds the part in reset or shutdown
+} ModePinKind;
+
+typedef enum {
+    ModeAltSpi,
+    ModeAltUart,
+    ModeAltOff, // not another protocol: the part simply is not running
+} ModeAlt;
+
+typedef struct {
+    const char* chip; // exact ChipEntry.name; the doc generator checks this
+    const char* pad; // what the breakout silkscreens: "CSB", "CS", "PS1"
+    uint8_t kind; // ModePinKind
+    uint8_t alt; // ModeAlt: where the part goes when the pad is wrong
+    bool i2c_high; // level this pad needs for the part to speak I2C
+    // Sampled at reset. Strapping the pad is then not enough on its own: the
+    // part keeps whatever it latched until the power is cycled, which is why
+    // the fix screen offers to cycle the rail rather than just say "rescan".
+    bool latched;
+} ChipModePin;
+
+// NULL is the normal answer: most parts have no such pin.
+const ChipModePin* chip_mode_pin_for(const char* chip_name);
+
+// The silent-bus screens work the other way round: nothing identified itself,
+// so there is no chip name to look up -- only the label the user read off the
+// board. A silkscreen label names a class of pin, and this turns that class
+// back into the set of parts the tool can actually vouch for.
+//
+// i2c_high is part of the key rather than assumed from the kind. A future row
+// where a low level is the I2C one would otherwise be listed under prose
+// claiming the opposite of its own datasheet quote.
+bool chip_mode_pin_matches(const ChipModePin* pin, uint8_t kind, uint8_t alt, bool i2c_high);
+
+// Iteration, for the docs generator and the silent-bus screens.
+size_t chip_mode_pin_count(void);
+const ChipModePin* chip_mode_pin_get(size_t index);
+
+// The parts at this address that carry no ID register, newest-registered last.
+// Returns how many there are in total, which can exceed `max`; `out` may be
+// NULL to ask for the count alone.
+//
+// Two of them at one address is not an exotic case -- 0x68 has the DS3231 and
+// the DS1307, 0x40 has three -- and there is nothing on the bus that tells them
+// apart. The screens use this to say how many rather than to pick one.
+size_t chip_db_no_id_at(uint8_t addr7, const ChipEntry** out, size_t max);
+
+// Number of chips in the database, for the About screen.
+size_t chip_db_count(void);
+
+// Iteration, for the "what does this know?" browser.
+const ChipEntry* chip_db_get(size_t index);
