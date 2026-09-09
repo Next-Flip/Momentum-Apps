@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11 — beta
+
+- **The QMC5883P live test now waits for the part instead of racing it.** Its measurement loop
+  read and redrew as fast as the I2C bus would go. The part produces a new sample ten times a
+  second and no faster, so most of those reads returned the number already on the screen, and
+  every one of them was published again — which drove the display, and anything watching the
+  screen over USB, at a rate nothing needed. It now waits a sample period between reads.
+- **And it establishes the mode with Suspend rather than a soft reset.** 0.10 put a soft reset
+  in front of each configuration to stop the part carrying state from one run into the next.
+  That was the right idea and the wrong instruction: the datasheet gives no settling time for a
+  soft reset anywhere, so a configuration written straight after one is written into a part that
+  may still be resetting. Suspend Mode is what the datasheet actually asks for in the middle of a
+  mode shift, it is one write, and it needs no guess about timing.
+
 ## 0.10 — beta
 
 - **A GY-271 board reading QMC5883P no longer looks like a contradiction.** The number

@@ -88,9 +88,13 @@
 // only cost of being generous here is ten milliseconds once per run.
 #define QMC_SELFTEST_MS 10
 
-// The datasheet gives no settling time for the soft reset anywhere. Ten is the
-// same generous round number for the same reason -- it is paid twice per run.
-#define QMC_RESET_SETTLE_MS 10
+// Rev. C Table 17, page 15: ODR is bits 3:2 of the byte section 7.2 writes to
+// 0AH, and 0xC3 selects 10 Hz -- one new sample every hundred milliseconds.
+// Reading faster than that re-reads the sample already on the screen, and
+// publishing it again drives the display, and anything watching the USB screen
+// stream, at whatever rate the I2C bus happens to run at rather than at the
+// rate the part measures. So the loop waits a period between samples.
+#define QMC_SAMPLE_PERIOD_MS 100
 
 // Rev. C Table 2, page 8: sensitivity is 1000 LSB/G at the +/-30 G range and
 // 3750 LSB/G at +/-8 G. The self-test runs at the reset range because the
@@ -171,24 +175,21 @@ static void qmc_delay(const volatile bool* stop, uint32_t ms) {
     }
 }
 
-// Section 7.6's soft reset, used as the first step of every configuration here
-// rather than only as the last step of the run. Table 18: it restores "default
-// value of all registers" and "can be invoked at any time of any mode", and the
-// default mode is Suspend -- which is also what section 9.2.3 asks for when it
-// says "Suspend Mode should be added in the middle of mode shifting between
-// Continuous Mode, Single Mode and Normal Mode". One write therefore does both
-// jobs: it clears whatever the previous pass left in 0AH, 0BH and 29H, and it
-// puts the part in the mode the next write is allowed to leave.
+// Section 7.4's Suspend Mode example, used as the first step of every
+// configuration here. Section 9.2.3: "Suspend Mode should be added in the
+// middle of mode shifting between Continuous Mode, Single Mode and Normal
+// Mode." So the mode the next write starts from is established rather than
+// inherited from whatever the last pass left behind.
 //
 // This is not tidiness. On silicon the first run of this test passed and the
 // second did not, because the second began on a part still carrying the first
-// run's state, and every number after that was measured through a
-// configuration nobody had established.
-static bool qmc_reset(const LiveTestI2c* i2c, uint8_t addr7, const volatile bool* stop) {
-    if(!i2c->write_reg(addr7, QMC_REG_CTRL2, QMC_CTRL2_SOFTRST, LIVE_TEST_TIMEOUT_MS))
-        return false;
-    qmc_delay(stop, QMC_RESET_SETTLE_MS);
-    return true;
+// run's state. Section 7.6's soft reset was tried here first and is worse for
+// the job: it does more, but the datasheet gives no settling time for it
+// anywhere, and a configuration written into a part that is still resetting is
+// the same fault wearing a different hat. One write to 0AH needs no such
+// guess.
+static bool qmc_suspend(const LiveTestI2c* i2c, uint8_t addr7) {
+    return i2c->write_reg(addr7, QMC_REG_CTRL1, QMC_CTRL1_SUSPEND, LIVE_TEST_TIMEOUT_MS);
 }
 
 static LiveTestIdResult qmc_identify(const LiveTestI2c* i2c, uint8_t addr7) {
@@ -250,7 +251,7 @@ static bool qmc_self_test(
     uint8_t addr7,
     const volatile bool* stop,
     int32_t delta[3]) {
-    if(!qmc_reset(i2c, addr7, stop)) return false;
+    if(!qmc_suspend(i2c, addr7)) return false;
     if(!i2c->write_reg(addr7, QMC_REG_SIGN, QMC_SIGN_VALUE, LIVE_TEST_TIMEOUT_MS)) return false;
     if(!i2c->write_reg(addr7, QMC_REG_CTRL1, QMC_CTRL1_SELFRUN, LIVE_TEST_TIMEOUT_MS))
         return false;
@@ -345,7 +346,7 @@ static void qmc_run(const LiveTestEnv* env) {
         // established rather than assumed, and then section 7.2's example
         // follows, all three writes, in its order.
         const bool measuring =
-            qmc_reset(i2c, addr7, stop) &&
+            qmc_suspend(i2c, addr7) &&
             i2c->write_reg(addr7, QMC_REG_SIGN, QMC_SIGN_VALUE, LIVE_TEST_TIMEOUT_MS) &&
             i2c->write_reg(addr7, QMC_REG_CTRL2, QMC_CTRL2_RUN, LIVE_TEST_TIMEOUT_MS) &&
             i2c->write_reg(addr7, QMC_REG_CTRL1, QMC_CTRL1_CONT, LIVE_TEST_TIMEOUT_MS);
@@ -376,6 +377,7 @@ static void qmc_run(const LiveTestEnv* env) {
                 snprintf(st.lines[0], LIVE_TEST_LINE_LEN, "Too strong - back it off");
                 snprintf(st.lines[1], LIVE_TEST_LINE_LEN, "Saturated x%u", (unsigned)overflows);
                 publish(ctx, &st);
+                qmc_delay(stop, QMC_SAMPLE_PERIOD_MS);
                 continue;
             }
             if(got != QmcSampleOk) {
@@ -419,6 +421,7 @@ static void qmc_run(const LiveTestEnv* env) {
                            "No self-test    %lus",
                 (unsigned long)((furi_get_tick() - started) / furi_ms_to_ticks(1000)));
             publish(ctx, &st);
+            qmc_delay(stop, QMC_SAMPLE_PERIOD_MS);
         }
 
         // --- Park it ----------------------------------------------------
