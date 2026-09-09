@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.13 — beta
+
+- **Two drawing fixes from xMasterX**, found running the app on a Flipper with nothing wired to
+  the I2C pins and sent as a patch on the Apps Catalog pull request. The Right-key glyph on the
+  save log, details and find out bars spans seven rows around the y it is given, so the y it was
+  drawn at put its last row one below the bottom of a 64-row screen and cut the tip off the
+  arrow. And on the pad meter the title and the key hint were drawn at the same height from
+  opposite edges with nothing checking they fit, so **Pad reads FLOATING** ran straight through
+  **save**. The hint is drawn first now and the title fitted to the room left over, so no title
+  can overlap it again — and the titles are shorter, which means none of them has to be.
+
 ## 0.12 — beta
 
 - **The QMC5883L has a live test now.** It is the die a GY-271 board most often carries, and the
