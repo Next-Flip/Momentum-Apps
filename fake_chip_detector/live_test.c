@@ -10,6 +10,7 @@
 #include "live_ds3231.h"
 #include "live_mlx90614.h"
 #include "live_mpu6050.h"
+#include "live_qmc5883l.h"
 #include "live_qmc5883p.h"
 #include "live_sht.h"
 #include "live_ssd1306.h"
@@ -51,6 +52,7 @@ static const LiveTest* const live_tests[] = {
     &live_test_mpu6050,
     &live_test_mpu6500,
     &live_test_mpu9250,
+    &live_test_qmc5883l,
     &live_test_qmc5883p,
     &live_test_sht,
     &live_test_ssd1306,
