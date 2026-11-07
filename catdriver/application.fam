@@ -1,0 +1,15 @@
+App(
+    appid="catdriver",
+    name="[ESP32] CatDriver",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="catdriver_app",
+    stack_size=2048,
+    fap_icon="lookingglass.png",
+    fap_category="GPIO",
+    fap_author="@Sil333033 & @Emilio",
+    fap_weburl="https://github.com/EVL87/catwardrive",
+    fap_version="1.0",
+    fap_description="Full WiFi + BLE Wardriving with GPS for Flipper Zero",
+    fap_icon_assets="icons",
+    fap_icon_assets_symbol="catdriver",
+)
